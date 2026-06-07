@@ -193,7 +193,7 @@ function _ze {
                     l) list=1;;
                     r) typ="rank";;
                     t) typ="recent";;
-                    x) \sed "${_ZE_SED_IFLAG[@]}" -e "\:^${PWD}|.*:d" "$datafile";;
+                    x) \sed "${_ZE_SED_IFLAG[@]}" -e "\:^${PWD}|.*:d" "$datafile"; return;;
                     *) fnd="$fnd${fnd:+ }$1"; opt='';;
 
                 esac; opt=${opt:1}; done;;
