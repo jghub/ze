@@ -83,11 +83,18 @@ not yet in the ze.sh database rather than the `cd` builtin.
 
 ## Related tools
 
-[zoxide](https://github.com/ajeetdsouza/zoxide) — compiled Rust binary, same concept, wider shell support including fish and nushell, actively maintained, the de facto standard for new installations.
+[SD](https://github.com/jghub/sd-switchdir) — ksh93/bash/zsh, single-file,
+explicit event log with exponential kernel scoring, cycling through matches. More
+fully featured than ze.sh in several respects; the explicit event log allows
+rescoring with different parameters without data loss.
 
-[sd-switchdir](https://github.com/jghub/sd-switchdir) — ksh93/bash/zsh, single-file, more sophisticated scoring (explicit event log rather than aggregate state), cycling through matches, recently released. Closer in spirit to ze.sh than zoxide.
+[zoxide](https://github.com/ajeetdsouza/zoxide) — compiled Rust binary inspired by z.sh,
+frecency-based scoring, wider shell support including fish and nushell, widely adopted.
 
-ze.sh occupies a specific niche: minimal, single-file, ksh93-compatible, tracks only intentional navigation rather than all shell activity.
+ze.sh occupies a specific niche: minimal, shell-native, single-file, ksh93-compatible,
+tracking only intentional navigation rather than all shell activity. Scoring is
+equivalent to SD for a fixed decay parameter but the aggregate-state
+database does not support retrospective rescoring.
 
 ## License
 
