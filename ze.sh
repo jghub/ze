@@ -1,18 +1,39 @@
 # Copyright (c) 2009 rupa deadwyler. Licensed under the WTFPL license, Version 2
-
+# =====================================================================================
+# Modified by Joerg van den Hoff [2026]: exponential scoring, cd-event tracking only.
+#
+# changes:
+#
+# 1. replace original scoring model by smooth exponential weight decay (time
+# series convolution with monoexponential kernel).
+#
+# 2. original z relies on zsh and bash hooks that in effect trigger score
+# changes for any command in resident directory (including the final cd to a
+# different directory). it seems preferable for a directory jumper to only
+# monitor cd activity and increase score of the target directory, rather than
+# that of the source directory of the cd action. this version removes the hooks;
+# only cd actions trigger database updates.
+#
+# 3. usage: since hooks are gone, builtin cd will not trigger inclusion of new
+# directories into the database. instead now simply use 'z /path/to/directory'
+# for that purpose or define
+#
+#    alias cd=_z_cd
+#
+# =====================================================================================
 # maintains a jump-list of the directories you actually use
 #
 # INSTALL:
 #     * put something like this in your .bashrc/.zshrc:
 #         . /path/to/z.sh
-#     * cd around for a while to build up the db
+#     * cd around with 'z /path/to/directory' for a while to build up the db
 #     * PROFIT!!
 #     * optionally:
 #         set $_Z_CMD in .bashrc/.zshrc to change the command (default z).
-#         set $_Z_DATA in .bashrc/.zshrc to change the datafile (default ~/.z).
-#         set $_Z_MAX_SCORE lower to age entries out faster (default 9000).
+#         set $_Z_DATA in .bashrc/.zshrc to change the datafile (default ~/.ze).
+#         set $_Z_LAMBDA to desired exponential decay rate (default 4e-6/sec, half-life=ln(2)/lambda ~ 170000s ~ 2d).
 #         set $_Z_NO_RESOLVE_SYMLINKS to prevent symlink resolution.
-#         set $_Z_NO_PROMPT_COMMAND if you're handling PROMPT_COMMAND yourself.
+#         set $_Z_NO_PROMPT_COMMAND if you're handling PROMPT_COMMAND yourself.  ** not honoured by this version **
 #         set $_Z_EXCLUDE_DIRS to an array of directories to exclude.
 #         set $_Z_OWNER to your username if you want use z while sudo with $HOME kept
 #
@@ -26,83 +47,117 @@
 #     * z -c foo  # restrict matches to subdirs of $PWD
 #     * z -x      # remove the current directory from the datafile
 #     * z -h      # show a brief help message
+#
+# DATA FORMAT: path|rank|timestamp|score
+#     rank      = visit count (integer, preserved for -r mode)
+#     timestamp = unix epoch of last visit (preserved for -t mode)
+#     score     = exponential frecency score: running sum of decayed visit weights
 
-[ -d "${_Z_DATA:-$HOME/.z}" ] && {
-    echo "ERROR: z.sh's datafile (${_Z_DATA:-$HOME/.z}) is a directory."
+function _z_init {
+    typeset  datafile="${_Z_DIR}/ze.db"
+    if [[ -e $_Z_DIR && ! -d $_Z_DIR ]]; then
+        echo "ze: $_Z_DIR exists and is not a directory" >&2
+        return 1
+    elif [[ ! -d $_Z_DIR ]]; then
+        mkdir -p $_Z_DIR || { echo "ze: failed to create $_Z_DIR" >&2; return 1; }
+    fi
+    if [[ -e "$datafile" && ! -f "$datafile" ]]; then
+        echo "ze: $datafile exists and is not a regular file" >&2
+        return 1
+    elif [[ ! -f "$datafile" ]]; then
+        touch "$datafile" || { echo "ze: failed to create $datafile" >&2; return 1; }
+    fi
+    if [[ ! -O "$datafile" ]]; then
+        echo "ze: $datafile not owned by current user" >&2
+        return 1
+    fi
 }
 
-_z() {
+_Z_DIR=${_Z_DIR:-$HOME/.zd}
+if ! _z_init; then
+    unset -f _z_init
+    return 1
+fi
+unset -f _z_init
 
-    local datafile="${_Z_DATA:-$HOME/.z}"
+function _z_dirs {
+    typeset datafile="${_Z_DIR}/ze.db"
+    [[ -f "$datafile" ]] || return
+    typeset line
+    while read line; do
+        # only count directories
+        [[ -d "${line%%\|*}" ]] && echo "$line"
+    done < "$datafile"
+    return 0
+}
 
-    # if symlink, dereference
-    [ -h "$datafile" ] && datafile=$(readlink "$datafile")
+function _z_cd {
+    if command cd "$@"; then
+        if [[ "$_Z_NO_RESOLVE_SYMLINKS" ]]; then
+            #(_z --add "$PWD" &)
+            _z --add "$PWD"
+        else
+            #(_z --add "$(command pwd $_Z_RESOLVE_SYMLINKS 2>/dev/null)" &)
+            _z --add "$(command pwd $_Z_RESOLVE_SYMLINKS 2>/dev/null)"
+        fi
+        return 0
+    else
+        return $?
+    fi
+}
+
+function _z {
+    typeset datafile="${_Z_DIR}/ze.db"
+    typeset lambda="${_Z_LAMBDA:-4e-6}"
 
     # bail if we don't own ~/.z and $_Z_OWNER not set
-    [ -z "$_Z_OWNER" -a -f "$datafile" -a ! -O "$datafile" ] && return
-
-    _z_dirs () {
-        [ -f "$datafile" ] || return
-
-        local line
-        while read line; do
-            # only count directories
-            [ -d "${line%%\|*}" ] && echo "$line"
-        done < "$datafile"
-        return 0
-    }
+    [[ -z "$_Z_OWNER" ]] && [[ -f "$datafile" ]] && [[ ! -O "$datafile" ]] && return
 
     # add entries
-    if [ "$1" = "--add" ]; then
+    if [[ "$1" == "--add" ]]; then
         shift
 
         # $HOME and / aren't worth matching
-        [ "$*" = "$HOME" -o "$*" = '/' ] && return
-
+        [[ "$*" == "$HOME" || "$*" == '/' ]] && return
         # don't track excluded directory trees
-        if [ ${#_Z_EXCLUDE_DIRS[@]} -gt 0 ]; then
-            local exclude
+        if (( ${#_Z_EXCLUDE_DIRS[@]} > 0 )); then
+            typeset exclude
             for exclude in "${_Z_EXCLUDE_DIRS[@]}"; do
                 case "$*" in "$exclude"*) return;; esac
             done
         fi
 
         # maintain the data file
-        local tempfile="$datafile.$RANDOM"
-        local score=${_Z_MAX_SCORE:-9000}
-        _z_dirs | \awk -v path="$*" -v now="$(\date +%s)" -v score=$score -F"|" '
-            BEGIN {
-                rank[path] = 1
-                time[path] = now
-            }
-            $2 >= 1 {
-                # drop ranks below 1
+        typeset tempfile="$datafile.$RANDOM"
+
+        _z_dirs | \awk -v path="$*" -v now="$(\date +%s)" -v lambda="$lambda" -F"|" '
+            {
                 if( $1 == path ) {
-                    rank[$1] = $2 + 1
-                    time[$1] = now
+                    hit = 1
+                    rank = $2 + 1
+                    time = now
+                    score = $4 * exp(-lambda * (now - $3)) + 1
                 } else {
-                    rank[$1] = $2
-                    time[$1] = $3
+                    rank = $2
+                    time = $3
+                    score = $4
                 }
-                count += $2
+                print $1 "|" rank "|" time "|" score
             }
             END {
-                if( count > score ) {
-                    # aging
-                    for( x in rank ) print x "|" 0.99*rank[x] "|" time[x]
-                } else for( x in rank ) print x "|" rank[x] "|" time[x]
+                if (!hit) print path "|" 1 "|" now "|" 1
             }
         ' 2>/dev/null >| "$tempfile"
         # do our best to avoid clobbering the datafile in a race condition.
-        if [ $? -ne 0 -a -f "$datafile" ]; then
+        if (( $? != 0 )) && [[ -f "$datafile" ]]; then
             \env rm -f "$tempfile"
         else
-            [ "$_Z_OWNER" ] && chown $_Z_OWNER:"$(id -ng $_Z_OWNER)" "$tempfile"
+            [[ "$_Z_OWNER" ]] && chown $_Z_OWNER:"$(id -ng $_Z_OWNER)" "$tempfile"
             \env mv -f "$tempfile" "$datafile" || \env rm -f "$tempfile"
         fi
 
     # tab completion
-    elif [ "$1" = "--complete" -a -s "$datafile" ]; then
+    elif [[ "$1" == "--complete" ]] && [[ -s "$datafile" ]]; then
         _z_dirs | \awk -v q="$2" -F"|" '
             BEGIN {
                 q = substr(q, 3)
@@ -118,10 +173,12 @@ _z() {
 
     else
         # list/go
-        local echo fnd last list opt typ
-        while [ "$1" ]; do case "$1" in
-            --) while [ "$1" ]; do shift; fnd="$fnd${fnd:+ }$1";done;;
-            -*) opt=${1:1}; while [ "$opt" ]; do case ${opt:0:1} in
+        typeset echo fnd last opt typ
+        typeset -i list=0
+        while [[ "$1" ]]; do case "$1" in
+            --) while [[ "$1" ]]; do shift; fnd="$fnd${fnd:+ }$1";done;;
+             -) fnd="-";;
+            -*) opt=${1:1}; while [[ "$opt" ]]; do case ${opt:0:1} in
                     c) fnd="^$PWD $fnd";;
                     e) echo=1;;
                     h) echo "${_Z_CMD:-z} [-cehlrtx] args" >&2; return;;
@@ -129,56 +186,36 @@ _z() {
                     r) typ="rank";;
                     t) typ="recent";;
                     x) \sed -i -e "\:^${PWD}|.*:d" "$datafile";;
+                    *) fnd="$fnd${fnd:+ }$1"; opt='';;
+
                 esac; opt=${opt:1}; done;;
              *) fnd="$fnd${fnd:+ }$1";;
-        esac; last=$1; [ "$#" -gt 0 ] && shift; done
-        [ "$fnd" -a "$fnd" != "^$PWD " ] || list=1
+        esac; last=$1; (( $# > 0 )) && shift; done
 
-        # if we hit enter on a completion just go there
-        case "$last" in
-            # completions will always start with /
-            /*) [ -z "$list" -a -d "$last" ] && builtin cd "$last" && return;;
-        esac
+        # if bare -c with no args, just list
+        [[ "$fnd" == "^$PWD " ]] && list=1
+        #  skip pattern matching if real path, empty (go to $HOME), or "-":
+        ((!list)) && [[ -d "${fnd:-$HOME}" || "$fnd" == "-" ]] && { _z_cd "${fnd:-$HOME}"; return; }
 
-        # no file yet
-        [ -f "$datafile" ] || return
 
-        local cd
-        cd="$( < <( _z_dirs ) \awk -v t="$(\date +%s)" -v list="$list" -v typ="$typ" -v q="$fnd" -F"|" '
-            function frecent(rank, time) {
-              # relate frequency and time
-              dx = t - time
-              return int(10000 * rank * (3.75/((0.0001 * dx + 1) + 0.25)))
+        typeset cd
+        cd="$(_z_dirs | \awk -v t="$(\date +%s)" -v list="$list" -v typ="$typ" -v q="$fnd" -v lambda="$lambda" -F"|" '
+            function frecent(score, time) {
+                # dampen stored score exponentially until t="now" to yield time-weighted current score (or "rank" as z.sh calls it)
+                return score * exp(-lambda * (t - time))
             }
-            function output(matches, best_match, common) {
+            function output(matches, best_match) {
                 # list or return the desired directory
                 if( list ) {
-                    if( common ) {
-                        printf "%-10s %s\n", "common:", common > "/dev/stderr"
-                    }
-                    cmd = "sort -n >&2"
+                    cmd = "sort -g >&2"
                     for( x in matches ) {
                         if( matches[x] ) {
-                            printf "%-10s %s\n", matches[x], x | cmd
+                            printf "%-12s %s\n", matches[x], x | cmd
                         }
                     }
                 } else {
-                    if( common && !typ ) best_match = common
                     print best_match
                 }
-            }
-            function common(matches) {
-                # find the common root of a list of matches, if it exists
-                for( x in matches ) {
-                    if( matches[x] && (!short || length(x) < length(short)) ) {
-                        short = x
-                    }
-                }
-                if( short == "/" ) return
-                for( x in matches ) if( matches[x] && index(x, short) != 1 ) {
-                    return
-                }
-                return short
             }
             BEGIN {
                 gsub(" ", ".*", q)
@@ -189,7 +226,7 @@ _z() {
                     rank = $2
                 } else if( typ == "recent" ) {
                     rank = $3 - t
-                } else rank = frecent($2, $3)
+                } else rank = frecent($4, $3)
                 if( $1 ~ q ) {
                     matches[$1] = rank
                 } else if( tolower($1) ~ tolower(q) ) imatches[$1] = rank
@@ -204,19 +241,19 @@ _z() {
             END {
                 # prefer case sensitive
                 if( best_match ) {
-                    output(matches, best_match, common(matches))
+                    output(matches, best_match)
                     exit
                 } else if( ibest_match ) {
-                    output(imatches, ibest_match, common(imatches))
+                    output(imatches, ibest_match)
                     exit
                 }
                 exit(1)
             }
         ')"
 
-        if [ "$?" -eq 0 ]; then
-          if [ "$cd" ]; then
-            if [ "$echo" ]; then echo "$cd"; else builtin cd "$cd"; fi
+        if (( $? == 0 )); then
+          if [[ "$cd" ]]; then
+            if [[ "$echo" ]]; then echo "$cd"; else _z_cd "$cd"; fi
           fi
         else
           return $?
@@ -224,44 +261,24 @@ _z() {
     fi
 }
 
-alias ${_Z_CMD:-z}='_z 2>&1'
+#alias ${_Z_CMD:-z}='_z 2>&1'
+function z {
+   _z "$@" || return
+   label "${_SHRC[host]}:$PWD"
+   mkprompt
+}
 
-[ "$_Z_NO_RESOLVE_SYMLINKS" ] || _Z_RESOLVE_SYMLINKS="-P"
+[[ "$_Z_NO_RESOLVE_SYMLINKS" ]] || _Z_RESOLVE_SYMLINKS="-P"
 
 if type compctl >/dev/null 2>&1; then
-    # zsh
-    [ "$_Z_NO_PROMPT_COMMAND" ] || {
-        # populate directory list, avoid clobbering any other precmds.
-        if [ "$_Z_NO_RESOLVE_SYMLINKS" ]; then
-            _z_precmd() {
-                (_z --add "${PWD:a}" &)
-                : $RANDOM
-            }
-        else
-            _z_precmd() {
-                (_z --add "${PWD:A}" &)
-                : $RANDOM
-            }
-        fi
-        [[ -n "${precmd_functions[(r)_z_precmd]}" ]] || {
-            precmd_functions[$(($#precmd_functions+1))]=_z_precmd
-        }
-    }
-    _z_zsh_tab_completion() {
-        # tab completion
-        local compl
+    # zsh completion
+    function _z_zsh_tab_completion {
+        typeset compl
         read -l compl
         reply=(${(f)"$(_z --complete "$compl")"})
     }
-    compctl -U -K _z_zsh_tab_completion _z
+    compctl -U -K _z_zsh_tab_completion ${_Z_CMD:-z}
 elif type complete >/dev/null 2>&1; then
-    # bash
-    # tab completion
+    # bash completion
     complete -o filenames -C '_z --complete "$COMP_LINE"' ${_Z_CMD:-z}
-    [ "$_Z_NO_PROMPT_COMMAND" ] || {
-        # populate directory list. avoid clobbering other PROMPT_COMMANDs.
-        grep "_z --add" <<< "$PROMPT_COMMAND" >/dev/null || {
-            PROMPT_COMMAND="$PROMPT_COMMAND"$'\n''(_z --add "$(command pwd '$_Z_RESOLVE_SYMLINKS' 2>/dev/null)" 2>/dev/null &);'
-        }
-    }
 fi
