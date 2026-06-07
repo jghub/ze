@@ -59,6 +59,28 @@ ze [-cehlrtx] [args]
 | `_ZE_NO_RESOLVE_SYMLINKS`  | unset    | do not resolve symlinks on cd            |
 | `_ZE_EXCLUDE_DIRS`         | unset    | array of directory trees to exclude      |
 
+## Migrating from z.sh
+
+If you have an existing `~/.z` database, you might convert it for use with ze.sh 
+by issuing:
+
+```sh
+mkdir -p ~/.ze
+# Only run the following if ~/.ze/ze.db does not already exist:
+awk -F'|' -v now="$(date +%s)" \
+    'BEGIN{OFS="|"; lambda=4e-6}
+    {print $1, $2, $3, $2 * exp(-lambda * (now - $3))}' ~/.z > ~/.ze/ze.db
+```
+
+This maps z.sh's three-column format to ze.sh's four-column format, computing an
+initial frecency score proxy from the existing visit count and last-visit
+timestamp. Directories not visited recently will start with appropriately lower
+scores.
+
+Note that ze.sh only tracks directories navigated via the `ze` command itself, so
+the imported history will only grow if you use `ze` for navigation to directories
+not yet in the ze.sh database rather than the `cd` builtin.
+
 ## Related tools
 
 [zoxide](https://github.com/ajeetdsouza/zoxide) — compiled Rust binary, same concept, wider shell support including fish and nushell, actively maintained, the de facto standard for new installations.
