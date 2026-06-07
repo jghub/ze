@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # Copyright (c) 2009 rupa deadwyler. Licensed under the WTFPL license, Version 2
 # =====================================================================================
 # Modified by Joerg van den Hoff [2026]: exponential scoring, cd-event tracking only.
@@ -59,7 +60,7 @@ function _ze_init {
         echo "ze: $_ZE_DIR exists and is not a directory" >&2
         return 1
     elif [[ ! -d $_ZE_DIR ]]; then
-        mkdir -p $_ZE_DIR || { echo "ze: failed to create $_ZE_DIR" >&2; return 1; }
+        mkdir -p "$_ZE_DIR" || { echo "ze: failed to create $_ZE_DIR" >&2; return 1; }
     fi
     if [[ -e "$datafile" && ! -f "$datafile" ]]; then
         echo "ze: $datafile exists and is not a regular file" >&2
@@ -84,7 +85,7 @@ function _ze_dirs {
     typeset datafile="${_ZE_DIR}/ze.db"
     [[ -f "$datafile" ]] || return
     typeset line
-    while read line; do
+    while IFS= read -r line; do
         # only count directories
         [[ -d "${line%%\|*}" ]] && echo "$line"
     done < "$datafile"
@@ -96,6 +97,7 @@ function _ze_cd {
         if [[ "$_ZE_NO_RESOLVE_SYMLINKS" ]]; then
             (_ze --add "$PWD" &)
         else
+            # shellcheck disable=SC2086 # not applicable
             (_ze --add "$(command pwd $_ZE_RESOLVE_SYMLINKS 2>/dev/null)" &)
         fi
         return 0
@@ -147,10 +149,11 @@ function _ze {
             }
         ' 2>/dev/null >| "$tempfile"
         # do our best to avoid clobbering the datafile in a race condition.
+        # shellcheck disable=SC2181 # irrelevant
         if (( $? != 0 )) && [[ -f "$datafile" ]]; then
             \env rm -f "$tempfile"
         else
-            [[ "$_ZE_OWNER" ]] && chown $_ZE_OWNER:"$(id -ng $_ZE_OWNER)" "$tempfile"
+            [[ "$_ZE_OWNER" ]] && chown "$_ZE_OWNER":"$(id -ng "$_ZE_OWNER")" "$tempfile"
             \env mv -f "$tempfile" "$datafile" || \env rm -f "$tempfile"
         fi
 
@@ -171,7 +174,7 @@ function _ze {
 
     else
         # list/go
-        typeset echo fnd last opt typ
+        typeset echo fnd opt typ
         typeset -i list=0
         while [[ "$1" ]]; do case "$1" in
             --) while [[ "$1" ]]; do shift; fnd="$fnd${fnd:+ }$1";done;;
@@ -188,7 +191,7 @@ function _ze {
 
                 esac; opt=${opt:1}; done;;
              *) fnd="$fnd${fnd:+ }$1";;
-        esac; last=$1; (( $# > 0 )) && shift; done
+        esac; (( $# > 0 )) && shift; done
 
         # if bare -c with no args, just list
         [[ "$fnd" == "^$PWD " ]] && list=1
@@ -196,8 +199,8 @@ function _ze {
         ((!list)) && [[ -d "${fnd:-$HOME}" || "$fnd" == "-" ]] && { _ze_cd "${fnd:-$HOME}"; return; }
 
 
-        typeset cd
-        cd="$(_ze_dirs | \awk -v t="$(\date +%s)" -v list="$list" -v typ="$typ" -v q="$fnd" -v lambda="$lambda" -F"|" '
+        typeset bestmatch
+        bestmatch="$(_ze_dirs | \awk -v t="$(\date +%s)" -v list="$list" -v typ="$typ" -v q="$fnd" -v lambda="$lambda" -F"|" '
             function frecent(score, time) {
                 # dampen stored score exponentially until t="now" to yield time-weighted current score (or "rank" as z.sh calls it)
                 return score * exp(-lambda * (t - time))
@@ -249,9 +252,10 @@ function _ze {
             }
         ')"
 
+        # shellcheck disable=SC2181 # irrelevant
         if (( $? == 0 )); then
-          if [[ "$cd" ]]; then
-            if [[ "$echo" ]]; then echo "$cd"; else _ze_cd "$cd"; fi
+          if [[ "$bestmatch" ]]; then
+            if [[ "$echo" ]]; then echo "$bestmatch"; else _ze_cd "$bestmatch"; fi
           fi
         else
           return $?
@@ -259,6 +263,7 @@ function _ze {
     fi
 }
 
+# shellcheck disable=SC2086,SC2139 # false alarm
 alias ${_ZE_CMD:-ze}='_ze 2>&1'
 
 [[ "$_ZE_NO_RESOLVE_SYMLINKS" ]] || _ZE_RESOLVE_SYMLINKS="-P"
@@ -267,11 +272,14 @@ if type compctl >/dev/null 2>&1; then
     # zsh completion
     function _ze_zsh_tab_completion {
         typeset compl
+        # shellcheck disable=SC2162 # false alarm
         read -l compl
+        # shellcheck disable=SC2034,SC2206,SC2296 # false alarm
         reply=(${(f)"$(_ze --complete "$compl")"})
     }
-    compctl -U -K _ze_zsh_tab_completion ${_ZE_CMD:-ze}
+    compctl -U -K _ze_zsh_tab_completion "${_ZE_CMD:-ze}"
 elif type complete >/dev/null 2>&1; then
     # bash completion
-    complete -o filenames -C '_ze --complete "$COMP_LINE"' ${_ZE_CMD:-ze}
+    # shellcheck disable=SC2016 # false alarm
+    complete -o filenames -C '_ze --complete "$COMP_LINE"' "${_ZE_CMD:-ze}"
 fi
