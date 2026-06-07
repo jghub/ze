@@ -72,6 +72,14 @@ function _ze_init {
         printf '%s\n' "ze: $datafile not owned by current user" >&2
         return 1
     fi
+
+    # address the old z.sh bug of not dealing with non-GNU OS regarding 'ze -x'.
+    # detect which sed we are using and act on it accordingly:
+    if sed --version 2>/dev/null | grep -q GNU; then
+        _ZE_SED_IFLAG=(-i)
+    else
+        _ZE_SED_IFLAG=(-i '')
+    fi
 }
 
 _ZE_DIR=${_ZE_DIR:-$HOME/.ze}
@@ -127,7 +135,8 @@ function _ze {
         # maintain the data file
         typeset tempfile="$datafile.$RANDOM"
 
-        _ze_dirs | \awk -v path="$*" -v now="$(\date +%s)" -v lambda="$lambda" -F"|" '
+        _ze_dirs | path="$*" \awk -v now="$(\date +%s)" -v lambda="$lambda" -F"|" '
+            BEGIN { path = ENVIRON["path"] }
             {
                 if( $1 == path ) {
                     hit = 1
@@ -156,8 +165,9 @@ function _ze {
 
     # tab completion
     elif [[ "$1" == "--complete" ]] && [[ -s "$datafile" ]]; then
-        _ze_dirs | \awk -v q="$2" -F"|" '
+        _ze_dirs | candidate="$2" \awk -F"|" '
             BEGIN {
+                q = ENVIRON["candidate"]
                 q = substr(q, 3)
                 if( q == tolower(q) ) imatch = 1
                 gsub(/ /, ".*", q)
@@ -183,7 +193,7 @@ function _ze {
                     l) list=1;;
                     r) typ="rank";;
                     t) typ="recent";;
-                    x) \sed -i -e "\:^${PWD}|.*:d" "$datafile";;
+                    x) \sed "${_ZE_SED_IFLAG[@]}" -e "\:^${PWD}|.*:d" "$datafile";;
                     *) fnd="$fnd${fnd:+ }$1"; opt='';;
 
                 esac; opt=${opt:1}; done;;
@@ -197,7 +207,7 @@ function _ze {
 
 
         typeset bestmatch
-        bestmatch="$(_ze_dirs | \awk -v t="$(\date +%s)" -v list="$list" -v typ="$typ" -v q="$fnd" -v lambda="$lambda" -F"|" '
+        bestmatch="$(_ze_dirs | fnd="$fnd" \awk -v t="$(\date +%s)" -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
             function frecent(score, time) {
                 # dampen stored score exponentially until t="now" to yield time-weighted current score (or "rank" as z.sh calls it)
                 return score * exp(-lambda * (t - time))
@@ -216,6 +226,7 @@ function _ze {
                 }
             }
             BEGIN {
+                q = ENVIRON["fnd"]
                 gsub(" ", ".*", q)
                 hi_rank = ihi_rank = -9999999999
             }
