@@ -15,51 +15,51 @@
 # only cd actions trigger database updates.
 #
 # 3. usage: since hooks are gone, builtin cd will not trigger inclusion of new
-# directories into the database. instead now simply use 'z /path/to/directory'
+# directories into the database. instead now simply use 'ze /path/to/directory'
 # for that purpose or define
 #
-#    alias cd=_z_cd
+#    alias cd=_ze_cd
 #
 # =====================================================================================
 # maintains a jump-list of the directories you actually use
 #
 # INSTALL:
 #     * put something like this in your .bashrc/.zshrc:
-#         . /path/to/z.sh
-#     * cd around with 'z /path/to/directory' for a while to build up the db
+#         . /path/to/ze.sh
+#     * cd around with 'ze /path/to/directory' for a while to build up the db
 #     * PROFIT!!
 #     * optionally:
-#         set $_Z_CMD in .bashrc/.zshrc to change the command (default z).
-#         set $_Z_DATA in .bashrc/.zshrc to change the datafile (default ~/.ze).
-#         set $_Z_LAMBDA to desired exponential decay rate (default 4e-6/sec, half-life=ln(2)/lambda ~ 170000s ~ 2d).
-#         set $_Z_NO_RESOLVE_SYMLINKS to prevent symlink resolution.
-#         set $_Z_NO_PROMPT_COMMAND if you're handling PROMPT_COMMAND yourself.  ** not honoured by this version **
-#         set $_Z_EXCLUDE_DIRS to an array of directories to exclude.
-#         set $_Z_OWNER to your username if you want use z while sudo with $HOME kept
+#         set $_ZE_CMD in .bashrc/.zshrc to change the command (default ze).
+#         set $_ZE_DIR in shell rc file to change the datafile *directory* (default ~/.ze).
+#         set $_ZE_LAMBDA to desired exponential decay rate (default 4e-6/sec, half-life=ln(2)/lambda ~ 170000s ~ 2d).
+#         set $_ZE_NO_RESOLVE_SYMLINKS to prevent symlink resolution.
+#         set $_ZE_NO_PROMPT_COMMAND if you're handling PROMPT_COMMAND yourself.  ** not honoured by this version **
+#         set $_ZE_EXCLUDE_DIRS to an array of directories to exclude.
+#         set $_ZE_OWNER to your username if you want use ze while sudo with $HOME kept
 #
 # USE:
-#     * z foo     # cd to most frecent dir matching foo
-#     * z foo bar # cd to most frecent dir matching foo and bar
-#     * z -r foo  # cd to highest ranked dir matching foo
-#     * z -t foo  # cd to most recently accessed dir matching foo
-#     * z -l foo  # list matches instead of cd
-#     * z -e foo  # echo the best match, don't cd
-#     * z -c foo  # restrict matches to subdirs of $PWD
-#     * z -x      # remove the current directory from the datafile
-#     * z -h      # show a brief help message
+#     * ze foo     # cd to most frecent dir matching foo
+#     * ze foo bar # cd to most frecent dir matching foo and bar
+#     * ze -r foo  # cd to highest ranked dir matching foo
+#     * ze -t foo  # cd to most recently accessed dir matching foo
+#     * ze -l foo  # list matches instead of cd
+#     * ze -e foo  # echo the best match, don't cd
+#     * ze -c foo  # restrict matches to subdirs of $PWD
+#     * ze -x      # remove the current directory from the datafile
+#     * ze -h      # show a brief help message
 #
 # DATA FORMAT: path|rank|timestamp|score
 #     rank      = visit count (integer, preserved for -r mode)
 #     timestamp = unix epoch of last visit (preserved for -t mode)
 #     score     = exponential frecency score: running sum of decayed visit weights
 
-function _z_init {
-    typeset  datafile="${_Z_DIR}/ze.db"
-    if [[ -e $_Z_DIR && ! -d $_Z_DIR ]]; then
-        echo "ze: $_Z_DIR exists and is not a directory" >&2
+function _ze_init {
+    typeset  datafile="${_ZE_DIR}/ze.db"
+    if [[ -e $_ZE_DIR && ! -d $_ZE_DIR ]]; then
+        echo "ze: $_ZE_DIR exists and is not a directory" >&2
         return 1
-    elif [[ ! -d $_Z_DIR ]]; then
-        mkdir -p $_Z_DIR || { echo "ze: failed to create $_Z_DIR" >&2; return 1; }
+    elif [[ ! -d $_ZE_DIR ]]; then
+        mkdir -p $_ZE_DIR || { echo "ze: failed to create $_ZE_DIR" >&2; return 1; }
     fi
     if [[ -e "$datafile" && ! -f "$datafile" ]]; then
         echo "ze: $datafile exists and is not a regular file" >&2
@@ -73,15 +73,15 @@ function _z_init {
     fi
 }
 
-_Z_DIR=${_Z_DIR:-$HOME/.zd}
-if ! _z_init; then
-    unset -f _z_init
+_ZE_DIR=${_ZE_DIR:-$HOME/.ze}
+if ! _ze_init; then
+    unset -f _ze_init
     return 1
 fi
-unset -f _z_init
+unset -f _ze_init
 
-function _z_dirs {
-    typeset datafile="${_Z_DIR}/ze.db"
+function _ze_dirs {
+    typeset datafile="${_ZE_DIR}/ze.db"
     [[ -f "$datafile" ]] || return
     typeset line
     while read line; do
@@ -91,14 +91,12 @@ function _z_dirs {
     return 0
 }
 
-function _z_cd {
+function _ze_cd {
     if command cd "$@"; then
-        if [[ "$_Z_NO_RESOLVE_SYMLINKS" ]]; then
-            #(_z --add "$PWD" &)
-            _z --add "$PWD"
+        if [[ "$_ZE_NO_RESOLVE_SYMLINKS" ]]; then
+            (_ze --add "$PWD" &)
         else
-            #(_z --add "$(command pwd $_Z_RESOLVE_SYMLINKS 2>/dev/null)" &)
-            _z --add "$(command pwd $_Z_RESOLVE_SYMLINKS 2>/dev/null)"
+            (_ze --add "$(command pwd $_ZE_RESOLVE_SYMLINKS 2>/dev/null)" &)
         fi
         return 0
     else
@@ -106,12 +104,12 @@ function _z_cd {
     fi
 }
 
-function _z {
-    typeset datafile="${_Z_DIR}/ze.db"
-    typeset lambda="${_Z_LAMBDA:-4e-6}"
+function _ze {
+    typeset datafile="${_ZE_DIR}/ze.db"
+    typeset lambda="${_ZE_LAMBDA:-4e-6}"
 
-    # bail if we don't own ~/.z and $_Z_OWNER not set
-    [[ -z "$_Z_OWNER" ]] && [[ -f "$datafile" ]] && [[ ! -O "$datafile" ]] && return
+    # bail if we don't own $datafile and $_ZE_OWNER not set
+    [[ -z "$_ZE_OWNER" ]] && [[ -f "$datafile" ]] && [[ ! -O "$datafile" ]] && return
 
     # add entries
     if [[ "$1" == "--add" ]]; then
@@ -120,9 +118,9 @@ function _z {
         # $HOME and / aren't worth matching
         [[ "$*" == "$HOME" || "$*" == '/' ]] && return
         # don't track excluded directory trees
-        if (( ${#_Z_EXCLUDE_DIRS[@]} > 0 )); then
+        if (( ${#_ZE_EXCLUDE_DIRS[@]} > 0 )); then
             typeset exclude
-            for exclude in "${_Z_EXCLUDE_DIRS[@]}"; do
+            for exclude in "${_ZE_EXCLUDE_DIRS[@]}"; do
                 case "$*" in "$exclude"*) return;; esac
             done
         fi
@@ -130,7 +128,7 @@ function _z {
         # maintain the data file
         typeset tempfile="$datafile.$RANDOM"
 
-        _z_dirs | \awk -v path="$*" -v now="$(\date +%s)" -v lambda="$lambda" -F"|" '
+        _ze_dirs | \awk -v path="$*" -v now="$(\date +%s)" -v lambda="$lambda" -F"|" '
             {
                 if( $1 == path ) {
                     hit = 1
@@ -152,13 +150,13 @@ function _z {
         if (( $? != 0 )) && [[ -f "$datafile" ]]; then
             \env rm -f "$tempfile"
         else
-            [[ "$_Z_OWNER" ]] && chown $_Z_OWNER:"$(id -ng $_Z_OWNER)" "$tempfile"
+            [[ "$_ZE_OWNER" ]] && chown $_ZE_OWNER:"$(id -ng $_ZE_OWNER)" "$tempfile"
             \env mv -f "$tempfile" "$datafile" || \env rm -f "$tempfile"
         fi
 
     # tab completion
     elif [[ "$1" == "--complete" ]] && [[ -s "$datafile" ]]; then
-        _z_dirs | \awk -v q="$2" -F"|" '
+        _ze_dirs | \awk -v q="$2" -F"|" '
             BEGIN {
                 q = substr(q, 3)
                 if( q == tolower(q) ) imatch = 1
@@ -181,7 +179,7 @@ function _z {
             -*) opt=${1:1}; while [[ "$opt" ]]; do case ${opt:0:1} in
                     c) fnd="^$PWD $fnd";;
                     e) echo=1;;
-                    h) echo "${_Z_CMD:-z} [-cehlrtx] args" >&2; return;;
+                    h) echo "${_ZE_CMD:-ze} [-cehlrtx] args" >&2; return;;
                     l) list=1;;
                     r) typ="rank";;
                     t) typ="recent";;
@@ -195,11 +193,11 @@ function _z {
         # if bare -c with no args, just list
         [[ "$fnd" == "^$PWD " ]] && list=1
         #  skip pattern matching if real path, empty (go to $HOME), or "-":
-        ((!list)) && [[ -d "${fnd:-$HOME}" || "$fnd" == "-" ]] && { _z_cd "${fnd:-$HOME}"; return; }
+        ((!list)) && [[ -d "${fnd:-$HOME}" || "$fnd" == "-" ]] && { _ze_cd "${fnd:-$HOME}"; return; }
 
 
         typeset cd
-        cd="$(_z_dirs | \awk -v t="$(\date +%s)" -v list="$list" -v typ="$typ" -v q="$fnd" -v lambda="$lambda" -F"|" '
+        cd="$(_ze_dirs | \awk -v t="$(\date +%s)" -v list="$list" -v typ="$typ" -v q="$fnd" -v lambda="$lambda" -F"|" '
             function frecent(score, time) {
                 # dampen stored score exponentially until t="now" to yield time-weighted current score (or "rank" as z.sh calls it)
                 return score * exp(-lambda * (t - time))
@@ -253,7 +251,7 @@ function _z {
 
         if (( $? == 0 )); then
           if [[ "$cd" ]]; then
-            if [[ "$echo" ]]; then echo "$cd"; else _z_cd "$cd"; fi
+            if [[ "$echo" ]]; then echo "$cd"; else _ze_cd "$cd"; fi
           fi
         else
           return $?
@@ -261,24 +259,19 @@ function _z {
     fi
 }
 
-#alias ${_Z_CMD:-z}='_z 2>&1'
-function z {
-   _z "$@" || return
-   label "${_SHRC[host]}:$PWD"
-   mkprompt
-}
+alias ${_ZE_CMD:-ze}='_ze 2>&1'
 
-[[ "$_Z_NO_RESOLVE_SYMLINKS" ]] || _Z_RESOLVE_SYMLINKS="-P"
+[[ "$_ZE_NO_RESOLVE_SYMLINKS" ]] || _ZE_RESOLVE_SYMLINKS="-P"
 
 if type compctl >/dev/null 2>&1; then
     # zsh completion
-    function _z_zsh_tab_completion {
+    function _ze_zsh_tab_completion {
         typeset compl
         read -l compl
-        reply=(${(f)"$(_z --complete "$compl")"})
+        reply=(${(f)"$(_ze --complete "$compl")"})
     }
-    compctl -U -K _z_zsh_tab_completion ${_Z_CMD:-z}
+    compctl -U -K _ze_zsh_tab_completion ${_ZE_CMD:-ze}
 elif type complete >/dev/null 2>&1; then
     # bash completion
-    complete -o filenames -C '_z --complete "$COMP_LINE"' ${_Z_CMD:-z}
+    complete -o filenames -C '_ze --complete "$COMP_LINE"' ${_ZE_CMD:-ze}
 fi
