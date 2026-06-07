@@ -38,7 +38,7 @@ ze [-cehlrtx] [args]
 
 | Area             | z.sh                                          | ze.sh                                          |
 |------------------|-----------------------------------------------|------------------------------------------------|
-| Tracking         | precommand hook fires on every command        | tracks only explicit `ze` invocations          |
+| Tracking         | precommand hook fires on every command        | tracks only cd navigation via the `ze` command |
 | Path dispatch    | pattern matching may override real paths      | real paths always take precedence              |
 | Bare `ze`        | lists database                                | cd to $HOME                                    |
 | `ze -`           | not handled, silently goes home               | cd to previous directory                       |
@@ -52,12 +52,12 @@ ze [-cehlrtx] [args]
 
 | Variable                  | Default  | Meaning                                  |
 |---------------------------|----------|------------------------------------------|
-| `_Z_CMD`                  | `ze`     | command name                             |
-| `_Z_DIR`                  | `~/.ze`  | database directory                       |
-| `_Z_LAMBDA`               | `4e-6`   | decay rate (per second)                  |
-| `_Z_OWNER`                | unset    | allow use on shared db                   |
-| `_Z_NO_RESOLVE_SYMLINKS`  | unset    | do not resolve symlinks on cd            |
-| `_Z_EXCLUDE_DIRS`         | unset    | array of directory trees to exclude      |
+| `_ZE_CMD`                  | `ze`     | command name                             |
+| `_ZE_DIR`                  | `~/.ze`  | database directory                       |
+| `_ZE_LAMBDA`               | `4e-6`   | decay rate (per second)                  |
+| `_ZE_OWNER`                | unset    | allow use on shared db                   |
+| `_ZE_NO_RESOLVE_SYMLINKS`  | unset    | do not resolve symlinks on cd            |
+| `_ZE_EXCLUDE_DIRS`         | unset    | array of directory trees to exclude      |
 
 ## Related tools
 

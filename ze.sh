@@ -44,7 +44,7 @@
 #     * ze -r foo  # cd to highest ranked dir matching foo
 #     * ze -t foo  # cd to most recently accessed dir matching foo
 #     * ze -l foo  # list matches instead of cd
-#     * ze -e foo  # echo the best match, don't cd
+#     * ze -e foo  # emit the best match, don't cd
 #     * ze -c foo  # restrict matches to subdirs of $PWD
 #     * ze -x      # remove the current directory from the datafile
 #     * ze -h      # show a brief help message
@@ -57,19 +57,19 @@
 function _ze_init {
     typeset  datafile="${_ZE_DIR}/ze.db"
     if [[ -e $_ZE_DIR && ! -d $_ZE_DIR ]]; then
-        echo "ze: $_ZE_DIR exists and is not a directory" >&2
+        printf '%s\n' "ze: $_ZE_DIR exists and is not a directory" >&2
         return 1
     elif [[ ! -d $_ZE_DIR ]]; then
-        mkdir -p "$_ZE_DIR" || { echo "ze: failed to create $_ZE_DIR" >&2; return 1; }
+        mkdir -p "$_ZE_DIR" || { printf '%s\n' "ze: failed to create $_ZE_DIR" >&2; return 1; }
     fi
     if [[ -e "$datafile" && ! -f "$datafile" ]]; then
-        echo "ze: $datafile exists and is not a regular file" >&2
+        printf '%s\n' "ze: $datafile exists and is not a regular file" >&2
         return 1
     elif [[ ! -f "$datafile" ]]; then
-        touch "$datafile" || { echo "ze: failed to create $datafile" >&2; return 1; }
+        touch "$datafile" || { printf '%s\n' "ze: failed to create $datafile" >&2; return 1; }
     fi
     if [[ ! -O "$datafile" ]]; then
-        echo "ze: $datafile not owned by current user" >&2
+        printf '%s\n' "ze: $datafile not owned by current user" >&2
         return 1
     fi
 }
@@ -87,7 +87,7 @@ function _ze_dirs {
     typeset line
     while IFS= read -r line; do
         # only count directories
-        [[ -d "${line%%\|*}" ]] && echo "$line"
+        [[ -d "${line%%\|*}" ]] && printf '%s\n' "$line"
     done < "$datafile"
     return 0
 }
@@ -109,9 +109,6 @@ function _ze_cd {
 function _ze {
     typeset datafile="${_ZE_DIR}/ze.db"
     typeset lambda="${_ZE_LAMBDA:-4e-6}"
-
-    # bail if we don't own $datafile and $_ZE_OWNER not set
-    [[ -z "$_ZE_OWNER" ]] && [[ -f "$datafile" ]] && [[ ! -O "$datafile" ]] && return
 
     # add entries
     if [[ "$1" == "--add" ]]; then
@@ -174,15 +171,15 @@ function _ze {
 
     else
         # list/go
-        typeset echo fnd opt typ
+        typeset emit fnd opt typ
         typeset -i list=0
         while [[ "$1" ]]; do case "$1" in
             --) while [[ "$1" ]]; do shift; fnd="$fnd${fnd:+ }$1";done;;
              -) fnd="-";;
             -*) opt=${1:1}; while [[ "$opt" ]]; do case ${opt:0:1} in
                     c) fnd="^$PWD $fnd";;
-                    e) echo=1;;
-                    h) echo "${_ZE_CMD:-ze} [-cehlrtx] args" >&2; return;;
+                    e) emit=1;;
+                    h) printf '%s\n' "${_ZE_CMD:-ze} [-cehlrtx] args" >&2; return;;
                     l) list=1;;
                     r) typ="rank";;
                     t) typ="recent";;
@@ -255,7 +252,7 @@ function _ze {
         # shellcheck disable=SC2181 # irrelevant
         if (( $? == 0 )); then
           if [[ "$bestmatch" ]]; then
-            if [[ "$echo" ]]; then echo "$bestmatch"; else _ze_cd "$bestmatch"; fi
+            if [[ "$emit" ]]; then printf '%s\n' "$bestmatch"; else _ze_cd "$bestmatch"; fi
           fi
         else
           return $?
