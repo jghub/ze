@@ -99,6 +99,7 @@ function _ze_dirs { ## 1/0   # 1: skip stale entries (default); 0: do not skip
         done < "$datafile"
     else
         typeset IFS=$'\n'
+        # shellcheck disable=SC2207 # mapfile/read -a not portable across ksh93/mksh/zsh
         lines=( $(<"$datafile") )
     fi
     (( ${#lines[@]} > 0 )) && printf '%s\n' "${lines[@]}"
