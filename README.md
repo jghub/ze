@@ -43,6 +43,7 @@ ze [-cehlrtx] [args]
 | Path dispatch    | no pathname check, categorical pattern matching | real paths take precedence over pattern matching |
 | Bare `z`/`ze`    | lists database                                | follows builtin cd semantics: cd to $HOME      |
 | `z -`/`ze -`     | not handled, lists database                   | follows builtin cd semantics: cd to previous directory |
+| `z -x`/`ze -x`   | deletes current dir, falls through to pattern matching | deletes current dir and returns immediately |
 | Unknown flags    | not handled, lists database                   | treated as pattern                             |
 | Shell compat     | bash/zsh only                                 | bash, zsh, ksh93, mksh                         |
 | Init             | minimal, no safety checks                     | validates db path, ownership, file vs directory|
