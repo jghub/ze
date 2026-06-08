@@ -49,6 +49,12 @@ ze [-cehlrtx] [args]
 | Shell compat     | bash/zsh only                                 | bash, zsh, ksh93                               |
 | Init             | minimal, no safety checks                     | validates db path, ownership, file vs directory|
 | Database         | single flat file `~/.z`                       | directory `~/.ze/`, database `~/.ze/ze.db`     |
+| Stale db entries | pruned on next cd action                      | retained in db, filtered during matching       |
+
+Ze.sh retains database entries for directories on transiently unavailable
+filesystems (USB drives, NFS mounts). They are ignored during matching but
+reactivate when the filesystem is remounted. Z.sh permanently prunes such
+entries on the next cd action.
 
 ## Configuration
 

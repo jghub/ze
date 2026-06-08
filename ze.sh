@@ -89,15 +89,19 @@ if ! _ze_init; then
 fi
 unset -f _ze_init
 
-function _ze_dirs {
+function _ze_dirs { ## 1/0   # 1: skip stale entries (default); 0: do not skip 
     typeset datafile="${_ZE_DIR}/ze.db"
-    [[ -f "$datafile" ]] || return
-    typeset line
-    while IFS= read -r line; do
-        # only count directories
-        [[ -d "${line%%\|*}" ]] && printf '%s\n' "$line"
-    done < "$datafile"
-    return 0
+    typeset -a lines
+    if (( ${1:-1} )); then
+        typeset line
+        while IFS= read -r line; do
+            [[ -d "${line%%\|*}" ]] && lines+=("$line")
+        done < "$datafile"
+    else
+        typeset IFS=$'\n'
+        lines=( $(<"$datafile") )
+    fi
+    (( ${#lines[@]} > 0 )) && printf '%s\n' "${lines[@]}"
 }
 
 function _ze_cd {
@@ -117,6 +121,7 @@ function _ze_cd {
 function _ze {
     typeset datafile="${_ZE_DIR}/ze.db"
     typeset lambda="${_ZE_LAMBDA:-4e-6}"
+    typeset -i skip=0  # do not remove stale db entries during db update
 
     # add entries
     if [[ "$1" == "--add" ]]; then
@@ -135,7 +140,7 @@ function _ze {
         # maintain the data file
         typeset tempfile="$datafile.$RANDOM"
 
-        _ze_dirs | path="$*" \awk -v now="$(\date +%s)" -v lambda="$lambda" -F"|" '
+        _ze_dirs $skip | path="$*" \awk -v now="$(\date +%s)" -v lambda="$lambda" -F"|" '
             BEGIN { path = ENVIRON["path"] }
             {
                 if( $1 == path ) {
