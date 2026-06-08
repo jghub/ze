@@ -92,15 +92,13 @@ unset -f _ze_init
 function _ze_dirs { ## 1/0   # 1: skip stale entries (default); 0: do not skip 
     typeset datafile="${_ZE_DIR}/ze.db"
     typeset -a lines
+    typeset line
     if (( ${1:-1} )); then
-        typeset line
         while IFS= read -r line; do
             [[ -d "${line%%\|*}" ]] && lines+=("$line")
         done < "$datafile"
     else
-        typeset IFS=$'\n'
-        # shellcheck disable=SC2207 # mapfile/read -a not portable across ksh93/mksh/zsh
-        lines=( $(<"$datafile") )
+        while IFS= read -r line; do lines+=("$line"); done < "$datafile"
     fi
     (( ${#lines[@]} > 0 )) && printf '%s\n' "${lines[@]}"
 }
