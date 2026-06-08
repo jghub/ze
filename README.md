@@ -90,18 +90,24 @@ not yet in the ze.sh database rather than the `cd` builtin.
 
 ## Related tools
 
-[SD](https://github.com/jghub/sd-switchdir) — ksh93/bash/zsh, single-file,
-explicit event log with exponential kernel scoring, cycling through matches. More
-fully featured than ze.sh in several respects. The explicit event log allows
-rescoring with different parameters without data loss.
+[SD](https://github.com/jghub/sd-switchdir) — ksh93/bash/zsh, shell-native,
+single-file, explicit event log with exponential kernel scoring, cycling through
+matches. More fully featured than ze.sh in several respects. The explicit event
+log preserves full visit history, allowing correct rescoring over the entire
+history when decay parameters or scoring model are changed.
 
-[zoxide](https://github.com/ajeetdsouza/zoxide) — compiled Rust binary inspired by z.sh,
-frecency-based scoring, wider shell support including fish and nushell, widely adopted.
+[zoxide](https://github.com/ajeetdsouza/zoxide) — compiled Rust binary inspired by
+z.sh, wider shell support including fish and nushell, widely adopted. Like z.sh,
+frecency scoring multiplies cumulative visit count by a recency factor based on
+the most recent visit, which can produce anomalous ranking - a long-unvisited
+directory jumps to the top on first revisit if its historical visit count
+is large.
 
-ze.sh occupies a specific niche: minimal, shell-native, single-file, ksh93-compatible,
-tracking only intentional navigation rather than all shell activity. Scoring is
-equivalent to SD for a fixed decay parameter but the aggregate-state
-database does not support retrospective rescoring.
+ze.sh occupies a specific niche: minimal, shell-native, single-file, ksh93- and
+mksh-compatible, tracking only intentional navigation rather than all shell
+activity. The smooth exponential moving average scoring is comparable to SD's
+approach for a fixed decay parameter but the aggregate-state database does not
+support retrospective rescoring.
 
 ## License
 
