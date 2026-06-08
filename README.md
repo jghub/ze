@@ -1,7 +1,7 @@
 # ze.sh
 
-ze.sh is a frecency-based directory jumper for bash, zsh, ksh93, and mksh
-(Termux/Android), forked from [z.sh](https://github.com/rupa/z), with a refined
+ze.sh is a frecency-based directory jumper for bash, zsh, ksh93, and mksh (e.g.
+Termux/Android), forked from [z.sh](https://github.com/rupa/z), with a refined
 scoring model and several behavioral fixes, see changes below.
 
 ## Installation
@@ -44,7 +44,7 @@ ze [-cehlrtx] [args]
 | `ze -`           | not handled, silently goes home               | cd to previous directory                       |
 | Unknown flags    | silently cd to $HOME                          | treated as pattern                             |
 | Scoring          | frecency heuristic with common-prefix override| exponential moving average, no common-prefix override |
-| Shell compat     | bash/zsh only                                 | bash, zsh, ksh93                               |
+| Shell compat     | bash/zsh only                                 | bash, zsh, ksh93, mksh                         |
 | Init             | minimal, no safety checks                     | validates db path, ownership, file vs directory|
 | Database         | single flat file `~/.z`                       | directory `~/.ze/`, database `~/.ze/ze.db`     |
 | Stale db entries | pruned on next cd action                      | retained in db, filtered during matching       |
