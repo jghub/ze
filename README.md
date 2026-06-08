@@ -1,10 +1,8 @@
 # ze.sh
 
-A fork of [z.sh](https://github.com/rupa/z) — a frecency-based directory jumper
-for bash, zsh, and ksh93.
-
-ze.sh is a full replacement for z.sh with a refined scoring model and several
-behavioral fixes; see changes below.
+ze.sh is a frecency-based directory jumper for bash, zsh, ksh93, and mksh
+(Termux/Android), forked from [z.sh](https://github.com/rupa/z), with a refined
+scoring model and several behavioral fixes, see changes below.
 
 ## Installation
 
