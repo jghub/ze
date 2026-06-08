@@ -39,11 +39,11 @@ ze [-cehlrtx] [args]
 | Area             | z.sh                                          | ze.sh                                          |
 |------------------|-----------------------------------------------|------------------------------------------------|
 | Tracking         | precommand hook fires on every command        | tracks only cd navigation via the `ze` command |
-| Path dispatch    | pattern matching may override real paths      | real paths always take precedence              |
-| Bare `ze`        | lists database                                | cd to $HOME                                    |
-| `ze -`           | not handled, silently goes home               | cd to previous directory                       |
-| Unknown flags    | silently cd to $HOME                          | treated as pattern                             |
 | Scoring          | frecency heuristic with common-prefix override| exponential moving average, no common-prefix override |
+| Path dispatch    | no pathname check, categorical pattern matching | real paths take precedence over pattern matching |
+| Bare `z`/`ze`    | lists database                                | follows builtin cd semantics: cd to $HOME      |
+| `z -`/`ze -`     | not handled, lists database                   | follows builtin cd semantics: cd to previous directory |
+| Unknown flags    | not handled, lists database                   | treated as pattern                             |
 | Shell compat     | bash/zsh only                                 | bash, zsh, ksh93, mksh                         |
 | Init             | minimal, no safety checks                     | validates db path, ownership, file vs directory|
 | Database         | single flat file `~/.z`                       | directory `~/.ze/`, database `~/.ze/ze.db`     |
@@ -91,7 +91,7 @@ not yet in the ze.sh database rather than the `cd` builtin.
 
 [SD](https://github.com/jghub/sd-switchdir) — ksh93/bash/zsh, single-file,
 explicit event log with exponential kernel scoring, cycling through matches. More
-fully featured than ze.sh in several respects; the explicit event log allows
+fully featured than ze.sh in several respects. The explicit event log allows
 rescoring with different parameters without data loss.
 
 [zoxide](https://github.com/ajeetdsouza/zoxide) — compiled Rust binary inspired by z.sh,
