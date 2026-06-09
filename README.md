@@ -12,8 +12,8 @@ Source from your shell rc file:
 source /path/to/ze.sh
 ```
 
-By default, only navigation via the `ze` command itself is tracked. To also
-track bare `cd` invocations, add to your shell rc file:
+By default, only navigation via the `ze` command itself is tracked. To also track
+bare `cd` invocations, add to your shell rc file:
 
 ```sh
 alias cd=_ze_cd
@@ -36,13 +36,13 @@ decayed, unit impulses at each visit time, representing an exponential moving su
 visit/no-visit signal). The decay rate is controlled by `_ZE_LAMBDA` (default
 `4e-6`/sec, half-life `ln(2)/lambda` ≈ 48 hours).
 
-**Tracking**: z.sh uses shell precommand hooks (`PROMPT_COMMAND` in bash,
-`precmd` in zsh) that fire on every command, updating the score of whichever
-directory the shell is currently in. This means any command executed in a
-directory increases that directory's score, regardless of whether a cd action
-occurred. ze.sh removes these hooks entirely. Only explicit `ze` invocations
-(or bare `cd` if aliased to `_ze_cd`) trigger database updates, and only the
-target directory's score is updated.
+**Tracking**: z.sh uses shell precommand hooks (`PROMPT_COMMAND` in bash, `precmd`
+in zsh) that fire on every command, updating the score of whichever directory the
+shell is currently in. This means any command executed in a directory increases
+that directory's score, regardless of whether a cd action occurred. ze.sh removes
+these hooks entirely. Only explicit `ze` invocations (or bare `cd` if aliased to
+`_ze_cd`) trigger database updates, and only the target directory's score is
+updated.
 
 ## Database format
 
@@ -59,12 +59,11 @@ path|rank|timestamp|score
 | `timestamp` | Unix epoch of last visit, used for score computation at query time and `-t` (recent) mode |
 | `score` | score: sum of exponentially decayed visit weights until time of last visit of the path |
 
-Use `ze -x` to remove the current directory, or delete entries manually.
-Manual cleanup is rarely necessary in practice.
+Use `ze -x` to remove the current directory, or delete entries manually. Such
+cleanup is rarely necessary in practice.
 
-ze.sh retains entries
-for directories that no longer exist (e.g. unmounted filesystems) and filters
-them at match time rather than pruning them on update.
+ze.sh retains entries for directories that no longer exist (e.g. unmounted
+filesystems) and filters them at match time rather than pruning them on update.
 
 ## Usage
 
@@ -92,7 +91,7 @@ ze [-cehlrtx] [args]
 |------------------|-----------------------------------------------|------------------------------------------------|
 | Tracking         | precommand hook fires on every command        | tracks explicit cd navigation (`ze`, optionally aliased `cd`)|
 | Scoring          | frecency heuristic with common-prefix override| exponential moving average, no common-prefix override |
-| Path dispatch    | no pathname check, categorical pattern matching | real paths take precedence over pattern matching |
+| Path dispatch    | no pathname check, categorical pattern matching *(1)* | real paths take precedence over pattern matching |
 | Bare call        | lists database                                | follows builtin cd semantics: cd to $HOME      |
 | `-` argument     | not handled, lists database                   | follows builtin cd semantics: cd to previous directory |
 | `-x` option      | deletes current dir, falls through to pattern matching | deletes current dir and returns immediately |
@@ -100,13 +99,18 @@ ze [-cehlrtx] [args]
 | Unknown options  | not handled, lists database                   | treated as pattern                             |
 | Database         | single flat file `~/.z`                       | directory `~/.ze/`, database `~/.ze/ze.db`     |
 | Init             | minimal, no safety checks                     | validates db path, ownership, file type        |
-| Stale db entries | pruned on next cd action                      | retained in db, filtered at match time         |
+| Stale db entries | pruned on next cd action                      | retained in db, filtered at match time *(2)*         |
 | Shell compat     | bash/zsh only                                 | bash, zsh, ksh93, mksh                         |
 
-ze.sh retains database entries for directories on transiently unavailable
+*(1)*: Absolute pathnames are recognized only if given as the last argument - a
+side effect of tab completion handling. Argument order matters: `z foo /path` cds
+directly while `z /path foo` pattern-matches. Relative pathnames are never
+recognized and always treated as pattern.
+
+*(2)*: ze.sh retains database entries for directories on transiently unavailable
 filesystems (USB drives, NFS mounts). They are ignored during matching but
-reactivate when the filesystem is remounted. Z.sh permanently prunes such
-entries on the next cd action.
+reactivate when the filesystem is remounted. Z.sh permanently prunes such entries
+on the next cd action.
 
 ## Configuration
 
@@ -137,9 +141,9 @@ initial frecency score proxy from the existing visit count and last-visit
 timestamp. Directories not visited recently will start with appropriately lower
 scores.
 
-By default, ze.sh only tracks directories navigated via the `ze` command itself. If
-you prefer to track ordinary `cd` activity as well, add alias `cd=_ze_cd` to your
-shell rc file as described above.
+By default, ze.sh only tracks directories navigated via the `ze` command itself.
+If you prefer to track ordinary `cd` activity as well, add alias `cd=_ze_cd` to
+your shell rc file as described above.
 
 ## Related tools
 

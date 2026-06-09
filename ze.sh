@@ -87,27 +87,22 @@ function _ze {
         fi
 
         # maintain the data file
-        typeset tempfile="$datafile.$RANDOM"
+        typeset tempfile="$datafile.$RANDOM.$$"
 
         # _ze_dirs 1/0: do/don't remove stale db entries during db update
         _ze_dirs 0 | path="$*" \awk -v now="$(\date +%s)" -v lambda="$lambda" -F"|" '
-            BEGIN { path = ENVIRON["path"] }
-            {
-                if( $1 == path ) {
-                    hit = 1
-                    rank = $2 + 1
-                    time = now
-                    score = $4 * exp(-lambda * (now - $3)) + 1
-                } else {
-                    rank = $2
-                    time = $3
-                    score = $4
-                }
-                print $1 "|" rank "|" time "|" score
+            BEGIN { path = ENVIRON["path"]; OFS = FS }
+            $1 == path {
+                hit = 1
+                $2 = $2 + 1
+                $4 = $4 * exp(-lambda * (now - $3)) + 1
+                $3 = now
             }
-            END {
-                if (!hit) print path "|" 1 "|" now "|" 1
-            }
+            # we specify fields explictly rather than using simple "print" to
+            # allow for minor db sanitation in case it was manually edited and
+            # some trailing garbage left behind in the edited record(s):
+            { print $1, $2, $3, $4 }
+            END { if (!hit) print path, 1, now, 1 }
         ' 2>/dev/null >| "$tempfile"
         # do our best to avoid clobbering the datafile in a race condition.
         # shellcheck disable=SC2181 # irrelevant
@@ -170,19 +165,13 @@ function _ze {
             function output(matches, best_match) {
                 # list or return the desired directory
                 if( list ) {
-                    cmd = "sort -g"
-                    for( x in matches ) {
-                        if( matches[x] ) {
-                            printf "%-12s %s\n", matches[x], x | cmd
-                        }
-                    }
-                } else {
-                    print best_match
-                }
+                    for( x in matches ) printf "%-12s %s\n", matches[x], x | "sort -g"
+                } else print best_match
             }
             BEGIN {
                 q = ENVIRON["fnd"]
                 gsub(" ", ".*", q)
+                lq = tolower(q) 
                 hi_rank = ihi_rank = -9999999999
             }
             {
@@ -193,13 +182,10 @@ function _ze {
                 } else rank = frecent($4, $3)
                 if( $1 ~ q ) {
                     matches[$1] = rank
-                } else if( tolower($1) ~ tolower(q) ) imatches[$1] = rank
-                if( matches[$1] && matches[$1] > hi_rank ) {
-                    best_match = $1
-                    hi_rank = matches[$1]
-                } else if( imatches[$1] && imatches[$1] > ihi_rank ) {
-                    ibest_match = $1
-                    ihi_rank = imatches[$1]
+                    if( rank > hi_rank ) { best_match = $1; hi_rank = rank }
+                } else if( tolower($1) ~ lq ) {
+                    imatches[$1] = rank
+                    if( rank > ihi_rank ) { ibest_match = $1; ihi_rank = rank }
                 }
             }
             END {
