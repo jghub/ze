@@ -41,14 +41,15 @@ ze [-cehlrtx] [args]
 | Tracking         | precommand hook fires on every command        | tracks only cd navigation via the `ze` command |
 | Scoring          | frecency heuristic with common-prefix override| exponential moving average, no common-prefix override |
 | Path dispatch    | no pathname check, categorical pattern matching | real paths take precedence over pattern matching |
-| Bare `z`/`ze`    | lists database                                | follows builtin cd semantics: cd to $HOME      |
-| `z -`/`ze -`     | not handled, lists database                   | follows builtin cd semantics: cd to previous directory |
-| `z -x`/`ze -x`   | deletes current dir, falls through to pattern matching | deletes current dir and returns immediately |
-| Unknown flags    | not handled, lists database                   | treated as pattern                             |
-| Shell compat     | bash/zsh only                                 | bash, zsh, ksh93, mksh                         |
-| Init             | minimal, no safety checks                     | validates db path, ownership, file vs directory|
+| Bare call        | lists database                                | follows builtin cd semantics: cd to $HOME      |
+| `-` argument     | not handled, lists database                   | follows builtin cd semantics: cd to previous directory |
+| `-x` option      | deletes current dir, falls through to pattern matching | deletes current dir and returns immediately |
+| `-l` option      | output to stderr, not pipeable                | output to stdout, pipeable to pager etc.       |
+| Unknown options  | not handled, lists database                   | treated as pattern                             |
 | Database         | single flat file `~/.z`                       | directory `~/.ze/`, database `~/.ze/ze.db`     |
-| Stale db entries | pruned on next cd action                      | retained in db, filtered during matching       |
+| Init             | minimal, no safety checks                     | validates db path, ownership, file type        |
+| Stale db entries | pruned on next cd action                      | retained in db, filtered at match time         |
+| Shell compat     | bash/zsh only                                 | bash, zsh, ksh93, mksh                         |
 
 Ze.sh retains database entries for directories on transiently unavailable
 filesystems (USB drives, NFS mounts). They are ignored during matching but

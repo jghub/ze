@@ -75,7 +75,7 @@ function _ze_init {
 
     # address the old z.sh bug of not dealing with non-GNU OS regarding 'ze -x'.
     # detect which sed we are using and act on it accordingly:
-    if sed --version 2>/dev/null | grep -q GNU; then
+    if \sed --version 2>/dev/null | \grep -q GNU; then
         _ZE_SED_IFLAG=(-i)
     else
         _ZE_SED_IFLAG=(-i '')
@@ -120,7 +120,6 @@ function _ze_cd {
 function _ze {
     typeset datafile="${_ZE_DIR}/ze.db"
     typeset lambda="${_ZE_LAMBDA:-4e-6}"
-    typeset -i skip=0  # do not remove stale db entries during db update
 
     # add entries
     if [[ "$1" == "--add" ]]; then
@@ -139,7 +138,8 @@ function _ze {
         # maintain the data file
         typeset tempfile="$datafile.$RANDOM"
 
-        _ze_dirs $skip | path="$*" \awk -v now="$(\date +%s)" -v lambda="$lambda" -F"|" '
+        # _ze_dirs 1/0: do/don't remove stale db entries during db update
+        _ze_dirs 0 | path="$*" \awk -v now="$(\date +%s)" -v lambda="$lambda" -F"|" '
             BEGIN { path = ENVIRON["path"] }
             {
                 if( $1 == path ) {
@@ -169,7 +169,7 @@ function _ze {
 
     # tab completion
     elif [[ "$1" == "--complete" ]] && [[ -s "$datafile" ]]; then
-        _ze_dirs | candidate="$2" \awk -F"|" '
+        _ze_dirs 1 | candidate="$2" \awk -F"|" '
             BEGIN {
                 q = ENVIRON["candidate"]
                 q = substr(q, 3)
@@ -211,7 +211,7 @@ function _ze {
 
 
         typeset bestmatch
-        bestmatch="$(_ze_dirs | fnd="$fnd" \awk -v t="$(\date +%s)" -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
+        bestmatch="$(_ze_dirs 1 | fnd="$fnd" \awk -v t="$(\date +%s)" -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
             function frecent(score, time) {
                 # dampen stored score exponentially until t="now" to yield time-weighted current score (or "rank" as z.sh calls it)
                 return score * exp(-lambda * (t - time))
@@ -219,7 +219,7 @@ function _ze {
             function output(matches, best_match) {
                 # list or return the desired directory
                 if( list ) {
-                    cmd = "sort -g >&2"
+                    cmd = "sort -g"
                     for( x in matches ) {
                         if( matches[x] ) {
                             printf "%-12s %s\n", matches[x], x | cmd
@@ -266,9 +266,11 @@ function _ze {
 
         # shellcheck disable=SC2181 # irrelevant
         if (( $? == 0 )); then
-          if [[ "$bestmatch" ]]; then
-            if [[ "$emit" ]]; then printf '%s\n' "$bestmatch"; else _ze_cd "$bestmatch"; fi
-          fi
+            if (( list )); then
+                [[ "$bestmatch" ]] && printf '%s\n' "$bestmatch"
+            elif [[ "$bestmatch" ]]; then
+                if [[ "$emit" ]]; then printf '%s\n' "$bestmatch"; else _ze_cd "$bestmatch"; fi
+            fi
         else
           return $?
         fi
@@ -276,7 +278,7 @@ function _ze {
 }
 
 # shellcheck disable=SC2086,SC2139 # false alarm
-alias ${_ZE_CMD:-ze}='_ze 2>&1'
+alias ${_ZE_CMD:-ze}='_ze'
 
 [[ "$_ZE_NO_RESOLVE_SYMLINKS" ]] || _ZE_RESOLVE_SYMLINKS="-P"
 
