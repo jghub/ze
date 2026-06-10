@@ -96,6 +96,7 @@ ze [-cehlrtx] [args]
 | `-` argument     | not handled, lists database                   | follows builtin cd semantics: cd to previous directory |
 | `-x` option      | deletes current dir, falls through to pattern matching | deletes current dir and returns immediately |
 | `-l` option      | output to stderr, not pipeable                | output to stdout, pipeable to pager etc.       |
+| `-f` option      | not available                                 | interactive fzf selector (if fzf installed)    |
 | Unknown options  | not handled, lists database                   | treated as pattern                             |
 | Database         | single flat file `~/.z`                       | directory `~/.ze/`, database `~/.ze/ze.db`     |
 | Init             | minimal, no safety checks                     | validates db path, ownership, file type        |
@@ -122,6 +123,17 @@ on the next cd action.
 | `_ZE_OWNER`                | unset    | allow use on shared db                   |
 | `_ZE_NO_RESOLVE_SYMLINKS`  | unset    | do not resolve symlinks on cd            |
 | `_ZE_EXCLUDE_DIRS`         | unset    | array of directory trees to exclude      |
+
+## fzf integration
+
+If [fzf](https://github.com/junegunn/fzf) is installed, `ze -f [pattern]` opens
+an interactive selector showing all matching directories ranked by frecency score,
+best match at top. Select by pathname pattern or by entry number.
+
+```sh
+ze -f        # interactive selection from all tracked directories
+ze -f foo    # interactive selection from directories matching foo
+```
 
 ## Migrating from z.sh
 

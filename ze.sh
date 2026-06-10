@@ -68,6 +68,13 @@ function _ze_cd {
     fi
 }
 
+function _ze_fzf { ## pattern
+    typeset bestmatch
+    bestmatch=$(_ze -l "$1" |
+        awk -F'\t' '{ buf[NR] = $NF } END { offs = NR+1; while (NR) print offs-NR FS buf[NR--] }' |
+        fzf -e --no-sort | cut -f2) && [[ "$bestmatch" ]] && _ze_cd "$bestmatch"
+}
+
 function _ze {
     typeset datafile="${_ZE_DIR}/ze.db"
     typeset lambda="${_ZE_LAMBDA:-4e-6}"
@@ -128,14 +135,15 @@ function _ze {
     else
         # list/go
         typeset emit fnd opt typ
-        typeset -i list=0
+        typeset -i list=0 finder=0
         while [[ "$1" ]]; do case "$1" in
             --) while [[ "$1" ]]; do shift; fnd="$fnd${fnd:+ }$1";done;;
              -) fnd="-";;
             -*) opt=${1:1}; while [[ "$opt" ]]; do case ${opt:0:1} in
                     c) fnd="^$PWD $fnd";;
                     e) emit=1;;
-                    h) printf '%s\n' "${_ZE_CMD:-ze} [-cehlrtx] args" >&2; return;;
+                    f) finder=1;;
+                    h) printf '%s\n' "${_ZE_CMD:-ze} [-cefhlrtx] args" >&2; return;;
                     l) list=1;;
                     r) typ="rank";;
                     t) typ="recent";;
@@ -146,11 +154,12 @@ function _ze {
              *) fnd="$fnd${fnd:+ }$1";;
         esac; (( $# > 0 )) && shift; done
 
+        ((finder)) && { _ze_fzf "$fnd"; return; }
+
         # if bare -c with no args, just list
         [[ "$fnd" == "^$PWD " ]] && list=1
         #  skip pattern matching if real path, empty (go to $HOME), or "-":
         ((!list)) && [[ -d "${fnd:-$HOME}" || "$fnd" == "-" ]] && { _ze_cd "${fnd:-$HOME}"; return; }
-
 
         typeset bestmatch
         bestmatch="$(_ze_dirs 1 | fnd="$fnd" \awk -v t="$(\date +%s)" -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
