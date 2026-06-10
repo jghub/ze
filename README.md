@@ -160,10 +160,10 @@ your shell rc file as described above.
 ## Related tools
 
 [SD](https://github.com/jghub/sd-switchdir) — ksh93/bash/zsh, shell-native,
-single-file, explicit event log with exponential kernel scoring, cycling through
-matches. More fully featured than ze.sh in several respects. SD stores the full
-visit history as an event log. Scores can therefore be recomputed from scratch if
-the decay parameter or scoring model is changed.
+single-file, explicit event log with configurable kernel scoring (default:
+exponential), cycling through matches. More fully featured than ze.sh in several
+respects. SD stores the full visit history as an event log. Scores can therefore
+be recomputed from scratch if the decay parameter or scoring model is changed.
 
 [zoxide](https://github.com/ajeetdsouza/zoxide) — compiled Rust binary inspired by
 z.sh, wider shell support including fish and nushell, widely adopted. Like z.sh,
