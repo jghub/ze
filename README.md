@@ -57,7 +57,7 @@ path|rank|timestamp|score
 | `path` | absolute directory path |
 | `rank` | visit count, incremented on each visit |
 | `timestamp` | Unix epoch of last visit, used for score computation at query time and `-t` (recent) mode |
-| `score` | score: sum of exponentially decayed visit weights until time of last visit of the path |
+| `score` | score: cumulative sum of exponentially decayed visit weights until time of last visit of the path |
 
 Use `ze -x` to remove the current directory, or delete entries manually. Such
 cleanup is rarely necessary in practice.
@@ -68,7 +68,7 @@ filesystems) and filters them at match time rather than pruning them on update.
 ## Usage
 
 ```
-ze [options] [pattern|path]
+ze [options] [pattern|path|-]
 ze [-cehlrtx] [args]
 ```
 
@@ -77,8 +77,8 @@ ze [-cehlrtx] [args]
 | `ze`            | cd to $HOME                               |
 | `ze -`          | cd to previous directory                  |
 | `ze path`       | cd to path directly (real path wins)      |
-| `ze pattern`    | cd to best frecency match for pattern     |
-| `ze -l pattern` | list matches with scores                  |
+| `ze pattern`    | cd to highest scoring match for pattern   |
+| `ze -l pattern` | list matches with scores at query time    |
 | `ze -x`         | remove current directory from database    |
 | `ze -c pattern` | restrict matches to subdirs of $PWD       |
 | `ze -e pattern` | print match instead of cd                 |

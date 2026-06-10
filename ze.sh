@@ -40,7 +40,7 @@ if ! _ze_init; then
 fi
 unset -f _ze_init
 
-function _ze_dirs { ## 1/0   # 1: skip stale entries (default); 0: do not skip 
+function _ze_dirs { ## 1/0 (1 (default): skip stale entries, 0: keep stale entries)
     typeset datafile="${_ZE_DIR}/ze.db"
     typeset -a lines
     typeset line
@@ -79,17 +79,13 @@ function _ze {
         # $HOME and / aren't worth matching
         [[ "$*" == "$HOME" || "$*" == '/' ]] && return
         # don't track excluded directory trees
-        if (( ${#_ZE_EXCLUDE_DIRS[@]} > 0 )); then
-            typeset exclude
-            for exclude in "${_ZE_EXCLUDE_DIRS[@]}"; do
-                case "$*" in "$exclude"*) return;; esac
-            done
-        fi
+        typeset exclude
+        for exclude in "${_ZE_EXCLUDE_DIRS[@]}"; do [[ "$*" == "$exclude"* ]] && return; done
 
         # maintain the data file
         typeset tempfile="$datafile.$RANDOM.$$"
 
-        # _ze_dirs 1/0: do/don't remove stale db entries during db update
+        # _ze_dirs 1/0: do/don't ignore stale db entries
         _ze_dirs 0 | path="$*" \awk -v now="$(\date +%s)" -v lambda="$lambda" -F"|" '
             BEGIN { path = ENVIRON["path"]; OFS = FS }
             $1 == path {
@@ -165,7 +161,7 @@ function _ze {
             function output(matches, best_match) {
                 # list or return the desired directory
                 if( list ) {
-                    for( x in matches ) printf "%-12s %s\n", matches[x], x | "sort -g"
+                    for( x in matches ) printf "%-12s\t%s\n", matches[x], x | "LC_ALL=C sort -k1,1g -k2,2"
                 } else print best_match
             }
             BEGIN {
