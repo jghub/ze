@@ -91,7 +91,7 @@ function _ze {
 
         # maintain the data file
         typeset tempfile
-        tempfile=$(mktemp "${datafile}.XXXXXX") 2>/dev/null || return 1
+        tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
 
         # _ze_dirs 1/0: do/don't ignore stale db entries
         _ze_dirs 0 | path="$*" \awk -v now="$(\date +%s)" -v lambda="$lambda" -F"|" '
