@@ -56,7 +56,6 @@ function _ze_dirs { ## 1/0 (1 (default): skip stale entries, 0: keep stale entri
 
 function _ze_cd {
     if command cd "$@"; then
-        : $RANDOM
         if [[ "$_ZE_NO_RESOLVE_SYMLINKS" ]]; then
             (_ze --add "$PWD" &)
         else
@@ -91,7 +90,8 @@ function _ze {
         for exclude in "${_ZE_EXCLUDE_DIRS[@]}"; do [[ "$*" == "$exclude"* ]] && return; done
 
         # maintain the data file
-        typeset tempfile="$datafile.$RANDOM.$$"
+        typeset tempfile
+        tempfile=$(mktemp "${datafile}.XXXXXX") 2>/dev/null || return 1
 
         # _ze_dirs 1/0: do/don't ignore stale db entries
         _ze_dirs 0 | path="$*" \awk -v now="$(\date +%s)" -v lambda="$lambda" -F"|" '
