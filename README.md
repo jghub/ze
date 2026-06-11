@@ -59,13 +59,13 @@ pretense and uses the cleaner syntax consistently.
 The database at `~/.ze/ze.db` is a plain text file with one entry per line:
 
 ```
-path|rank|timestamp|score
+path|visits|timestamp|score
 ```
 
 | Field | Meaning |
 |-------|---------|
 | `path` | absolute directory path |
-| `rank` | true visit count, incremented on each visit |
+| `visits` | cumulative visit count, incremented on each visit |
 | `timestamp` | Unix epoch of last visit, used for score computation at query time and `-t` (recent) mode |
 | `score` | exponentially decayed cumulative visit score as of the last visit timestamp |
 
@@ -82,18 +82,19 @@ ze [options] [pattern|path|-]
 ze [-cehlrtx] [args]
 ```
 
-| Invocation      | Behavior                                  |
-|-----------------|-------------------------------------------|
-| `ze`            | cd to $HOME                               |
-| `ze -`          | cd to previous directory                  |
-| `ze path`       | cd to path directly (real path wins)      |
-| `ze pattern`    | cd to highest scoring match for pattern   |
-| `ze -l pattern` | list matches with scores at query time    |
-| `ze -x`         | remove current directory from database    |
-| `ze -c pattern` | restrict matches to subdirs of $PWD       |
-| `ze -e pattern` | print match instead of cd                 |
-| `ze -r pattern` | rank by visit count                       |
-| `ze -t pattern` | rank by recency                           |
+| Invocation      | Behavior                                |
+|-----------------|-----------------------------------------|
+| `ze`            | cd to $HOME                             |
+| `ze -`          | cd to previous directory                |
+| `ze path`       | cd to path directly (real path wins)    |
+| `ze pattern`    | cd to highest scoring match for pattern |
+| `ze -c pattern` | restrict matches to subdirs of $PWD     |
+| `ze -l pattern` | list matches according to current rank  |
+| `ze -f pattern` | use fzf for interactive selection       |
+| `ze -r pattern` | rank by visit count                     |
+| `ze -t pattern` | rank by recency of last visit           |
+| `ze -e pattern` | print match instead of cd               |
+| `ze -x`         | remove current directory from database  |
 
 ## Changes from z.sh
 

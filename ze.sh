@@ -146,7 +146,7 @@ function _ze {
                     f) finder=1;;
                     h) printf '%s\n' "${_ZE_CMD:-ze} [-cefhlrtx] args" >&2; return;;
                     l) list=1;;
-                    r) typ="rank";;
+                    r) typ="visits";;
                     t) typ="recent";;
                     x) \sed "${_ZE_SED_IFLAG[@]}" -e "\:^${PWD}|.*:d" "$datafile"; return;;
                     *) fnd="$fnd${fnd:+ }$1"; opt='';;
@@ -165,7 +165,7 @@ function _ze {
         typeset bestmatch
         bestmatch="$(_ze_dirs 1 | fnd="$fnd" \awk -v t="$(\date +%s)" -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
             function frecent(score, time) {
-                # dampen stored score exponentially until t="now" to yield time-weighted current score (or "rank" as z.sh calls it)
+                # dampen stored score exponentially until t="now" to yield time-weighted current score
                 return score * exp(-lambda * (t - time))
             }
             function output(matches, best_match) {
@@ -178,20 +178,20 @@ function _ze {
                 q = ENVIRON["fnd"]
                 gsub(" ", ".*", q)
                 lq = tolower(q) 
-                hi_rank = ihi_rank = -9999999999
+                hi_score = ihi_score = -9999999999
             }
             {
-                if( typ == "rank" ) {
-                    rank = $2
+                if( typ == "visits" ) {
+                    weight = $2
                 } else if( typ == "recent" ) {
-                    rank = $3 - t
-                } else rank = frecent($4, $3)
+                    weight = $3 - t
+                } else weight = frecent($4, $3)
                 if( $1 ~ q ) {
-                    matches[$1] = rank
-                    if( rank > hi_rank ) { best_match = $1; hi_rank = rank }
+                    matches[$1] = weight
+                    if( weight > hi_score ) { best_match = $1; hi_score = weight }
                 } else if( tolower($1) ~ lq ) {
-                    imatches[$1] = rank
-                    if( rank > ihi_rank ) { ibest_match = $1; ihi_rank = rank }
+                    imatches[$1] = weight
+                    if( weight > ihi_score ) { ibest_match = $1; ihi_score = weight }
                 }
             }
             END {
