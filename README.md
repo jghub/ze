@@ -173,7 +173,7 @@ be recomputed from scratch if the decay parameter or scoring model is changed.
 z.sh, wider shell support including fish and nushell, widely adopted. Like z.sh,
 frecency scoring multiplies cumulative visit count by a recency factor based on
 the most recent visit which can produce undesirable ranking — a long-unvisited
-directory with a large historical visit count can acquire to a disproportionately
+directory with a large historical visit count can acquire a disproportionately
 high rank on first revisit if its historical visit count is large.
 
 ze.sh occupies a specific niche: minimal, shell-native, single-file, ksh93- and
