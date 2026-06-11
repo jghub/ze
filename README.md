@@ -45,6 +45,15 @@ these hooks entirely. Only explicit `ze` invocations (or bare `cd` if aliased to
 `_ze_cd`) trigger database updates, and only the target directory's score is
 updated.
 
+ze.sh uses `typeset` instead of `local` for broader shell compatibility, and
+`[[`/`(())` instead of `[`/`test` throughout. The latter is not a compatibility
+requirement — all target shells support `[` — but `[[` is a shell keyword with
+cleaner semantics: no word splitting on unquoted variables, unambiguous `&&`/`||`
+operators, and pattern matching support. z.sh used `[` for historical POSIX sh
+compatibility, but was never actually POSIX-compatible due to its use of arrays,
+process substitution, and shell-specific completion builtins. ze.sh drops the
+pretense and uses the cleaner syntax consistently.
+
 ## Database format
 
 The database at `~/.ze/ze.db` is a plain text file with one entry per line:
@@ -118,7 +127,7 @@ pathnames are never recognized and always treated as pattern.
 
 *(3)*: ze.sh retains database entries for directories on transiently unavailable
 filesystems (USB drives, NFS mounts). They are ignored during matching but
-reactivate when the filesystem is remounted. Z.sh permanently prunes such entries
+reactivate when the filesystem is remounted. z.sh permanently prunes such entries
 on the next cd action.
 
 ## Configuration
