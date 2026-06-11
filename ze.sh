@@ -56,6 +56,7 @@ function _ze_dirs { ## 1/0 (1 (default): skip stale entries, 0: keep stale entri
 
 function _ze_cd {
     if command cd "$@"; then
+        : $RANDOM
         if [[ "$_ZE_NO_RESOLVE_SYMLINKS" ]]; then
             (_ze --add "$PWD" &)
         else
