@@ -45,14 +45,18 @@ these hooks entirely. Only explicit `ze` invocations (or bare `cd` if aliased to
 `_ze_cd`) trigger database updates, and only the target directory's score is
 updated.
 
-ze.sh uses `typeset` instead of `local` for broader shell compatibility, and
+For broader shell compatibility, ze.sh uses `typeset` instead of `local` and
 `[[`/`(())` instead of `[`/`test` throughout. The latter is not a compatibility
 requirement — all target shells support `[` — but `[[` is a shell keyword with
 cleaner semantics: no word splitting on unquoted variables, unambiguous `&&`/`||`
-operators, and pattern matching support. z.sh used `[` for historical POSIX sh
-compatibility, but was never actually POSIX-compatible due to its use of arrays,
-process substitution, and shell-specific completion builtins. ze.sh drops the
-pretense and uses the cleaner syntax consistently.
+operators, and pattern matching support. In ze.sh, the `function f { ... }`
+definition style is used throughout instead of POSIX-style `f() { ... }` — in
+ksh93 and mksh, `typeset` variables are only locally scoped inside functions
+defined with the `function` keyword, whereas POSIX style functions do not provide
+local scoping in these shells. For historical POSIX sh compatibility, z.sh used
+`[` and `f() { }` but was never actually POSIX-compatible due to its use of
+arrays, process substitution, and shell-specific completion builtins — ze.sh drops
+the pretense and uses the cleaner syntax consistently.
 
 ## Database format
 
@@ -79,7 +83,7 @@ filesystems) and filters them at match time rather than pruning them on update.
 
 ```
 ze [options] [pattern|path|-]
-ze [-cehlrtx] [args]
+ze [-cefhlrtx] [args]
 ```
 
 | Invocation      | Behavior                                |
@@ -89,10 +93,10 @@ ze [-cehlrtx] [args]
 | `ze path`       | cd to path directly (real path wins)    |
 | `ze pattern`    | cd to highest scoring match for pattern |
 | `ze -c pattern` | restrict matches to subdirs of $PWD     |
-| `ze -l pattern` | list matches according to current rank  |
+| `ze -l pattern` | list matches according to current score |
 | `ze -f pattern` | use fzf for interactive selection       |
-| `ze -r pattern` | rank by visit count                     |
-| `ze -t pattern` | rank by recency of last visit           |
+| `ze -r pattern` | sort by visit count                     |
+| `ze -t pattern` | sort by recency of last visit           |
 | `ze -e pattern` | print match instead of cd               |
 | `ze -x`         | remove current directory from database  |
 
@@ -105,15 +109,15 @@ ze [-cehlrtx] [args]
 | Path dispatch    | no pathname check, categorical pattern matching *(2)* | real paths take precedence over pattern matching |
 | Bare call        | lists database                                | follows builtin cd semantics: cd to $HOME      |
 | `-` argument     | not handled, lists database                   | follows builtin cd semantics: cd to previous directory |
+| Stale db entries | pruned on next cd action                      | retained in db, filtered at match time *(3)*         |
 | `-x` option      | deletes current dir, falls through to pattern matching | deletes current dir and returns immediately |
 | `-l` option      | output to stderr, not pipeable                | output to stdout, pipeable to pager etc.       |
+| Database         | single flat file `~/.z`                       | directory `~/.ze/`, database `~/.ze/ze.db`     |
+| Shell compat     | bash/zsh only                                 | bash, zsh, ksh93, mksh                         |
+| Init             | minimal, no safety checks                     | validates db path, ownership, file type        |
+| Concurrency      | tempfile-name collisions and subsequent db corruption possible | `mktemp(1)` eliminates tempfile-name collisions, concurrent updates remain "last writer wins" |
 | `-f` option      | not available                                 | interactive fzf selector (if fzf installed)    |
 | Unknown options  | not handled, lists database                   | treated as pattern                             |
-| Database         | single flat file `~/.z`                       | directory `~/.ze/`, database `~/.ze/ze.db`     |
-| Concurrency      | tempfile-name collisions possible             | `mktemp(1)` eliminates tempfile-name collisions, concurrent updates remain "last writer wins" |
-| Init             | minimal, no safety checks                     | validates db path, ownership, file type        |
-| Stale db entries | pruned on next cd action                      | retained in db, filtered at match time *(3)*         |
-| Shell compat     | bash/zsh only                                 | bash, zsh, ksh93, mksh                         |
 
 *(1)*: The common-prefix heuristic of z.sh overrides the highest-scoring match in
 favor of a shorter path when all matches share a common prefix. With a
