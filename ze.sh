@@ -24,7 +24,7 @@ function _ze_init {
         return 1
     fi
 
-    # address the old z.sh bug of not dealing with non-GNU OS regarding 'ze -x'.
+    # address the old z.sh bug of not dealing with non-GNU userland regarding 'ze -x'.
     # detect which sed we are using and act on it accordingly:
     if \sed --version 2>/dev/null | \grep -q GNU; then
         _ZE_SED_IFLAG=(-i)
