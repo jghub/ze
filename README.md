@@ -73,9 +73,6 @@ path|visits|timestamp|score
 | `timestamp` | Unix epoch of last visit, used for score computation at query time and `-t` (recent) mode |
 | `score` | exponentially decayed cumulative visit score as of the last visit timestamp |
 
-Use `ze -x` to remove the current directory, or delete entries manually. Such
-cleanup is rarely necessary in practice.
-
 ze.sh retains entries for directories that no longer exist (e.g. unmounted
 filesystems) and filters them at match time rather than pruning them on update.
 
@@ -98,7 +95,6 @@ ze [-cefhlrtx] [args]
 | `ze -r pattern` | sort by visit count                     |
 | `ze -t pattern` | sort by recency of last visit           |
 | `ze -e pattern` | print match instead of cd               |
-| `ze -x`         | remove current directory from database  |
 
 ## Changes from z.sh
 
@@ -110,7 +106,7 @@ ze [-cefhlrtx] [args]
 | Bare call        | lists database                                | follows builtin cd semantics: cd to $HOME      |
 | `-` argument     | not handled, lists database                   | follows builtin cd semantics: cd to previous directory |
 | Stale db entries | pruned on next cd action                      | retained in db, filtered at match time *(3)*         |
-| `-x` option      | deletes current dir, falls through to pattern matching | deletes current dir and returns immediately |
+| `-x` option      | deletes current dir from database             | removed; edit ~/.ze/ze.db directly to remove entries |
 | `-l` option      | output to stderr, not pipeable                | output to stdout, pipeable to pager etc.       |
 | Database         | single flat file `~/.z`                       | directory `~/.ze/`, database `~/.ze/ze.db`     |
 | Shell compat     | bash/zsh only                                 | bash, zsh, ksh93, mksh                         |

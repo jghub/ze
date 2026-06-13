@@ -23,13 +23,6 @@ function _ze_init {
         printf '%s\n' "ze: $datafile not owned by current user" >&2
         return 1
     fi
-    # address the old z.sh bug of not dealing with non-GNU userland regarding 'ze -x'.
-    # detect which sed we are using and act on it accordingly:
-    if \sed --version 2>/dev/null | \grep -q GNU; then
-        _ZE_SED_IFLAG=(-i)
-    else
-        _ZE_SED_IFLAG=(-i '')
-    fi
 }
 _ZE_DIR=${_ZE_DIR:-$HOME/.ze}
 _ze_init
@@ -140,11 +133,10 @@ function _ze {
                     c) fnd="^$PWD $fnd";;
                     e) emit=1;;
                     f) finder=1;;
-                    h) printf '%s\n' "${_ZE_CMD:-ze} [-cefhlrtx] args" >&2; return;;
+                    h) printf '%s\n' "${_ZE_CMD:-ze} [-cefhlrt] args" >&2; return;;
                     l) list=1;;
                     r) typ="visits";;
                     t) typ="recent";;
-                    x) \sed "${_ZE_SED_IFLAG[@]}" -e "\:^${PWD}|.*:d" "$datafile"; return;;
                     *) fnd="$fnd${fnd:+ }$1"; opt='';;
 
                 esac; opt=${opt:1}; done;;
