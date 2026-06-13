@@ -148,7 +148,7 @@ To revert to legacy behaviour you have to explicitely set
 | `_ZE_DIR`                  | `~/.ze`  | database directory                  |
 | `_ZE_LAMBDA`               | `4e-6`   | decay rate (per second)             |
 | `_ZE_OWNER`                | unset    | allow use on shared db              |
-| `_ZE_NO_RESOLVE_SYMLINKS`  | 1        | resolve symlinks on cd              |
+| `_ZE_NO_RESOLVE_SYMLINKS`  | 1        | do not resolve symlinks on cd       |
 | `_ZE_EXCLUDE_DIRS`         | unset    | array of directory trees to exclude |
 
 ## fzf integration
