@@ -23,7 +23,6 @@ function _ze_init {
         printf '%s\n' "ze: $datafile not owned by current user" >&2
         return 1
     fi
-
     # address the old z.sh bug of not dealing with non-GNU userland regarding 'ze -x'.
     # detect which sed we are using and act on it accordingly:
     if \sed --version 2>/dev/null | \grep -q GNU; then
@@ -32,13 +31,11 @@ function _ze_init {
         _ZE_SED_IFLAG=(-i '')
     fi
 }
-
 _ZE_DIR=${_ZE_DIR:-$HOME/.ze}
-if ! _ze_init; then
-    unset -f _ze_init
-    return 1
-fi
+_ze_init
+typeset -i rc=$?
 unset -f _ze_init
+((rc)) && return $rc
 
 function _ze_dirs { ## 1/0 (1 (default): skip stale entries, 0: keep stale entries)
     typeset datafile="${_ZE_DIR}/ze.db"
@@ -62,17 +59,16 @@ function _ze_cd {
             # shellcheck disable=SC2086 # not applicable
             (_ze --add "$(command pwd $_ZE_RESOLVE_SYMLINKS 2>/dev/null)" &)
         fi
-        return 0
     else
         return $?
     fi
 }
 
 function _ze_fzf { ## pattern
-    typeset bestmatch
-    bestmatch=$(_ze -l "$1" |
+    typeset selection
+    selection=$(_ze -l "$1" |
         awk -F'\t' '{ buf[NR] = $NF } END { offs = NR+1; while (NR) print offs-NR FS buf[NR--] }' |
-        fzf -e --no-sort | cut -f2) && [[ $bestmatch ]] && _ze_cd "$bestmatch"
+        fzf -e --no-sort | cut -f2) && [[ $selection ]] && _ze_cd "$selection"
 }
 
 function _ze {
@@ -85,11 +81,10 @@ function _ze {
 
         # $HOME and / aren't worth matching
         [[ $* == "$HOME" || $* == '/' ]] && return
-        # don't track excluded directory trees
+
         typeset exclude
         for exclude in "${_ZE_EXCLUDE_DIRS[@]}"; do [[ $* == "$exclude"* ]] && return; done
 
-        # maintain the data file
         typeset tempfile
         tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
 
@@ -123,20 +118,21 @@ function _ze {
             BEGIN {
                 q = ENVIRON["candidate"]
                 q = substr(q, 3)
-                if( q == tolower(q) ) imatch = 1
+                lq = tolower(q)
+                case_sensitive = (q != lq)
+                if (!case_sensitive) q = lq
                 gsub(/ /, ".*", q)
             }
             {
-                if( imatch ) {
-                    if( tolower($1) ~ q ) print $1
-                } else if( $1 ~ q ) print $1
+                candidate = case_sensitive ? $1 : tolower($1)
+                if (candidate ~ q) print $1
             }
         ' 2>/dev/null
 
+    # list/go
     else
-        # list/go
-        typeset emit fnd opt typ
-        typeset -i list=0 finder=0
+        typeset fnd opt typ
+        typeset -i list=0 finder=0 emit=0
         while [[ $1 ]]; do case "$1" in
             --) while [[ $1 ]]; do shift; fnd=$fnd${fnd:+ }$1; done;;
              -) fnd='-';;
@@ -157,15 +153,14 @@ function _ze {
 
         ((finder)) && { _ze_fzf "$fnd"; return; }
 
-        # if bare -c with no args, just list
-        [[ $fnd == "^$PWD " ]] && list=1
-        #  skip pattern matching if real path, empty (go to $HOME), or "-":
+        [[ $fnd == "^$PWD " ]] && list=1  # if bare -c with no args, just list
+
+        # delegate to _ze_cd immediately if fnd is a real path, empty, or "-":
         ((!list)) && [[ -d ${fnd:-$HOME} || $fnd == "-" ]] && { _ze_cd "${fnd:-$HOME}"; return; }
 
-        typeset bestmatch
-        bestmatch=$(_ze_dirs 1 | fnd=$fnd \awk -v t="$(\date +%s)" -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
+        typeset output
+        output=$(_ze_dirs 1 | fnd=$fnd \awk -v t="$(\date +%s)" -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
             function output(matches, best_match, list,   x) {
-                # list or return the desired directory
                 if (list) {
                     for( x in matches ) printf "%-12s\t%s\n", matches[x], x | "LC_ALL=C sort -k1,1g -k2,2"
                 } else print best_match
@@ -173,8 +168,10 @@ function _ze {
             BEGIN {
                 q = ENVIRON["fnd"]
                 gsub(" ", ".*", q)
-                lq = tolower(q) 
-                hi_score = ihi_score = -1e300
+                lq = tolower(q)
+                case_sensitive = (q != lq)
+                if (!case_sensitive) q = lq
+                hi_score = -1e300
             }
             {
                 if (typ == "visits") {
@@ -182,29 +179,28 @@ function _ze {
                 } else if( typ == "recent") {
                     weight = $3 - t
                 } else weight = $4 * exp(-lambda * (t - $3))  # exponential decay of recorded score until time t ("now")
-                if ($1 ~ q) {
+
+                candidate = case_sensitive ? $1 : tolower($1)
+                if (candidate ~ q) {
                     matches[$1] = weight
-                    if( weight > hi_score ) { best_match = $1; hi_score = weight }
-                } else if (tolower($1) ~ lq) {
-                    imatches[$1] = weight
-                    if (weight > ihi_score) { ibest_match = $1; ihi_score = weight }
+                    if (weight > hi_score) {
+                        best_match = $1
+                        hi_score = weight
+                    }
                 }
             }
             END {
-                # prefer case sensitive
-                if (best_match) {
-                    output(matches, best_match, list)
-                } else if (ibest_match) {
-                    output(imatches, ibest_match, list)
-                } else exit(1)
+                if (!best_match) exit(1)
+                output(matches, best_match, list)
             }
         ')
         typeset -i rc=$?; ((rc)) && return $rc
+        [[ $output ]] || return
 
-        if ((list)); then
-            [[ $bestmatch ]] && printf '%s\n' "$bestmatch"
-        elif [[ $bestmatch ]]; then
-            if [[ $emit ]]; then printf '%s\n' "$bestmatch"; else _ze_cd "$bestmatch"; fi
+        if ((list || emit)); then
+            printf '%s\n' "$output"
+        else
+            _ze_cd "$output"
         fi
     fi
 }

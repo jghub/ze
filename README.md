@@ -117,6 +117,7 @@ ze [-cefhlrtx] [args]
 | Init             | minimal, no safety checks                     | validates db path, ownership, file type        |
 | Concurrency      | tempfile-name collisions and subsequent db corruption possible | `mktemp(1)` eliminates tempfile-name collisions, concurrent updates remain "last writer wins" |
 | `-f` option      | not available                                 | interactive fzf selector (if fzf installed)    |
+| Pattern matching | case-sensitive with case-insensitive fallback | smartcase: case-insensitive except when pattern contains uppercase |
 | Unknown options  | not handled, lists database                   | treated as pattern                             |
 
 *(1)*: The common-prefix heuristic of z.sh overrides the highest-scoring match in
