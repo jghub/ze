@@ -114,6 +114,7 @@ ze [-cefhlrtx] [args]
 | Concurrency      | tempfile-name collisions and subsequent db corruption possible | `mktemp(1)` eliminates tempfile-name collisions, concurrent updates remain "last writer wins" |
 | `-f` option      | not available                                 | interactive fzf selector (if fzf installed)    |
 | Pattern matching | case-sensitive with case-insensitive fallback | smartcase: case-insensitive except when pattern contains uppercase |
+| Symlinks         | resolved to physical paths by default         | logical paths are maintained by default *(4)*  |
 | Unknown options  | not handled, lists database                   | treated as pattern                             |
 
 *(1)*: The common-prefix heuristic of z.sh overrides the highest-scoring match in
@@ -132,6 +133,13 @@ filesystems (USB drives, NFS mounts). They are ignored during matching but
 reactivate when the filesystem is remounted. z.sh permanently prunes such entries
 on the next cd action.
 
+*(4)*: The legacy behaviour to resolve all symlinks to physical paths for
+storage in the db seems not optimal for a directory navigation tool where logical
+names probably are the intuitively expected paradigm for most users. Consequently,
+ze.sh maintains the logical paths by default (`_ZE_NO_RESOLVE_SYMLINKS=1`).
+To revert to legacy behaviour you have to explicitely set
+`_ZE_NO_RESOLVE_SYMLINKS=0`.
+
 ## Configuration
 
 | Variable                  | Default  | Meaning                              |
@@ -140,7 +148,7 @@ on the next cd action.
 | `_ZE_DIR`                  | `~/.ze`  | database directory                  |
 | `_ZE_LAMBDA`               | `4e-6`   | decay rate (per second)             |
 | `_ZE_OWNER`                | unset    | allow use on shared db              |
-| `_ZE_NO_RESOLVE_SYMLINKS`  | unset    | do not resolve symlinks on cd       |
+| `_ZE_NO_RESOLVE_SYMLINKS`  | 1        | resolve symlinks on cd              |
 | `_ZE_EXCLUDE_DIRS`         | unset    | array of directory trees to exclude |
 
 ## fzf integration

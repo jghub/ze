@@ -1,5 +1,9 @@
 # ze.sh: Changelog
 
+## 1.2.0, WIP (2026-06-13)
+* **symlink resolution**: the default now is to _not_ resolve symlinks to physical
+paths, see README for further details.
+
 ## 1.1.0 (2026-06-13)
 * **smartcase pattern matching**: legacy z.sh implements a strict case-sensitive
 pattern matching strategy with a fallback to case-insensitve matching in case no

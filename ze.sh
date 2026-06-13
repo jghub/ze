@@ -5,6 +5,8 @@
 # Copyright (c) 2009 rupa deadwyler. Licensed under the WTFPL license, Version 2
 # Modified by Joerg van den Hoff [2026]. See README.md for details.
 
+_ZE_DIR=${_ZE_DIR:-$HOME/.ze}
+
 function _ze_init {
     typeset  datafile="${_ZE_DIR}/ze.db"
     if [[ -e $_ZE_DIR && ! -d $_ZE_DIR ]]; then
@@ -24,11 +26,11 @@ function _ze_init {
         return 1
     fi
 }
-_ZE_DIR=${_ZE_DIR:-$HOME/.ze}
-_ze_init
-typeset -i rc=$?
+if ! _ze_init; then
+    unset -f _ze_init
+    return 1
+fi
 unset -f _ze_init
-((rc)) && return $rc
 
 function _ze_dirs { ## 1/0 (1 (default): skip stale entries, 0: keep stale entries)
     typeset datafile="${_ZE_DIR}/ze.db"
@@ -49,8 +51,7 @@ function _ze_cd {
         if [[ $_ZE_NO_RESOLVE_SYMLINKS ]]; then
             (_ze --add "$PWD" &)
         else
-            # shellcheck disable=SC2086 # not applicable
-            (_ze --add "$(command pwd $_ZE_RESOLVE_SYMLINKS 2>/dev/null)" &)
+            (_ze --add "$(command pwd -P 2>/dev/null)" &)
         fi
     else
         return $?
@@ -73,16 +74,16 @@ function _ze {
         shift
 
         # $HOME and / aren't worth matching
-        [[ $* == "$HOME" || $* == '/' ]] && return
+        [[ $1 == "$HOME" || $1 == "$PWD" || $1 == "/" ]] && return
 
         typeset exclude
-        for exclude in "${_ZE_EXCLUDE_DIRS[@]}"; do [[ $* == "$exclude"* ]] && return; done
+        for exclude in "${_ZE_EXCLUDE_DIRS[@]}"; do [[ $1 == "$exclude"* ]] && return; done
 
         typeset tempfile
         tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
 
         # _ze_dirs 1/0: do/don't ignore stale db entries
-        _ze_dirs 0 | path="$*" \awk -v now="$(\date +%s)" -v lambda="$lambda" -F"|" '
+        _ze_dirs 0 | path="$1" \awk -v now="$(\date +%s)" -v lambda="$lambda" -F"|" '
             BEGIN { path = ENVIRON["path"]; OFS = FS }
             $1 == path {
                 hit = 1
@@ -150,8 +151,8 @@ function _ze {
         # delegate to _ze_cd immediately if fnd is a real path, empty, or "-":
         ((!list)) && [[ -d ${fnd:-$HOME} || $fnd == "-" ]] && { _ze_cd "${fnd:-$HOME}"; return; }
 
-        typeset output
-        output=$(_ze_dirs 1 | fnd=$fnd \awk -v t="$(\date +%s)" -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
+        typeset result
+        result=$(_ze_dirs 1 | fnd=$fnd \awk -v t="$(\date +%s)" -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
             function output(matches, best_match, list,   x) {
                 if (list) {
                     for( x in matches ) printf "%-12s\t%s\n", matches[x], x | "LC_ALL=C sort -k1,1g -k2,2"
@@ -187,20 +188,15 @@ function _ze {
             }
         ')
         typeset -i rc=$?; ((rc)) && return $rc
-        [[ $output ]] || return
+        [[ $result ]] || return
 
         if ((list || emit)); then
-            printf '%s\n' "$output"
+            printf '%s\n' "$result"
         else
-            _ze_cd "$output"
+            _ze_cd "$result"
         fi
     fi
 }
-
-# shellcheck disable=SC2086,SC2139 # false alarm
-alias ${_ZE_CMD:-ze}='_ze'
-
-[[ $_ZE_NO_RESOLVE_SYMLINKS ]] || _ZE_RESOLVE_SYMLINKS="-P"
 
 if type compctl >/dev/null 2>&1; then
     # zsh completion
@@ -217,3 +213,7 @@ elif type complete >/dev/null 2>&1; then
     # shellcheck disable=SC2016 # false alarm
     complete -o filenames -C '_ze --complete "$COMP_LINE"' "${_ZE_CMD:-ze}"
 fi
+
+: "${_ZE_NO_RESOLVE_SYMLINKS:=1}"
+# shellcheck disable=SC2086,SC2139 # false alarm
+alias ${_ZE_CMD:-ze}='_ze'
