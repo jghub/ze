@@ -80,7 +80,7 @@ filesystems) and filters them at match time rather than pruning them on update.
 
 ```
 ze [options] [pattern|path|-]
-ze [-cefhlrtx] [args]
+ze [-cefhlrt] [args]
 ```
 
 | Invocation      | Behavior                                |
@@ -90,11 +90,11 @@ ze [-cefhlrtx] [args]
 | `ze path`       | cd to path directly (real path wins)    |
 | `ze pattern`    | cd to highest scoring match for pattern |
 | `ze -c pattern` | restrict matches to subdirs of $PWD     |
-| `ze -l pattern` | list matches according to current score |
+| `ze -e pattern` | print match instead of cd               |
 | `ze -f pattern` | use fzf for interactive selection       |
+| `ze -l pattern` | list matches according to current score |
 | `ze -r pattern` | sort by visit count                     |
 | `ze -t pattern` | sort by recency of last visit           |
-| `ze -e pattern` | print match instead of cd               |
 
 ## Changes from z.sh
 

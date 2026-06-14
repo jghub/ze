@@ -73,8 +73,8 @@ function _ze {
     if [[ $1 == "--add" ]]; then
         shift
 
-        # $HOME and / aren't worth matching
-        [[ $1 == "$HOME" || $1 == "$PWD" || $1 == "/" ]] && return
+        # $HOME and / aren't worth matching, neither is $OLDPWD
+        [[ $1 == "$HOME" || $1 == "$OLDPWD" || $1 == "/" ]] && return
 
         typeset exclude
         for exclude in "${_ZE_EXCLUDE_DIRS[@]}"; do [[ $1 == "$exclude"* ]] && return; done
