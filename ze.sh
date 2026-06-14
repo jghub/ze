@@ -5,8 +5,6 @@
 # Copyright (c) 2009 rupa deadwyler. Licensed under the WTFPL license, Version 2
 # Modified by Joerg van den Hoff [2026]. See README.md for details.
 
-_ZE_DIR=${_ZE_DIR:-$HOME/.ze}
-
 function _ze_init {
     typeset  datafile="${_ZE_DIR}/ze.db"
     if [[ -e $_ZE_DIR && ! -d $_ZE_DIR ]]; then
@@ -25,12 +23,37 @@ function _ze_init {
         printf '%s\n' "ze: $datafile not owned by current user" >&2
         return 1
     fi
+
+    typeset -i dbmax=1024 dbfrac=32 dbsize 
+    dbsize=$(wc -l < "$datafile")
+    ((dbsize <= dbmax)) && return  # or ...
+    # ... auto-prune db by removing lowest scoring entries
+    typeset tempfile prunefile result lambda=${_ZE_LAMBDA:-4e-6}
+    typeset -i margin nprune
+    tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
+    prunefile=$(mktemp "${datafile}.XXXXXX") || { \rm -f "$tempfile"; return 1; }
+    ((margin = dbmax/dbfrac))
+    ((nprune = dbsize - dbmax + margin))
+    result=$(_ze_dirs 0 | \awk -v t="$(date +%s)" -v lambda="$lambda" -F'|' '
+        BEGIN { OFS = FS } 
+        {
+            $5 = $4 * exp(-lambda * (t - $3))
+            print | "LC_ALL=C sort -t\\| -k5,5g -k1,1"
+        }' |
+        \awk -F'|' -v nprune="$nprune" 'BEGIN {OFS = FS} NR <= nprune { print $1, $2, $3, $4 }'
+    )
+    # process substitution does not work for mksh, otherwise we just could use:
+    #_ze_dirs 0 | \grep -F -x -v -f <(printf '%s\n' "$result") >| "$tempfile"
+    printf '%s\n' "$result" >| "$prunefile" && _ze_dirs 0 | \grep -Fxv -f "$prunefile" >| "$tempfile"
+    # shellcheck disable=SC2181 # irrelevant
+    if (( $? )) && [[ -f $datafile ]]; then
+        \rm -f "$tempfile"
+    else
+        [[ $_ZE_OWNER ]] && chown "$_ZE_OWNER":"$(id -ng "$_ZE_OWNER")" "$tempfile"
+        \mv -f "$tempfile" "$datafile.pruned" || \rm -f "$tempfile"
+    fi
+    \rm -f "$prunefile"
 }
-if ! _ze_init; then
-    unset -f _ze_init
-    return 1
-fi
-unset -f _ze_init
 
 function _ze_dirs { ## 1/0 (1 (default): skip stale entries, 0: keep stale entries)
     typeset datafile="${_ZE_DIR}/ze.db"
@@ -83,7 +106,7 @@ function _ze {
         tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
 
         # _ze_dirs 1/0: do/don't ignore stale db entries
-        _ze_dirs 0 | path="$1" \awk -v now="$(\date +%s)" -v lambda="$lambda" -F"|" '
+        _ze_dirs 0 | path="$1" \awk -v now="$(date +%s)" -v lambda="$lambda" -F"|" '
             BEGIN { path = ENVIRON["path"]; OFS = FS }
             $1 == path {
                 hit = 1
@@ -100,10 +123,10 @@ function _ze {
         # do our best to avoid clobbering the datafile in a race condition.
         # shellcheck disable=SC2181 # irrelevant
         if (( $? )) && [[ -f $datafile ]]; then
-            \env rm -f "$tempfile"
+            \rm -f "$tempfile"
         else
             [[ $_ZE_OWNER ]] && chown "$_ZE_OWNER":"$(id -ng "$_ZE_OWNER")" "$tempfile"
-            \env mv -f "$tempfile" "$datafile" || \env rm -f "$tempfile"
+            \mv -f "$tempfile" "$datafile" || \rm -f "$tempfile"
         fi
 
     # tab completion
@@ -152,7 +175,7 @@ function _ze {
         ((!list)) && [[ -d ${fnd:-$HOME} || $fnd == "-" ]] && { _ze_cd "${fnd:-$HOME}"; return; }
 
         typeset result
-        result=$(_ze_dirs 1 | fnd=$fnd \awk -v t="$(\date +%s)" -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
+        result=$(_ze_dirs 1 | fnd=$fnd \awk -v t="$(date +%s)" -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
             function output(matches, best_match, list,   x) {
                 if (list) {
                     for( x in matches ) printf "%-12s\t%s\n", matches[x], x | "LC_ALL=C sort -k1,1g -k2,2"
@@ -197,6 +220,13 @@ function _ze {
         fi
     fi
 }
+
+_ZE_DIR=${_ZE_DIR:-$HOME/.ze}
+if ! _ze_init; then
+    unset -f _ze _ze_cd _ze_dirs _ze_fzf _ze_init 
+    return 1
+fi
+unset -f _ze_init
 
 if type compctl >/dev/null 2>&1; then
     # zsh completion
