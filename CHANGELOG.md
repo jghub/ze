@@ -1,6 +1,10 @@
 # ze.sh: Changelog
 
-## 1.2.0, WIP (2026-06-13)
+## 1.2.0, WIP (2026-06-14)
+* **db auto-pruning**: db is pruned at source time by removing lowest scoring
+entries if db size exceeds the hardcoded threshold of 2^10 entries. The threshold
+is very conservative and should make ze.sh remember several years of activity. 
+
 * **symlink resolution**: the default now is to _not_ resolve symlinks to physical
 paths, see README for further details.
 
