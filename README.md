@@ -114,7 +114,7 @@ ze [-cefhlrtx] [args]
 | Concurrency      | tempfile-name collisions and subsequent db corruption possible | `mktemp(1)` eliminates tempfile-name collisions, concurrent updates remain "last writer wins" |
 | `-f` option      | not available                                 | interactive fzf selector (if fzf installed)    |
 | Pattern matching | case-sensitive with case-insensitive fallback | smartcase: case-insensitive except when pattern contains uppercase |
-| Symlinks         | resolved to physical paths by default         | logical paths are maintained by default *(4)*  |
+| Symlinks         | resolved to physical paths by default         | logical paths are honoured by default *(4)*  |
 | Unknown options  | not handled, lists database                   | treated as pattern                             |
 
 *(1)*: The common-prefix heuristic of z.sh overrides the highest-scoring match in
@@ -124,21 +124,20 @@ match is the statistically most likely intended destination. For cases where
 manual selection is still needed, `ze -f` provides an interactive fallback.
 
 *(2)*: Absolute pathnames are recognized by z.sh only if given as the last
-argument - a side effect of tab completion handling. Argument order matters:
-`z foo /path` cds directly while `z /path foo` pattern-matches. Relative
-pathnames are never recognized and always treated as pattern.
+argument - a side effect of tab completion handling. Argument order matters: `z
+foo /path` cds directly while `z /path foo` pattern-matches. Relative pathnames
+are never recognized and always treated as pattern.
 
 *(3)*: ze.sh retains database entries for directories on transiently unavailable
 filesystems (USB drives, NFS mounts). They are ignored during matching but
 reactivate when the filesystem is remounted. z.sh permanently prunes such entries
 on the next cd action.
 
-*(4)*: The legacy behaviour to resolve all symlinks to physical paths for
-storage in the db seems not optimal for a directory navigation tool where logical
-names probably are the intuitively expected paradigm for most users. Consequently,
-ze.sh maintains the logical paths by default (`_ZE_NO_RESOLVE_SYMLINKS=1`).
-To revert to legacy behaviour you have to explicitely set
-`_ZE_NO_RESOLVE_SYMLINKS=0`.
+*(4)*: The legacy behaviour to resolve all symlinks to physical paths for storage
+in the db seems not optimal for a directory navigation tool where logical names
+probably are the intuitively expected paradigm for most users. Consequently,
+ze.sh honours the logical paths by default. To revert to legacy behaviour you now
+have to explicitly set the variable `_ZE_RESOLVE_SYMLINKS` to any non-empty value.
 
 ## Configuration
 
@@ -148,7 +147,7 @@ To revert to legacy behaviour you have to explicitely set
 | `_ZE_DIR`                  | `~/.ze`  | database directory                  |
 | `_ZE_LAMBDA`               | `4e-6`   | decay rate (per second)             |
 | `_ZE_OWNER`                | unset    | allow use on shared db              |
-| `_ZE_NO_RESOLVE_SYMLINKS`  | 1        | do not resolve symlinks on cd       |
+| `_ZE_RESOLVE_SYMLINKS`     | unset    | resolve symlinks on cd              |
 | `_ZE_EXCLUDE_DIRS`         | unset    | array of directory trees to exclude |
 
 ## fzf integration

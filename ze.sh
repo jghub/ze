@@ -48,10 +48,10 @@ function _ze_dirs { ## 1/0 (1 (default): skip stale entries, 0: keep stale entri
 
 function _ze_cd {
     if command cd "$@"; then
-        if [[ $_ZE_NO_RESOLVE_SYMLINKS ]]; then
-            (_ze --add "$PWD" &)
-        else
+        if [[ $_ZE_RESOLVE_SYMLINKS ]]; then
             (_ze --add "$(command pwd -P 2>/dev/null)" &)
+        else
+            (_ze --add "$PWD" &)
         fi
     else
         return $?
@@ -214,6 +214,5 @@ elif type complete >/dev/null 2>&1; then
     complete -o filenames -C '_ze --complete "$COMP_LINE"' "${_ZE_CMD:-ze}"
 fi
 
-: "${_ZE_NO_RESOLVE_SYMLINKS:=1}"
 # shellcheck disable=SC2086,SC2139 # false alarm
 alias ${_ZE_CMD:-ze}='_ze'
