@@ -28,23 +28,21 @@ function _ze_init {
     dbsize=$(wc -l < "$datafile")
     ((dbsize <= dbmax)) && return  # or ...
     # ... auto-prune db by removing lowest scoring entries
-    typeset tempfile prunefile result lambda=${_ZE_LAMBDA:-4e-6}
+    typeset tempfile prunefile zdirs lambda=${_ZE_LAMBDA:-4e-6}
     typeset -i margin nprune
     tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
     prunefile=$(mktemp "${datafile}.XXXXXX") || { \rm -f "$tempfile"; return 1; }
     ((margin = dbmax/dbfrac))
     ((nprune = dbsize - dbmax + margin))
-    result=$(_ze_dirs 0 | awk -v t="$(date +%s)" -v lambda="$lambda" -F'|' '
+    zdirs=$(_ze_dirs 0)
+    # no process substitution in mksh so we use prunefile:
+    printf '%s\n' "$zdirs" | awk -v t="$(date +%s)" -v lambda="$lambda" -F'|' '
         BEGIN { OFS = FS } 
         {
             $5 = $4 * exp(-lambda * (t - $3))
             print | "LC_ALL=C sort -t\\| -k5,5g -k1,1"
-        }' |
-        awk -F'|' -v nprune="$nprune" 'BEGIN {OFS = FS} NR <= nprune { print $1, $2, $3, $4 }'
-    )
-    # process substitution does not work for mksh, otherwise we just could use:
-    #_ze_dirs 0 | grep -F -x -v -f <(printf '%s\n' "$result") >| "$tempfile"
-    printf '%s\n' "$result" >| "$prunefile" && _ze_dirs 0 | \grep -Fxv -f "$prunefile" >| "$tempfile"
+        }' | awk -F'|' -v nprune="$nprune" 'BEGIN {OFS = FS} NR <= nprune { print $1, $2, $3, $4 } ' >| "$prunefile" &&
+                printf '%s\n' "$zdirs" | \grep -Fxv -f "$prunefile" >| "$tempfile"
     # shellcheck disable=SC2181 # irrelevant
     if (( $? )) && [[ -f $datafile ]]; then
         \rm -f "$tempfile"
@@ -162,7 +160,6 @@ function _ze {
                     r) typ="visits";;
                     t) typ="recent";;
                     *) fnd="$fnd${fnd:+ }$1"; opt='';;
-
                 esac; opt=${opt:1}; done;;
              *) fnd="$fnd${fnd:+ }$1";;
         esac; (($#)) && shift; done
