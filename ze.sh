@@ -23,13 +23,13 @@ function _ze_init {
         printf '%s\n' "ze: $datafile not owned by current user" >&2
         return 1
     fi
-
-    typeset -i dbmax=1024 dbfrac=32 dbsize 
+    typeset -i dbsize dbmax=1024
     dbsize=$(wc -l < "$datafile")
     ((dbsize <= dbmax)) && return  # or ...
+
     # ... auto-prune db by removing lowest scoring entries
     typeset tempfile prunefile zdirs lambda=${_ZE_LAMBDA:-4e-6}
-    typeset -i margin nprune
+    typeset -i margin nprune dbfrac=32 
     tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
     prunefile=$(mktemp "${datafile}.XXXXXX") || { \rm -f "$tempfile"; return 1; }
     ((margin = dbmax/dbfrac))
