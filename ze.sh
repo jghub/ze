@@ -34,16 +34,16 @@ function _ze_init {
     prunefile=$(mktemp "${datafile}.XXXXXX") || { \rm -f "$tempfile"; return 1; }
     ((margin = dbmax/dbfrac))
     ((nprune = dbsize - dbmax + margin))
-    result=$(_ze_dirs 0 | \awk -v t="$(date +%s)" -v lambda="$lambda" -F'|' '
+    result=$(_ze_dirs 0 | awk -v t="$(date +%s)" -v lambda="$lambda" -F'|' '
         BEGIN { OFS = FS } 
         {
             $5 = $4 * exp(-lambda * (t - $3))
             print | "LC_ALL=C sort -t\\| -k5,5g -k1,1"
         }' |
-        \awk -F'|' -v nprune="$nprune" 'BEGIN {OFS = FS} NR <= nprune { print $1, $2, $3, $4 }'
+        awk -F'|' -v nprune="$nprune" 'BEGIN {OFS = FS} NR <= nprune { print $1, $2, $3, $4 }'
     )
     # process substitution does not work for mksh, otherwise we just could use:
-    #_ze_dirs 0 | \grep -F -x -v -f <(printf '%s\n' "$result") >| "$tempfile"
+    #_ze_dirs 0 | grep -F -x -v -f <(printf '%s\n' "$result") >| "$tempfile"
     printf '%s\n' "$result" >| "$prunefile" && _ze_dirs 0 | \grep -Fxv -f "$prunefile" >| "$tempfile"
     # shellcheck disable=SC2181 # irrelevant
     if (( $? )) && [[ -f $datafile ]]; then
@@ -106,7 +106,7 @@ function _ze {
         tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
 
         # _ze_dirs 1/0: do/don't ignore stale db entries
-        _ze_dirs 0 | path="$1" \awk -v now="$(date +%s)" -v lambda="$lambda" -F"|" '
+        _ze_dirs 0 | path="$1" awk -v now="$(date +%s)" -v lambda="$lambda" -F"|" '
             BEGIN { path = ENVIRON["path"]; OFS = FS }
             $1 == path {
                 hit = 1
@@ -131,7 +131,7 @@ function _ze {
 
     # tab completion
     elif [[ $1 == "--complete" ]] && [[ -s $datafile ]]; then
-        _ze_dirs 1 | candidate=$2 \awk -F"|" '
+        _ze_dirs 1 | candidate=$2 awk -F"|" '
             BEGIN {
                 q = ENVIRON["candidate"]
                 sub(/^[^ ]+[ ]+/, "", q)   # replace previous fixed-offset substring to account for possibility of non-default ZE_CMD value
@@ -175,7 +175,7 @@ function _ze {
         ((!list)) && [[ -d ${fnd:-$HOME} || $fnd == "-" ]] && { _ze_cd "${fnd:-$HOME}"; return; }
 
         typeset result
-        result=$(_ze_dirs 1 | fnd=$fnd \awk -v t="$(date +%s)" -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
+        result=$(_ze_dirs 1 | fnd=$fnd awk -v t="$(date +%s)" -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
             function output(matches, best_match, list,   x) {
                 if (list) {
                     for( x in matches ) printf "%-12s\t%s\n", matches[x], x | "LC_ALL=C sort -k1,1g -k2,2"
