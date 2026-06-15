@@ -50,7 +50,7 @@ function _ze_init {
         \rm -f "$tempfile"
     else
         [[ $_ZE_OWNER ]] && chown "$_ZE_OWNER":"$(id -ng "$_ZE_OWNER")" "$tempfile"
-        \mv -f "$tempfile" "$datafile.pruned" || \rm -f "$tempfile"
+        \mv -f "$tempfile" "$datafile" || \rm -f "$tempfile"
     fi
     \rm -f "$prunefile"
 }
@@ -134,7 +134,7 @@ function _ze {
         _ze_dirs 1 | candidate=$2 \awk -F"|" '
             BEGIN {
                 q = ENVIRON["candidate"]
-                q = substr(q, 3)
+                sub(/^[^ ]+[ ]+/, "", q)   # replace previous fixed-offset substring to account for possibility of non-default ZE_CMD value
                 lq = tolower(q)
                 case_sensitive = (q != lq)
                 if (!case_sensitive) q = lq
