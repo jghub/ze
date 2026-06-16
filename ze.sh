@@ -1,10 +1,14 @@
-#!/usr/bin/env bash
 # ze.sh -- a frecency-based directory jumper
-# fork of z.sh (https://github.com/rupa/z)
+# Originally derived from z.sh: https://github.com/rupa/z
 # Repository: https://github.com/jghub/ze
-# Copyright (c) 2009 rupa deadwyler. Licensed under the WTFPL license, Version 2
-# Modified by Joerg van den Hoff [2026]. See README.md for details.
-
+#
+# Copyright (c) 2009 rupa deadwyler
+# Copyright (c) 2026 jghub
+#
+# ze.sh is a substantially modified fork of z.sh. Original z.sh was distributed
+# under the WTFPL v2. ze.sh is distributed under the MIT License.
+# -----------------------------------------------------------------------------
+# shellcheck shell=ksh
 function _ze_init {
     _ZE_DIR=${_ZE_DIR:-$HOME/.ze}
     typeset  datafile="${_ZE_DIR}/ze.db"

@@ -1,6 +1,6 @@
 # ze.sh: Changelog
 
-## 2.0.0, WIP (2026-06-16)
+## 2.0.0 (2026-06-16)
 * **changed default for symlink resolution**: the default now is to _not_ resolve
 symlinks to physical paths, see README for further details.
 
