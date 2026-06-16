@@ -167,8 +167,8 @@ function _ze {
 
         [[ $fnd == "^$PWD " ]] && list=1  # if bare -c with no args, just list
 
-        # delegate to _ze_cd immediately if fnd is a real path, empty, or "-":
-        ((!list)) && [[ -d ${fnd:-$HOME} || $fnd == "-" ]] && { _ze_cd "${fnd:-$HOME}"; return; }
+        # in cd mode, delegate to _ze_cd immediately if fnd is a real path, empty, or "-":
+        ((!(list || emit))) && [[ -d ${fnd:-$HOME} || $fnd == "-" ]] && { _ze_cd "${fnd:-$HOME}"; return; }
 
         typeset result
         result=$(_ze_dirs 1 | fnd=$fnd awk -v t="$(date +%s)" -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
