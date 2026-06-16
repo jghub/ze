@@ -205,4 +205,4 @@ retrospective rescoring.
 
 ## License
 
-WTFPL — see LICENSE.
+MIT — see LICENSE.
