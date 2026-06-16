@@ -1,17 +1,18 @@
 # ze.sh: Changelog
 
-## 1.2.0, WIP (2026-06-15)
-* **db auto-pruning**: db is pruned at source time by removing lowest scoring
-entries if db size exceeds a hardcoded threshold (1024 entries). The threshold is
-very conservative and ensures that ze.sh will keep several years of cd history.
+## 2.0.0, WIP (2026-06-16)
+* **changed default for symlink resolution**: the default now is to _not_ resolve
+symlinks to physical paths, see README for further details.
 
-* **symlink resolution**: the default now is to _not_ resolve symlinks to physical
-paths, see README for further details.
+* **remove -x option**: the use case for this options seems narrow: removal of a
+single database entry is hardly ever desirable given ze.sh's exponential scoring
+model, where old infrequently-visited entries naturally decay to low scores and
+and are eventually removed once the database exceeds its size limit.
 
-* **remove -x option**: the use case for this options seems narrow (even more so
-in ze.sh than in z.sh): deletion of ancient entries with high visit count jumping
-to top of stack of single inadvertent new visit and otherwise not desirable, since
-it easily can be issued inadvertently (mistyping -x when intending -c, e.g.).
+* **add db auto-pruning**: db is pruned at source time by removing lowest scoring
+entries when its size exceeds a threshold (default: 512 entries). The default
+threshold is conservative; for typical usage patterns the database is unlikely to
+exceed it within the first year or two of use.
 
 ## 1.1.0 (2026-06-13)
 * **smartcase pattern matching**: legacy z.sh implements a strict case-sensitive

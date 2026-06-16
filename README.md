@@ -111,7 +111,7 @@ ze [-cefhlrt] [args]
 | Database         | single flat file `~/.z`                       | directory `~/.ze/`, database `~/.ze/ze.db`     |
 | Shell compat     | bash/zsh only                                 | bash, zsh, ksh93, mksh                         |
 | Init             | minimal, no safety checks                     | validates db path, ownership, file type        |
-| Concurrency      | tempfile-name collisions and subsequent db corruption possible | `mktemp(1)` eliminates tempfile-name collisions, concurrent updates remain "last writer wins" |
+| Concurrency      | tempfile-name collisions may cause db corruption | `mktemp(1)` eliminates tempfile-name collisions, concurrent updates remain "last writer wins" |
 | `-f` option      | not available                                 | interactive fzf selector (if fzf installed)    |
 | Pattern matching | case-sensitive with case-insensitive fallback | smartcase: case-insensitive except when pattern contains uppercase |
 | Symlinks         | resolved to physical paths by default         | logical paths are honoured by default *(4)*  |
@@ -130,22 +130,25 @@ are never recognized and always treated as pattern.
 
 *(3)*: ze.sh retains database entries for directories on transiently unavailable
 filesystems (USB drives, NFS mounts). They are ignored during matching but
-reactivate when the filesystem is remounted. z.sh permanently prunes such entries
-on the next cd action.
+reactivate when the filesystem is remounted. z.sh prunes such entries immediately
+on the next cd action. In ze.sh, score-based pruning takes place when the db
+exceeds a configurable size limit (default: 512 entries), which eventually removes
+lowest scoring entries including never-again-used stale entries.
 
 *(4)*: The legacy behaviour to resolve all symlinks to physical paths for storage
-in the db seems not optimal for a directory navigation tool where logical names
-probably are the intuitively expected paradigm for most users. Consequently,
+in the db seems not optimal for a directory navigation tool where logical paths
+are usually the expected paradigm. Consequently,
 ze.sh honours the logical paths by default. To revert to legacy behaviour you now
 have to explicitly set the variable `_ZE_RESOLVE_SYMLINKS` to any non-empty value.
 
 ## Configuration
 
-| Variable                  | Default  | Meaning                              |
-|---------------------------|----------|--------------------------------------|
+| Variable                   | Default  | Meaning                             |
+|----------------------------|----------|-------------------------------------|
 | `_ZE_CMD`                  | `ze`     | command name                        |
 | `_ZE_DIR`                  | `~/.ze`  | database directory                  |
 | `_ZE_LAMBDA`               | `4e-6`   | decay rate (per second)             |
+| `_ZE_DBMAX`                | `512`    | db size limit (pruning threshold)   |
 | `_ZE_OWNER`                | unset    | allow use on shared db              |
 | `_ZE_RESOLVE_SYMLINKS`     | unset    | resolve symlinks on cd              |
 | `_ZE_EXCLUDE_DIRS`         | unset    | array of directory trees to exclude |

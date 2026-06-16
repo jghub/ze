@@ -6,6 +6,7 @@
 # Modified by Joerg van den Hoff [2026]. See README.md for details.
 
 function _ze_init {
+    _ZE_DIR=${_ZE_DIR:-$HOME/.ze}
     typeset  datafile="${_ZE_DIR}/ze.db"
     if [[ -e $_ZE_DIR && ! -d $_ZE_DIR ]]; then
         printf '%s\n' "ze: $_ZE_DIR exists and is not a directory" >&2
@@ -23,7 +24,7 @@ function _ze_init {
         printf '%s\n' "ze: $datafile not owned by current user" >&2
         return 1
     fi
-    typeset -i dbsize dbmax=1024
+    typeset -i dbsize dbmax=${_ZE_DBMAX:-512}
     dbsize=$(wc -l < "$datafile")
     ((dbsize <= dbmax)) && return  # or ...
 
@@ -37,12 +38,10 @@ function _ze_init {
     zdirs=$(_ze_dirs 0)
     # no process substitution in mksh so we use prunefile:
     printf '%s\n' "$zdirs" | awk -v t="$(date +%s)" -v lambda="$lambda" -F'|' '
-        BEGIN { OFS = FS } 
-        {
-            $5 = $4 * exp(-lambda * (t - $3))
-            print | "LC_ALL=C sort -t\\| -k5,5g -k1,1"
-        }' | awk -F'|' -v nprune="$nprune" 'BEGIN {OFS = FS} NR <= nprune { print $1, $2, $3, $4 } ' >| "$prunefile" &&
-                printf '%s\n' "$zdirs" | \grep -Fxv -f "$prunefile" >| "$tempfile"
+        BEGIN { OFS = FS } { $5 = $4 * exp(-lambda * (t - $3)); print }' |
+            LC_ALL=C sort -t'|' -k5,5g -k1,1 | awk -F'|' -v nprune="$nprune" '
+                BEGIN {OFS = FS} NR <= nprune { print $1, $2, $3, $4 }' >| "$prunefile" &&
+                    printf '%s\n' "$zdirs" | \grep -Fxv -f "$prunefile" >| "$tempfile"
     # shellcheck disable=SC2181 # irrelevant
     if (( $? )) && [[ -f $datafile ]]; then
         \rm -f "$tempfile"
@@ -112,7 +111,7 @@ function _ze {
                 $4 = $4 * exp(-lambda * (now - $3)) + 1
                 $3 = now
             }
-            # we specify fields explictly rather than using simple "print" to
+            # we specify fields explicitly rather than using simple "print" to
             # allow for minor db sanitation in case it was manually edited and
             # some trailing garbage left behind in the edited record(s):
             { print $1, $2, $3, $4 }
@@ -218,7 +217,6 @@ function _ze {
     fi
 }
 
-_ZE_DIR=${_ZE_DIR:-$HOME/.ze}
 if ! _ze_init; then
     unset -f _ze _ze_cd _ze_dirs _ze_fzf _ze_init 
     return 1
