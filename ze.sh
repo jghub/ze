@@ -29,19 +29,15 @@ function _ze_init {
     ((dbsize <= dbmax)) && return  # or ...
 
     # ... auto-prune db by removing lowest scoring entries
-    typeset tempfile prunefile zdirs lambda=${_ZE_LAMBDA:-4e-6}
-    typeset -i margin nprune dbfrac=32 
+    typeset tempfile lambda=${_ZE_LAMBDA:-4e-6}
+    typeset -i margin nprune dbfrac=32
     tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
-    prunefile=$(mktemp "${datafile}.XXXXXX") || { \rm -f "$tempfile"; return 1; }
     ((margin = dbmax/dbfrac))
     ((nprune = dbsize - dbmax + margin))
-    zdirs=$(_ze_dirs 0)
-    # no process substitution in mksh so we use prunefile:
-    printf '%s\n' "$zdirs" | awk -v t="$(date +%s)" -v lambda="$lambda" -F'|' '
+    _ze_dirs 0 | awk -v t="$(date +%s)" -v lambda="$lambda" -F'|' '
         BEGIN { OFS = FS } { $5 = $4 * exp(-lambda * (t - $3)); print }' |
             LC_ALL=C sort -t'|' -k5,5g -k1,1 | awk -F'|' -v nprune="$nprune" '
-                BEGIN {OFS = FS} NR <= nprune { print $1, $2, $3, $4 }' >| "$prunefile" &&
-                    printf '%s\n' "$zdirs" | \grep -Fxv -f "$prunefile" >| "$tempfile"
+                BEGIN {OFS = FS} NR > nprune { print $1, $2, $3, $4 }' >| "$tempfile"
     # shellcheck disable=SC2181 # irrelevant
     if (( $? )) && [[ -f $datafile ]]; then
         \rm -f "$tempfile"
@@ -49,7 +45,6 @@ function _ze_init {
         [[ $_ZE_OWNER ]] && chown "$_ZE_OWNER":"$(id -ng "$_ZE_OWNER")" "$tempfile"
         \mv -f "$tempfile" "$datafile" || \rm -f "$tempfile"
     fi
-    \rm -f "$prunefile"
 }
 
 function _ze_dirs { ## 1/0 (1 (default): skip stale entries, 0: keep stale entries)
@@ -218,7 +213,7 @@ function _ze {
 }
 
 if ! _ze_init; then
-    unset -f _ze _ze_cd _ze_dirs _ze_fzf _ze_init 
+    unset -f _ze _ze_cd _ze_dirs _ze_fzf _ze_init
     return 1
 fi
 unset -f _ze_init
