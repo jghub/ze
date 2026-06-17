@@ -1,13 +1,22 @@
 # ze.sh: Changelog
 
-## 2.0.0 (2026-06-16)
+## 2.0.0 (2026-06-18)
 * **changed default for symlink resolution**: the default now is to _not_ resolve
 symlinks to physical paths, see README for further details.
 
-* **remove -x option**: the use case for this options seems narrow: removal of a
-single database entry is hardly ever desirable given ze.sh's exponential scoring
-model, where old infrequently-visited entries naturally decay to low scores and
-and are eventually removed once the database exceeds its size limit.
+* **remove -x option**: the use case for this option seemed always narrow, and
+removal of a single database entry is hardly ever desirable given ze.sh's
+exponential scoring model, where old infrequently-visited entries naturally decay
+to low scores and and are eventually removed once the database exceeds its size
+limit.
+
+* **timestamp normalisation**: if the inactivity gap since the most recent
+recorded visit exceeds a _ZE_LAMBDA dependent tolerance, all timestamps in the
+database are shifted forward such that the newest timestamp coincides with the
+current time. This prevents global score decay during extended periods of
+inactivity (for example holidays), preserving the relative ranking of directories
+while retaining normal wall-clock behaviour during active use.
+
 
 * **add db auto-pruning**: db is pruned at source time by removing lowest scoring
 entries when its size exceeds a threshold (default: 512 entries). The default

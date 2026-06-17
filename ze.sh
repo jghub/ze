@@ -28,22 +28,48 @@ function _ze_init {
         printf '%s\n' "ze: $datafile not owned by current user" >&2
         return 1
     fi
+
+    # shift all timestamps such that newest one coincides with "now" if tolerance exceeded
+    typeset -i now
+    ((now = $(\date +%s)))
+    typeset tempfile lambda=${_ZE_LAMBDA:-4e-6}
+    tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
+    \awk -F'|' -v now="$now" -v lambda="$lambda" '
+        BEGIN { OFS = FS }
+        { lines[NR] = $0; if ($3 > tmax) tmax = $3 }
+        END {
+            if (NR == 0) exit(1)  # relying on _ze_commit
+            tol = 0.5 * log(2)/lambda
+            bump = now - tmax
+            if (bump <= tol) exit(1)  # relying _ze_commit
+            for (i = 1; i <= NR; i++) {
+                n = split(lines[i], f, FS)
+                f[3] += bump
+                print f[1], f[2], f[3], f[4]
+            }
+        }' "$datafile" >| "$tempfile"
+    _ze_commit $? "$tempfile" "$datafile"
+
     typeset -i dbsize dbmax=${_ZE_DBMAX:-512}
     dbsize=$(wc -l < "$datafile")
     ((dbsize <= dbmax)) && return  # or ...
-
-    # ... auto-prune db by removing lowest scoring entries
-    typeset tempfile lambda=${_ZE_LAMBDA:-4e-6}
+    # ... auto-prune db by removing lowest scoring entries:
     typeset -i margin nprune dbfrac=32
     tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
     ((margin = dbmax/dbfrac))
     ((nprune = dbsize - dbmax + margin))
-    _ze_dirs 0 | awk -v t="$(date +%s)" -v lambda="$lambda" -F'|' '
-        BEGIN { OFS = FS } { $5 = $4 * exp(-lambda * (t - $3)); print }' |
+    _ze_dirs 0 | awk -v now="$now" -v lambda="$lambda" -F'|' '
+        BEGIN { OFS = FS } { $5 = $4 * exp(-lambda * (now - $3)); print }' |
             LC_ALL=C sort -t'|' -k5,5g -k1,1 | awk -F'|' -v nprune="$nprune" '
                 BEGIN {OFS = FS} NR > nprune { print $1, $2, $3, $4 }' >| "$tempfile"
+    _ze_commit $? "$tempfile" "$datafile"
+}
+
+function _ze_commit {  ## rc tempfile datafile
+    # do our best to avoid clobbering the datafile in a race condition.
     # shellcheck disable=SC2181 # irrelevant
-    if (( $? )) && [[ -f $datafile ]]; then
+    typeset rc=$1 tempfile=$2 datafile=$3
+    if ((rc)) && [[ -f $datafile ]]; then
         \rm -f "$tempfile"
     else
         [[ $_ZE_OWNER ]] && chown "$_ZE_OWNER":"$(id -ng "$_ZE_OWNER")" "$tempfile"
@@ -116,14 +142,7 @@ function _ze {
             { print $1, $2, $3, $4 }
             END { if (!hit) print path, 1, now, 1 }
         ' 2>/dev/null >| "$tempfile"
-        # do our best to avoid clobbering the datafile in a race condition.
-        # shellcheck disable=SC2181 # irrelevant
-        if (( $? )) && [[ -f $datafile ]]; then
-            \rm -f "$tempfile"
-        else
-            [[ $_ZE_OWNER ]] && chown "$_ZE_OWNER":"$(id -ng "$_ZE_OWNER")" "$tempfile"
-            \mv -f "$tempfile" "$datafile" || \rm -f "$tempfile"
-        fi
+        _ze_commit $? "$tempfile" "$datafile"
 
     # tab completion
     elif [[ $1 == "--complete" ]] && [[ -s $datafile ]]; then
@@ -170,7 +189,7 @@ function _ze {
         ((!(list || emit))) && [[ -d ${fnd:-$HOME} || $fnd == "-" ]] && { _ze_cd "${fnd:-$HOME}"; return; }
 
         typeset result
-        result=$(_ze_dirs 1 | fnd=$fnd awk -v t="$(date +%s)" -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
+        result=$(_ze_dirs 1 | fnd=$fnd awk -v now="$(date +%s)" -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
             function output(matches, best_match, list,   x) {
                 if (list) {
                     for( x in matches ) printf "%-12s\t%s\n", matches[x], x | "LC_ALL=C sort -k1,1g -k2,2"
@@ -188,8 +207,8 @@ function _ze {
                 if (typ == "visits") {
                     weight = $2
                 } else if( typ == "recent") {
-                    weight = $3 - t
-                } else weight = $4 * exp(-lambda * (t - $3))  # exponential decay of recorded score until time t ("now")
+                    weight = $3 - now
+                } else weight = $4 * exp(-lambda * (now - $3))  # exponential decay of recorded score until "now"
 
                 candidate = case_sensitive ? $1 : tolower($1)
                 if (candidate ~ q) {
