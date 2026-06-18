@@ -56,7 +56,7 @@ function _ze_init {
     tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
     ((margin = dbmax/dbfrac))
     ((nprune = dbsize - dbmax + margin))
-    (   set -o pipefail  # sub-process avoids overriding user settings (pipefai' unavailable in mksh: error in middle of chain would not be caught)
+    (   set -o pipefail  # sub-process avoids overriding user settings (pipefail' unavailable in mksh: error in middle of chain would not be caught)
         _ze_dirs 0 | awk -v now="$now" -v lambda="$lambda" -F'|' '
             BEGIN { OFS = FS } { $5 = $4 * exp(-lambda * (now - $3)); print }' |
                 LC_ALL=C sort -t'|' -k5,5g -k1,1 | awk -F'|' -v nprune="$nprune" '

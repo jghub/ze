@@ -68,13 +68,18 @@ path|visits|timestamp|score
 
 | Field | Meaning |
 |-------|---------|
-| `path` | absolute directory path |
+| `path` | absolute directory path *(1)* |
 | `visits` | cumulative visit count, incremented on each visit |
-| `timestamp` | Unix epoch of last visit, used for score computation at query time and `-t` (recent) mode |
+| `timestamp` | time assigned to last visit (seconds since the Unix epoch), used for score computation at query time and `-t` (recent) mode *(2)*|
 | `score` | exponentially decayed cumulative visit score as of the last visit |
 
-ze.sh retains entries for directories that no longer exist (e.g. unmounted
+*(1)*: ze.sh retains entries for directories that no longer exist (e.g. unmounted
 filesystems) and filters them at match time rather than pruning them on update.
+
+*(2)*: To prevent excessive global score decay after extended periods of inactivity,
+ze.sh may occasionally apply a uniform shift to all stored timestamps.
+Consequently, timestamps do not necessarily correspond to the actual wall-clock
+time of the recorded visit, although their relative ordering is preserved.
 
 ## Usage
 
