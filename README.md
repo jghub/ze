@@ -71,7 +71,7 @@ path|visits|timestamp|score
 | `path` | absolute directory path |
 | `visits` | cumulative visit count, incremented on each visit |
 | `timestamp` | Unix epoch of last visit, used for score computation at query time and `-t` (recent) mode |
-| `score` | exponentially decayed cumulative visit score as of the last visit timestamp |
+| `score` | exponentially decayed cumulative visit score as of the last visit |
 
 ze.sh retains entries for directories that no longer exist (e.g. unmounted
 filesystems) and filters them at match time rather than pruning them on update.
@@ -137,9 +137,9 @@ lowest scoring entries including never-again-used stale entries.
 
 *(4)*: The legacy behaviour to resolve all symlinks to physical paths for storage
 in the db seems not optimal for a directory navigation tool where logical paths
-are usually the expected paradigm. Consequently,
-ze.sh honours the logical paths by default. To revert to legacy behaviour you now
-have to explicitly set the variable `_ZE_RESOLVE_SYMLINKS` to any non-empty value.
+are usually the expected paradigm. Consequently, ze.sh honours the logical paths
+by default. To revert to legacy behaviour, set `_ZE_RESOLVE_SYMLINKS` to any
+non-empty value.
 
 ## Configuration
 

@@ -3,7 +3,7 @@
 # Repository: https://github.com/jghub/ze
 #
 # Copyright (c) 2009 rupa deadwyler
-# Copyright (c) 2026 jghub
+# Copyright (c) 2026 Joerg van den Hoff (jghub)
 #
 # ze.sh is a substantially modified fork of z.sh. Original z.sh was distributed
 # under the WTFPL v2. ze.sh is distributed under the MIT License.
@@ -11,7 +11,7 @@
 # shellcheck shell=ksh
 function _ze_init {
     _ZE_DIR=${_ZE_DIR:-$HOME/.ze}
-    typeset  datafile="${_ZE_DIR}/ze.db"
+    typeset datafile="${_ZE_DIR}/ze.db"
     if [[ -e $_ZE_DIR && ! -d $_ZE_DIR ]]; then
         printf '%s\n' "ze: $_ZE_DIR exists and is not a directory" >&2
         return 1
@@ -29,21 +29,19 @@ function _ze_init {
         return 1
     fi
 
-    # shift all timestamps such that newest one coincides with "now" if tolerance exceeded
     typeset -i now
     ((now = $(\date +%s)))
     typeset tempfile lambda=${_ZE_LAMBDA:-4e-6}
     tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
     \awk -F'|' -v now="$now" -v lambda="$lambda" '
         BEGIN { OFS = FS }
-        { lines[NR] = $0; if ($3 > tmax) tmax = $3 }
+        { lines[NR] = $0; if ($3 > tlast) tlast = $3 }
         END {
-            if (NR == 0) exit(1)  # relying on _ze_commit
             tol = 0.5 * log(2)/lambda
-            bump = now - tmax
-            if (bump <= tol) exit(1)  # relying _ze_commit
+            bump = now - tlast
+            if (bump <= tol || NR == 0) exit(1)  # signal _ze_commit to tidy up
             for (i = 1; i <= NR; i++) {
-                n = split(lines[i], f, FS)
+                split(lines[i], f, FS)
                 f[3] += bump
                 print f[1], f[2], f[3], f[4]
             }
@@ -58,10 +56,12 @@ function _ze_init {
     tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
     ((margin = dbmax/dbfrac))
     ((nprune = dbsize - dbmax + margin))
-    _ze_dirs 0 | awk -v now="$now" -v lambda="$lambda" -F'|' '
-        BEGIN { OFS = FS } { $5 = $4 * exp(-lambda * (now - $3)); print }' |
-            LC_ALL=C sort -t'|' -k5,5g -k1,1 | awk -F'|' -v nprune="$nprune" '
-                BEGIN {OFS = FS} NR > nprune { print $1, $2, $3, $4 }' >| "$tempfile"
+    (   set -o pipefail  # sub-process avoids overriding user settings (pipefai' unavailable in mksh: error in middle of chain would not be caught)
+        _ze_dirs 0 | awk -v now="$now" -v lambda="$lambda" -F'|' '
+            BEGIN { OFS = FS } { $5 = $4 * exp(-lambda * (now - $3)); print }' |
+                LC_ALL=C sort -t'|' -k5,5g -k1,1 | awk -F'|' -v nprune="$nprune" '
+                    BEGIN {OFS = FS} NR > nprune { print $1, $2, $3, $4 }' >| "$tempfile"
+    )
     _ze_commit $? "$tempfile" "$datafile"
 }
 
@@ -69,7 +69,7 @@ function _ze_commit {  ## rc tempfile datafile
     # do our best to avoid clobbering the datafile in a race condition.
     # shellcheck disable=SC2181 # irrelevant
     typeset rc=$1 tempfile=$2 datafile=$3
-    if ((rc)) && [[ -f $datafile ]]; then
+    if ((rc)); then
         \rm -f "$tempfile"
     else
         [[ $_ZE_OWNER ]] && chown "$_ZE_OWNER":"$(id -ng "$_ZE_OWNER")" "$tempfile"
