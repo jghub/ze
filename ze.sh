@@ -33,7 +33,7 @@ function _ze_init {
     ((now = $(\date +%s)))
     typeset tempfile lambda=${_ZE_LAMBDA:-4e-6}
     tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
-    \awk -F'|' -v now="$now" -v lambda="$lambda" '
+    awk -F'|' -v now="$now" -v lambda="$lambda" '
         BEGIN { OFS = FS }
         { lines[NR] = $0; if ($3 > tlast) tlast = $3 }
         END {
@@ -57,8 +57,8 @@ function _ze_init {
     ((margin = dbmax/dbfrac))
     ((nprune = dbsize - dbmax + margin))
     (   set -o pipefail  # sub-process avoids overriding user settings (pipefail' unavailable in mksh: error in middle of chain would not be caught)
-        _ze_dirs 0 | awk -v now="$now" -v lambda="$lambda" -F'|' '
-            BEGIN { OFS = FS } { $5 = $4 * exp(-lambda * (now - $3)); print }' |
+        awk -v now="$now" -v lambda="$lambda" -F'|' '
+            BEGIN { OFS = FS } { $5 = $4 * exp(-lambda * (now - $3)); print }' "$datafile" |
                 LC_ALL=C sort -t'|' -k5,5g -k1,1 | awk -F'|' -v nprune="$nprune" '
                     BEGIN {OFS = FS} NR > nprune { print $1, $2, $3, $4 }' >| "$tempfile"
     )
@@ -77,17 +77,13 @@ function _ze_commit {  ## rc tempfile datafile
     fi
 }
 
-function _ze_dirs { ## 1/0 (1 (default): skip stale entries, 0: keep stale entries)
+function _ze_dirs {
     typeset datafile="${_ZE_DIR}/ze.db"
     typeset -a lines
     typeset line
-    if (( ${1:-1} )); then
-        while IFS= read -r line; do
-            [[ -d ${line%%\|*} ]] && lines+=("$line")
-        done < "$datafile"
-    else
-        while IFS= read -r line; do lines+=("$line"); done < "$datafile"
-    fi
+    while IFS= read -r line; do
+        [[ -d ${line%%\|*} ]] && lines+=("$line")
+    done < "$datafile"
     (( ${#lines[@]} )) && printf '%s\n' "${lines[@]}"
 }
 
@@ -127,8 +123,7 @@ function _ze {
         typeset tempfile
         tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
 
-        # _ze_dirs 1/0: do/don't ignore stale db entries
-        _ze_dirs 0 | path="$1" awk -v now="$(date +%s)" -v lambda="$lambda" -F"|" '
+        path="$1" awk -v now="$(date +%s)" -v lambda="$lambda" -F"|" '
             BEGIN { path = ENVIRON["path"]; OFS = FS }
             $1 == path {
                 hit = 1
@@ -141,12 +136,12 @@ function _ze {
             # some trailing garbage left behind in the edited record(s):
             { print $1, $2, $3, $4 }
             END { if (!hit) print path, 1, now, 1 }
-        ' 2>/dev/null >| "$tempfile"
+        ' "$datafile" 2>/dev/null >| "$tempfile"
         _ze_commit $? "$tempfile" "$datafile"
 
     # tab completion
     elif [[ $1 == "--complete" ]] && [[ -s $datafile ]]; then
-        _ze_dirs 1 | candidate=$2 awk -F"|" '
+        _ze_dirs | candidate=$2 awk -F"|" '
             BEGIN {
                 q = ENVIRON["candidate"]
                 sub(/^[^ ]+[ ]+/, "", q)   # replace previous fixed-offset substring to account for possibility of non-default ZE_CMD value
@@ -189,7 +184,7 @@ function _ze {
         ((!(list || emit))) && [[ -d ${fnd:-$HOME} || $fnd == "-" ]] && { _ze_cd "${fnd:-$HOME}"; return; }
 
         typeset result
-        result=$(_ze_dirs 1 | fnd=$fnd awk -v now="$(date +%s)" -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
+        result=$(_ze_dirs | fnd=$fnd awk -v now="$(date +%s)" -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
             function output(matches, best_match, list,   x) {
                 if (list) {
                     for( x in matches ) printf "%-12s\t%s\n", matches[x], x | "LC_ALL=C sort -k1,1g -k2,2"
