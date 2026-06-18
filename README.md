@@ -37,15 +37,17 @@ sum (mathematically equivalent to the Unix load-average computation, but applied
 to a binary directory-visit event stream). The decay rate is controlled by
 `_ZE_LAMBDA` (default `4e-6`/sec, half-life `ln(2)/lambda` ≈ 48 hours).
 
-**Tracking**: z.sh uses shell precommand hooks (`PROMPT_COMMAND` in bash, `precmd`
-in zsh) that fire on every command, updating the score of whichever directory the
-shell is currently in. This means any command executed in a directory increases
-that directory's score, regardless of whether a cd action occurred. ze.sh removes
-these hooks entirely. Only explicit `ze` invocations (or bare `cd` if aliased to
-`_ze_cd`) trigger database updates, and only the target directory's score is
-updated.
+**Tracking**: By default, z.sh uses shell precommand hooks (`PROMPT_COMMAND` in
+bash, `precmd` in zsh) that fire on every command, updating the score of whichever
+directory the shell is currently in. This means _any_ command executed in
+directory A increases that directory's score (including a cd to directory B). For
+a directory jumper, using command activity _within_ a directory as a measure of
+how often a user wants to _reach_ that directory seems inferior to monitoring
+only cd activity. Therefore, ze.sh removes the hooks entirely. Only explicit
+`ze` invocations (or bare `cd` if aliased to `_ze_cd`) trigger database updates,
+and only the target directory's score is updated.
 
-For broader shell compatibility, ze.sh uses `typeset` instead of `local` and
+For broader shell compatibility, ze.sh furthermore uses `typeset` instead of `local` and
 `[[`/`(())` instead of `[`/`test` throughout. The latter is not a compatibility
 requirement — all target shells support `[` — but `[[` is a shell keyword with
 cleaner semantics: no word splitting on unquoted variables, unambiguous `&&`/`||`
