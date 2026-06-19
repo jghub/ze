@@ -11,7 +11,7 @@
 # shellcheck shell=ksh
 function _ze_init {
     _ZE_DIR=${_ZE_DIR:-$HOME/.ze}
-    typeset datafile="${_ZE_DIR}/ze.db"
+    typeset datafile="${_ZE_DIR}/ze-ec.db"
     if [[ -e $_ZE_DIR && ! -d $_ZE_DIR ]]; then
         printf '%s\n' "ze: $_ZE_DIR exists and is not a directory" >&2
         return 1
@@ -29,26 +29,8 @@ function _ze_init {
         return 1
     fi
 
-    typeset -i now
-    ((now = $(\date +%s)))
-    typeset tempfile lambda=${_ZE_LAMBDA:-4e-6}
-    tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
-    awk -F'|' -v now="$now" -v lambda="$lambda" '
-        BEGIN { OFS = FS }
-        { lines[NR] = $0; if ($3 > tlast) tlast = $3 }
-        END {
-            tol = 0.5 * log(2)/lambda
-            bump = now - tlast
-            if (bump <= tol || NR == 0) exit(1)  # signal _ze_commit to tidy up
-            for (i = 1; i <= NR; i++) {
-                split(lines[i], f, FS)
-                f[3] += bump
-                print f[1], f[2], f[3], f[4]
-            }
-        }' "$datafile" >| "$tempfile"
-    _ze_commit $? "$tempfile" "$datafile"
-
     typeset -i dbsize dbmax=${_ZE_DBMAX:-512}
+    typeset tempfile lambda=${_ZE_LAMBDA:-7e-3}
     dbsize=$(wc -l < "$datafile")
     ((dbsize <= dbmax)) && return  # or ...
     # ... auto-prune db by removing lowest scoring entries:
@@ -56,11 +38,20 @@ function _ze_init {
     tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
     ((margin = dbmax/dbfrac))
     ((nprune = dbsize - dbmax + margin))
-    (   set -o pipefail  # sub-process avoids overriding user settings (pipefail' unavailable in mksh: error in middle of chain would not be caught)
-        awk -v now="$now" -v lambda="$lambda" -F'|' '
-            BEGIN { OFS = FS } { $5 = $4 * exp(-lambda * (now - $3)); print }' "$datafile" |
-                LC_ALL=C sort -t'|' -k5,5g -k1,1 | awk -F'|' -v nprune="$nprune" '
-                    BEGIN {OFS = FS} NR > nprune { print $1, $2, $3, $4 }' >| "$tempfile"
+    (   set -o pipefail  # sub-process avoids overriding user settings (pipefail unavailable in mksh: error in middle of chain would not be caught)
+        awk -F'|' -v lambda="$lambda" '
+            BEGIN { OFS = FS }
+            {
+                lines[NR] = $0
+                if ($3 > now) now = $3
+            }
+            END {
+                for (i = 1; i <= NR; i++) {
+                    split(lines[i], f, FS)
+                    print f[1], f[2], f[3], f[4], f[4] * exp(-lambda * (now - f[3]))
+                } 
+            }' "$datafile" | LC_ALL=C sort -t'|' -k5,5g -k1,1 | awk -F'|' -v nprune="$nprune" '
+                BEGIN { OFS = FS } NR > nprune { print $1, $2, $3, $4 }' >| "$tempfile"
     )
     _ze_commit $? "$tempfile" "$datafile"
 }
@@ -69,16 +60,16 @@ function _ze_commit {  ## rc tempfile datafile
     # do our best to avoid clobbering the datafile in a race condition.
     # shellcheck disable=SC2181 # irrelevant
     typeset rc=$1 tempfile=$2 datafile=$3
-    if ((rc)); then
-        \rm -f "$tempfile"
-    else
+    if ((rc == 0)); then
         [[ $_ZE_OWNER ]] && chown "$_ZE_OWNER":"$(id -ng "$_ZE_OWNER")" "$tempfile"
         \mv -f "$tempfile" "$datafile" || \rm -f "$tempfile"
+    else
+        \rm -f "$tempfile"
     fi
 }
 
 function _ze_dirs {
-    typeset datafile="${_ZE_DIR}/ze.db"
+    typeset datafile="${_ZE_DIR}/ze-ec.db"
     typeset -a lines
     typeset line
     while IFS= read -r line; do
@@ -107,8 +98,8 @@ function _ze_fzf { ## pattern
 }
 
 function _ze {
-    typeset datafile="${_ZE_DIR}/ze.db"
-    typeset lambda=${_ZE_LAMBDA:-4e-6}
+    typeset datafile="${_ZE_DIR}/ze-ec.db"
+    typeset lambda=${_ZE_LAMBDA:-7e-3}
 
     # add entries
     if [[ $1 == "--add" ]]; then
@@ -123,19 +114,28 @@ function _ze {
         typeset tempfile
         tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
 
-        path="$1" awk -v now="$(date +%s)" -v lambda="$lambda" -F"|" '
+        # $3 (counter) records cumulative global visit count at time of visit.
+        # 'now' = max(counter) + 1, computed from db; used as counter for this visit.
+        path="$1" awk -v lambda="$lambda" -F"|" '
             BEGIN { path = ENVIRON["path"]; OFS = FS }
-            $1 == path {
-                hit = 1
-                $2 = $2 + 1
-                $4 = $4 * exp(-lambda * (now - $3)) + 1
-                $3 = now
+            {
+               lines[NR] = $0
+               if ($3 > now) now = $3
             }
-            # we specify fields explicitly rather than using simple "print" to
-            # allow for minor db sanitation in case it was manually edited and
-            # some trailing garbage left behind in the edited record(s):
-            { print $1, $2, $3, $4 }
-            END { if (!hit) print path, 1, now, 1 }
+            END {
+                now += 1
+                for (i = 1; i <= NR; i++) {
+                    split(lines[i], f, FS)
+                    if (f[1] == path) {
+                        hit = 1
+                        f[2] = f[2] + 1
+                        f[4] = f[4] * exp(-lambda * (now - f[3])) + 1
+                        f[3] = now
+                    }
+                    print f[1], f[2], f[3], f[4]
+                }
+                if (!hit) print path, 1, now, 1
+            }
         ' "$datafile" 2>/dev/null >| "$tempfile"
         _ze_commit $? "$tempfile" "$datafile"
 
@@ -184,7 +184,7 @@ function _ze {
         ((!(list || emit))) && [[ -d ${fnd:-$HOME} || $fnd == "-" ]] && { _ze_cd "${fnd:-$HOME}"; return; }
 
         typeset result
-        result=$(_ze_dirs | fnd=$fnd awk -v now="$(date +%s)" -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
+        result=$(_ze_dirs | fnd=$fnd awk -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
             function output(matches, best_match, list,   x) {
                 if (list) {
                     for( x in matches ) printf "%-12s\t%s\n", matches[x], x | "LC_ALL=C sort -k1,1g -k2,2"
@@ -199,22 +199,27 @@ function _ze {
                 hi_score = -1e300
             }
             {
-                if (typ == "visits") {
-                    weight = $2
-                } else if( typ == "recent") {
-                    weight = $3 - now
-                } else weight = $4 * exp(-lambda * (now - $3))  # exponential decay of recorded score until "now"
-
-                candidate = case_sensitive ? $1 : tolower($1)
-                if (candidate ~ q) {
-                    matches[$1] = weight
-                    if (weight > hi_score) {
-                        best_match = $1
-                        hi_score = weight
-                    }
-                }
+               lines[NR] = $0
+               if ($3 > now) now = $3
             }
             END {
+                for (i = 1; i <= NR; i++) {
+                    split(lines[i], f, FS)
+                    if (typ == "visits") {
+                        weight = f[2]
+                    } else if (typ == "recent") {
+                        weight = f[3]
+                    } else weight = f[4] * exp(-lambda * (now - f[3]))
+
+                    candidate = case_sensitive ? f[1] : tolower(f[1])
+                    if (candidate ~ q) {
+                        matches[f[1]] = weight
+                        if (weight > hi_score) {
+                            best_match = f[1]
+                            hi_score = weight
+                        }
+                    }
+                }
                 if (!best_match) exit(1)
                 output(matches, best_match, list)
             }
