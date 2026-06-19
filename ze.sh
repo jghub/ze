@@ -28,12 +28,11 @@ function _ze_init {
         printf '%s\n' "ze: $datafile not owned by current user" >&2
         return 1
     fi
-
     typeset -i dbsize dbmax=${_ZE_DBMAX:-512}
     typeset tempfile lambda=${_ZE_LAMBDA:-7e-3}
     dbsize=$(wc -l < "$datafile")
-    ((dbsize <= dbmax)) && return  # or ...
-    # ... auto-prune db by removing lowest scoring entries:
+    ((dbsize <= dbmax)) && return
+
     typeset -i margin nprune dbfrac=32
     tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
     ((margin = dbmax/dbfrac))
@@ -114,8 +113,6 @@ function _ze {
         typeset tempfile
         tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
 
-        # $3 (counter) records cumulative global visit count at time of visit.
-        # 'now' = max(counter) + 1, computed from db; used as counter for this visit.
         path="$1" awk -v lambda="$lambda" -F"|" '
             BEGIN { path = ENVIRON["path"]; OFS = FS }
             {
@@ -123,6 +120,7 @@ function _ze {
                if ($3 > now) now = $3
             }
             END {
+                # $3 holds the event clock ticks (cumulative global visit count across all entries), the new visit advances the clock by one unit:
                 now += 1
                 for (i = 1; i <= NR; i++) {
                     split(lines[i], f, FS)
