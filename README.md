@@ -37,28 +37,28 @@ sum (mathematically equivalent to the Unix load-average computation, but applied
 to a binary directory-visit event stream). The decay rate is controlled by
 `_ZE_LAMBDA` (default `4e-6`/sec, half-life `ln(2)/lambda` ≈ 48 hours).
 
-**Tracking**: By default, z.sh uses shell precommand hooks (`PROMPT_COMMAND` in
-bash, `precmd` in zsh) that fire on every command, updating the score of whichever
+**Tracking**: z.sh requires shell precommand hooks (`PROMPT_COMMAND` in bash,
+`precmd` in zsh) that fire on every command, updating the score of whichever
 directory the shell is currently in. This means _any_ command executed in
-directory A increases that directory's score (including a cd to directory B). For
-a directory jumper, using command activity _within_ a directory as a measure of
-how often a user wants to _reach_ that directory seems inferior to monitoring
-only cd activity. Therefore, ze.sh removes the hooks entirely. Only explicit
-`ze` invocations (or bare `cd` if aliased to `_ze_cd`) trigger database updates,
-and only the target directory's score is updated.
+directory A increases that directory's score. For a directory jumper, using
+command activity _within_ a directory as a measure of how often a user might want
+to _reach_ that directory (so that it should be scored highly) seems inferior to
+monitoring only cd activity. Therefore, ze.sh removes the hooks entirely. Only
+explicit `ze`-based directory changes (or bare `cd` if aliased to `_ze_cd`)
+trigger database updates.
 
-For broader shell compatibility, ze.sh furthermore uses `typeset` instead of `local` and
-`[[`/`(())` instead of `[`/`test` throughout. The latter is not a compatibility
-requirement — all target shells support `[` — but `[[` is a shell keyword with
-cleaner semantics: no word splitting on unquoted variables, unambiguous `&&`/`||`
-operators, and pattern matching support. In ze.sh, the `function f { ... }`
-definition style is used throughout instead of POSIX-style `f() { ... }` — in
-ksh93 and mksh, `typeset` variables are only locally scoped inside functions
-defined with the `function` keyword, whereas POSIX style functions do not provide
-local scoping in these shells. For historical POSIX sh compatibility, z.sh used
-`[` and `f() { }` but was never actually POSIX-compatible due to its use of
-arrays, process substitution, and shell-specific completion builtins — ze.sh drops
-the pretense and uses the cleaner syntax consistently.
+For broader shell compatibility, ze.sh furthermore uses `typeset` instead of
+`local` and `[[`/`(())` instead of `[`/`test` throughout. The latter is not a
+compatibility requirement — all target shells support `[` — but `[[` is a shell
+keyword with cleaner semantics: no word splitting on unquoted variables,
+unambiguous `&&`/`||` operators, and pattern matching support. In ze.sh, the
+`function f { ... }` definition style is used throughout instead of POSIX-style
+`f() { ... }` — in ksh93 and mksh, `typeset` variables are only locally scoped
+inside functions defined with the `function` keyword, whereas POSIX style
+functions do not provide local scoping in these shells. For historical POSIX sh
+compatibility, z.sh used `[` and `f() { }` but was never actually POSIX-compatible
+due to its use of arrays, process substitution, and shell-specific completion
+builtins — ze.sh drops the pretense and uses the cleaner syntax consistently.
 
 ## Database format
 
