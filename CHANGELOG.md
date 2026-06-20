@@ -1,6 +1,20 @@
 # ze.sh: Changelog
 
-## 2.0.0 (2026-06-18)
+## v3.0.0 (2026-06-20)
+* **switch from wall clock to event clock**: this is a fundamental change from
+legacy behaviour that immediately resolves all issues with inactivity periods.
+The previously used heuristic timeline normalisation is now redundant and has been
+removed. The switch to event clock constitutes a breaking change regarding db
+semantics (rather than format): column 3 previously held wall-clock timestamps and
+now holds the global cumulative cd event count at time of last visit. The z -> ze
+migration recipe in the README has been updated accordingly. No further changes
+to db layout and semantics anticipated for the future.
+
+* **_ZE_LAMBDA default**: this variable now is expressed in different units
+(previously: 1/s, now: 1/cd-action) and the numerical default value now is 8e-3
+(half life: 87 cd actions).
+
+## v2.0.0 (2026-06-18)
 * **changed default for symlink resolution**: the default now is to _not_ resolve
 symlinks to physical paths, see README for further details.
 
@@ -24,13 +38,13 @@ entries when its size exceeds a threshold (default: 512 entries). The default
 threshold is conservative; for typical usage patterns the database is unlikely to
 exceed it within the first year or two for typical interactive shell usage.
 
-## 1.1.0 (2026-06-13)
+## v1.1.0 (2026-06-13)
 * **smartcase pattern matching**: legacy z.sh implements a strict case-sensitive
 pattern matching strategy with a fallback to case-insensitive matching in case no
 case-sensitive match is found. ze.sh now uses smartcase matching
 (case-insensitive except when pattern contains uppercase characters).
 
-## 1.0.0 (2026-06-13)
+## v1.0.0 (2026-06-13)
 Initial release of ze.sh, forked from [z.sh](https://github.com/rupa/z) v1.12.
 Primary change: exponential moving sum scoring replacing z.sh's frecency
 heuristic. See [Changes from z.sh](README.md#changes-from-zsh) in the README for
