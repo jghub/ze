@@ -11,7 +11,7 @@
 # shellcheck shell=ksh
 function _ze_init {
     _ZE_DIR=${_ZE_DIR:-$HOME/.ze}
-    typeset datafile="${_ZE_DIR}/ze.db"
+    typeset datafile="${_ZE_DIR}/ze_wcl.db"
     if [[ -e $_ZE_DIR && ! -d $_ZE_DIR ]]; then
         printf '%s\n' "ze: $_ZE_DIR exists and is not a directory" >&2
         return 1
@@ -78,7 +78,7 @@ function _ze_commit {  ## rc tempfile datafile
 }
 
 function _ze_dirs {
-    typeset datafile="${_ZE_DIR}/ze.db"
+    typeset datafile="${_ZE_DIR}/ze_wcl.db"
     typeset -a lines
     typeset line
     while IFS= read -r line; do
@@ -107,7 +107,7 @@ function _ze_fzf { ## pattern
 }
 
 function _ze {
-    typeset datafile="${_ZE_DIR}/ze.db"
+    typeset datafile="${_ZE_DIR}/ze_wcl.db"
     typeset lambda=${_ZE_LAMBDA:-4e-6}
 
     # add entries
