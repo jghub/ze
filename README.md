@@ -44,8 +44,8 @@ monoexponential decay kernel: the score is the sum of individual, exponentially
 decayed unit impulses at each visit time, representing an exponential moving
 sum (mathematically equivalent to the Unix load-average computation, but applied
 to a binary directory-visit event stream). The decay rate is controlled by
-`_ZE_LAMBDA` (default `7e-3`/cd action, half-life `ln(2)/lambda` ≈ 99 cd actions
-(≈ 2.5 days at 40 cd/day)).
+`_ZE_LAMBDA` (default `8e-3`/cd action, half-life `ln(2)/lambda` ≈ 87 cd actions
+(about 2 days at 40 cd/day)).
 
 **Tracking**: z.sh requires shell precommand hooks (`PROMPT_COMMAND` in bash,
 `precmd` in zsh) that fire on every command, updating the score of whichever
@@ -159,7 +159,7 @@ non-empty value.
 |----------------------------|----------|-------------------------------------|
 | `_ZE_CMD`                  | `ze`     | command name                        |
 | `_ZE_DIR`                  | `~/.ze`  | database directory                  |
-| `_ZE_LAMBDA`               | `7e-3`   | decay rate (per cd action)          |
+| `_ZE_LAMBDA`               | `8e-3`   | decay constant (units: 1/cd action) |
 | `_ZE_DBMAX`                | `512`    | db size limit (pruning threshold)   |
 | `_ZE_OWNER`                | unset    | allow use on shared db              |
 | `_ZE_RESOLVE_SYMLINKS`     | unset    | resolve symlinks on cd              |
@@ -186,7 +186,7 @@ mkdir -p ~/.ze
 # Only run the following if ~/.ze/ze.db does not already exist:
 now=$(awk -F'|' '{ now += $2 } END { print now }' ~/.z)
 sort -t'|' -k3,3n ~/.z | awk -F'|' -v now="$now" '
-    BEGIN { OFS="|"; lambda=7e-3 }
+    BEGIN { OFS="|"; lambda=8e-3 }
     {   ticks += $2
         r = exp(-lambda)
         score = $2 == 1 ? 1 : (1 - r^$2) / (1 - r)
@@ -218,9 +218,10 @@ high rank on first revisit if its historical visit count is large.
 
 ze.sh occupies a specific niche: minimal, shell-native, single-file, ksh93- and
 mksh-compatible, tracking only intentional navigation rather than all shell
-activity. The exponential moving sum scoring is comparable to SD's approach for a
-fixed decay parameter; SD additionally stores the full visit history, enabling
-retrospective rescoring and a pure event clock by construction.
+activity. The exponential moving sum scoring on an event clock is comparable to
+SD's approach for a fixed decay parameter. However, only SD provides the ability
+to modify the decay parameter at any time and to fully reconstruct the
+corresponding scores from scratch.
 
 ## License
 

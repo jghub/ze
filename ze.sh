@@ -29,7 +29,7 @@ function _ze_init {
         return 1
     fi
     typeset -i dbsize dbmax=${_ZE_DBMAX:-512}
-    typeset tempfile lambda=${_ZE_LAMBDA:-7e-3}
+    typeset tempfile lambda=${_ZE_LAMBDA:-8e-3}
     dbsize=$(wc -l < "$datafile")
     ((dbsize <= dbmax)) && return
 
@@ -98,7 +98,7 @@ function _ze_fzf { ## pattern
 
 function _ze {
     typeset datafile="${_ZE_DIR}/ze-ec.db"
-    typeset lambda=${_ZE_LAMBDA:-7e-3}
+    typeset lambda=${_ZE_LAMBDA:-8e-3}
 
     # add entries
     if [[ $1 == "--add" ]]; then
