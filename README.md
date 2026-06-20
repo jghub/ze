@@ -25,7 +25,16 @@ ordinary cd commands are not recorded in the database.
 
 ## Design
 
-ze.sh departs from z.sh in two fundamental ways:
+ze.sh departs from z.sh in three fundamental ways:
+
+**Event clock**: z.sh couples score decay to wall-clock time. This causes a
+well-known failure mode: after any extended period of inactivity, all scores decay
+toward zero, and the first directories visited on return immediately dominate the
+ranking regardless of prior history. The underlying issue is that elapsed
+wall-clock time during shell inactivity carries no information about directory
+relevance. ze.sh replaces wall-clock time with an event clock: each cd action
+advances the clock by one tick. The clock stands still during inactive periods
+and no score decay occurs during such periods.
 
 **Scoring**: z.sh's scoring heuristic multiplies a cumulative visit count by a
 recency factor derived from the most recent visit timestamp. This can produce
@@ -35,7 +44,8 @@ monoexponential decay kernel: the score is the sum of individual, exponentially
 decayed unit impulses at each visit time, representing an exponential moving
 sum (mathematically equivalent to the Unix load-average computation, but applied
 to a binary directory-visit event stream). The decay rate is controlled by
-`_ZE_LAMBDA` (default `4e-6`/sec, half-life `ln(2)/lambda` ≈ 48 hours).
+`_ZE_LAMBDA` (default `7e-3`/cd action, half-life `ln(2)/lambda` ≈ 99 cd actions
+(≈ 2.5 days at 40 cd/day)).
 
 **Tracking**: z.sh requires shell precommand hooks (`PROMPT_COMMAND` in bash,
 `precmd` in zsh) that fire on every command, updating the score of whichever
@@ -65,23 +75,18 @@ builtins — ze.sh drops the pretense and uses the cleaner syntax consistently.
 The database at `~/.ze/ze.db` is a plain text file with one entry per line:
 
 ```
-path|visits|timestamp|score
+path|visits|ticks|score
 ```
 
 | Field | Meaning |
 |-------|---------|
 | `path` | absolute directory path *(1)* |
-| `visits` | cumulative visit count, incremented on each visit |
-| `timestamp` | time assigned to last visit (seconds since the Unix epoch), used for score computation at query time and `-t` (recent) mode *(2)*|
+| `visits` | cumulative visit count for this entry, incremented on each visit |
+| `ticks` | global cumulative cd event count at time of last visit, used for score computation at query time and `-t` (recent) mode |
 | `score` | exponentially decayed cumulative visit score as of the last visit |
 
 *(1)*: ze.sh retains entries for directories that no longer exist (e.g. unmounted
 filesystems) and filters them at match time rather than pruning them on update.
-
-*(2)*: To prevent excessive global score decay after extended periods of inactivity,
-ze.sh may occasionally apply a uniform shift to all stored timestamps.
-Consequently, timestamps do not necessarily correspond to the actual wall-clock
-time of the recorded visit, although their relative ordering is preserved.
 
 ## Usage
 
@@ -108,7 +113,7 @@ ze [-cefhlrt] [args]
 | Area             | z.sh                                          | ze.sh                                          |
 |------------------|-----------------------------------------------|------------------------------------------------|
 | Tracking         | precommand hook fires on every command        | tracks explicit cd navigation (`ze`, optionally aliased `cd`)|
-| Scoring          | frecency heuristic with common-prefix override *(1)* | exponential moving sum, no common-prefix override |
+| Scoring          | frecency heuristic with common-prefix override *(1)* | exponential moving sum on event clock, no common-prefix override |
 | Path dispatch    | no pathname check, categorical pattern matching *(2)* | real paths take precedence over pattern matching |
 | Bare call        | lists database                                | follows builtin cd semantics: cd to $HOME      |
 | `-` argument     | not handled, lists database                   | follows builtin cd semantics: cd to previous directory |
@@ -154,7 +159,7 @@ non-empty value.
 |----------------------------|----------|-------------------------------------|
 | `_ZE_CMD`                  | `ze`     | command name                        |
 | `_ZE_DIR`                  | `~/.ze`  | database directory                  |
-| `_ZE_LAMBDA`               | `4e-6`   | decay rate (per second)             |
+| `_ZE_LAMBDA`               | `7e-3`   | decay rate (per cd action)          |
 | `_ZE_DBMAX`                | `512`    | db size limit (pruning threshold)   |
 | `_ZE_OWNER`                | unset    | allow use on shared db              |
 | `_ZE_RESOLVE_SYMLINKS`     | unset    | resolve symlinks on cd              |
@@ -179,14 +184,21 @@ by issuing:
 ```sh
 mkdir -p ~/.ze
 # Only run the following if ~/.ze/ze.db does not already exist:
-awk -F'|' -v now="$(date +%s)" \
-    'BEGIN{OFS="|"; lambda=4e-6}
-    {print $1, $2, $3, $2 * exp(-lambda * (now - $3))}' ~/.z > ~/.ze/ze.db
-```
+now=$(awk -F'|' '{ now += $2 } END { print now }' ~/.z)
+sort -t'|' -k3,3n ~/.z | awk -F'|' -v now="$now" '
+    BEGIN { OFS="|"; lambda=7e-3 }
+    {   ticks += $2
+        r = exp(-lambda)
+        score = $2 == 1 ? 1 : (1 - r^$2) / (1 - r)
+        score *= exp(-lambda * (now - ticks))
+        print $1, $2, ticks, score
+    }' > ~/.ze/ze.db
 
-This maps z.sh's three-column format to ze.sh's four-column format, computing an
-initial frecency score proxy from the existing visit count and last-visit
-timestamp. Directories not visited recently will start with correspondingly lower
+```
+This maps z.sh's three-column format to ze.sh's four-column format. Entries are
+sorted by their original timestamp and assigned global cumulative visit counts as
+tick values. The score approximation assumes all visits were evenly distributed
+over time. Directories not visited recently will start with correspondingly lower
 initial scores.
 
 ## Related tools
@@ -207,8 +219,8 @@ high rank on first revisit if its historical visit count is large.
 ze.sh occupies a specific niche: minimal, shell-native, single-file, ksh93- and
 mksh-compatible, tracking only intentional navigation rather than all shell
 activity. The exponential moving sum scoring is comparable to SD's approach for a
-fixed decay parameter but the aggregate-state database does not support
-retrospective rescoring.
+fixed decay parameter; SD additionally stores the full visit history, enabling
+retrospective rescoring and a pure event clock by construction.
 
 ## License
 
