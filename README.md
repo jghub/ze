@@ -16,7 +16,7 @@ source /path/to/ze.sh
 **Important**: Unlike z.sh, ze.sh does not track ordinary `cd` commands. It only
 tracks navigation performed through the `ze` command itself. However, since `ze`
 accepts explicit pathnames just as cd does, it covers ordinary pathname-based cd
-usage as a subset.
+usage as a subset. If you want to also track ordinary `cd` commands, add
 
 ```sh
 alias cd=_ze_cd
