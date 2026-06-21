@@ -29,15 +29,15 @@ function _ze_init {
         return 1
     fi
     typeset -i dbsize dbmax=${_ZE_DBMAX:-512}
-    typeset tempfile lambda=${_ZE_LAMBDA:-8e-3}
     dbsize=$(wc -l < "$datafile")
     ((dbsize <= dbmax)) && return
 
     typeset -i margin nprune dbfrac=32
+    typeset tempfile lambda=${_ZE_LAMBDA:-8e-3}
     tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
     ((margin = dbmax/dbfrac))
     ((nprune = dbsize - dbmax + margin))
-    (   set -o pipefail  # sub-process avoids overriding user settings (pipefail unavailable in mksh: error in middle of chain would not be caught)
+    (   set -o pipefail  # sub-process avoids overriding user settings
         awk -F'|' -v lambda="$lambda" '
             BEGIN { OFS = FS }
             {
