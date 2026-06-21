@@ -197,9 +197,10 @@ sort -t'|' -k3,3n ~/.z | awk -F'|' -v now="$now" '
 ```
 This maps z.sh's three-column format to ze.sh's four-column format. Entries are
 sorted by their original timestamp and assigned global cumulative visit counts as
-tick values. The score approximation assumes all visits were evenly distributed
-over time. Directories not visited recently will start with correspondingly lower
-initial scores.
+tick values accordingly. The score approximation assumes all visits were evenly
+distributed over time. Directories not visited recently will start with
+correspondingly lower initial scores. In subsequent use, the scores will adjust
+and develop according to `ze`'s algorithm.
 
 ## Related tools
 
