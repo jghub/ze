@@ -9,7 +9,7 @@ bash, zsh, ksh93, mksh
 .P
 \fBze.sh\fP is a directory jumper for \fBbash\fP, \fBzsh\fP, \fBksh93\fP, and
 \fBmksh\fP. Unlike its predecessor \fBz.sh\fP, \fBze.sh\fP uses an exponential
-moving sum (EMS)scoring model on an "Bevent clock" (a global monotonic
+moving sum (EMS) scoring model on an "event clock" (a global monotonic
 event counter shared across all stored entries) and only tracks navigation
 performed through the \fBze\fP command itself (or \fBcd\fP if aliased to
 \fB_ze_cd\fP). After a short learning phase, \fBze\fP will take you to the
@@ -63,7 +63,8 @@ Change to the highest-scoring subdirectory of \fB$PWD\fP matching
 \fBfoo\fP.
 .TP
 .BI "ze \-l " foo
-List all directories matching \fBfoo\fP, sorted by score.
+List all directories matching \fBfoo\fP, sorted by score. Without
+argument, show full stack.
 .TP
 .BI "ze \-r " foo
 Change to the most frequently visited directory matching
@@ -71,9 +72,12 @@ Change to the most frequently visited directory matching
 .TP
 .BI "ze \-t " foo
 Change to the most recently visited directory matching \fBfoo\fP.
+.P
+If fzf is available:
 .TP
 .BI "ze \-f " foo
-Interactively select a matching directory using \fBfzf\fP.
+Interactively select a matching directory using \fBfzf\fP. Without
+argument, use full stack.
 .SH INSTALLATION
 .P
 Put the following in your shell rc file (\fB.bashrc\fP, \fB.kshrc\fP, etc.):
