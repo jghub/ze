@@ -186,12 +186,15 @@ re_format(7), awk(1), grep(1)
 Project repository: https://github.com/jghub/ze
 .SH NOTES
 .TP
-\fBSmartcase matching\fP Pattern matching is case-insensitive unless the pattern
-contains uppercase characters.
+.B "Smartcase matching
+Pattern matching is case-insensitive unless the pattern contains uppercase
+characters.
 .TP
-\fBStale entries\fP Entries for directories that no longer exist are retained in
-the database and filtered at match time. They may be pruned if the database
-exceeds the size limit.
+.B "Stale entries
+Entries for directories that no longer exist are retained in the database and
+filtered at match time. They may be pruned if the database exceeds the size
+limit.
 .TP
-\fBSymlinks\fP By default, logical paths are honoured. Set
-\fB_ZE_RESOLVE_SYMLINKS\fP to resolve symlinks to physical paths.
+.B Symlinks
+By default, logical paths are honoured. Set \fB_ZE_RESOLVE_SYMLINKS\fP to resolve
+symlinks to physical paths.
