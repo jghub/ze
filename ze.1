@@ -1,177 +1,188 @@
-.TH "Z" "1" "January 2013" "z" "User Commands"
-.SH
-NAME
-z \- jump around
-.SH
-SYNOPSIS
-z [\-chlrtx] [regex1 regex2 ... regexn]
-.SH
-AVAILABILITY
-bash, zsh
-.SH
-DESCRIPTION
-
-MOSTLY OBSOLETE -- needs complete overhaul
-__________________________________________
-
-Tracks your most used directories, based on 'frecency'.
+.TH "ZE" "1" "June 2026" "ze" "User Commands"
+.SH NAME
+ze \- pattern-based navigation of a frecency-ranked dynamic directory stack
+.SH SYNOPSIS
+.B ze [ \-cefhlrt ] [ args ]
+.SH AVAILABILITY
+bash, zsh, ksh93, mksh
+.SH DESCRIPTION
 .P
-After a short learning phase, \fBz\fR will take you to the most 'frecent'
-directory that matches ALL of the regexes given on the command line, in order.
-
-For example, \fBz foo bar\fR would match \fB/foo/bar\fR but not \fB/bar/foo\fR.
-.SH
-OPTIONS
+\fBze.sh\fR is a directory jumper for \fBbash\fR, \fBzsh\fR, \fBksh93\fR, and
+\fBmksh\fR. Unlike its predecessor \fBz.sh\fR, \fBze.sh\fR uses an \fBexponential
+moving sum (EMS)\fR scoring model on an "\fBevent clock\fR" (a global monotonic
+event counter shared across all stored entries) and only tracks navigation
+performed through the \fBze\fR command itself (or \fBcd\fR if aliased to
+\fB_ze_cd\fR). After a short learning phase, \fBze\fR will take you to the
+highest-scoring directory that matches the given pattern(s).
+.SH OPTIONS
 .TP
-\fB\-c\fR
-restrict matches to subdirectories of the current directory
+\fB\-c\fR Restrict matches to subdirectories of the current directory.
 .TP
-\fB\-e\fR
-echo the best match, don't cd
+\fB\-e\fR Print the best match, do not \fBcd\fR.
 .TP
-\fB\-h\fR
-show a brief help message
+\fB\-f\fR Use \fBfzf\fR for interactive selection (if \fBfzf\fR is installed).
 .TP
-\fB\-l\fR
-list only
+\fB\-h\fR Show a brief help message.
 .TP
-\fB\-r\fR
-match by rank only
+\fB\-l\fR List all matching directories by score.
 .TP
-\fB\-t\fR
-match by recent access only
+\fB\-r\fR Sort matches by visit count only.
 .TP
-\fB\-x\fR
-remove the current directory from the datafile
+\fB\-t\fR Sort matches by recency of last visit only.
 .SH EXAMPLES
 .TP 14
-\fBz foo\fR
-cd to most frecent dir matching foo
+\fBze\fR Change to \fB$HOME\fR.
 .TP 14
-\fBz foo bar\fR
-cd to most frecent dir matching foo, then bar
+\fBze \-\fR Change to the previous directory.
 .TP 14
-\fBz -r foo\fR
-cd to highest ranked dir matching foo
+\fBze foo\fR Change to the highest-scoring directory matching \fBfoo\fR.
 .TP 14
-\fBz -t foo\fR
-cd to most recently accessed dir matching foo
+\fBze foo bar\fR Change to the highest-scoring directory matching both \fBfoo\fR
+and \fBbar\fR.
 .TP 14
-\fBz -l foo\fR
-list all dirs matching foo (by frecency)
-.SH
-NOTES
-.SS
-Installation:
+\fBze -c foo\fR Change to the highest-scoring subdirectory of \fB$PWD\fR matching
+\fBfoo\fR.
+.TP 14
+\fBze -l foo\fR List all directories matching \fBfoo\fR, sorted by score.
+.TP 14
+\fBze -r foo\fR Change to the most frequently visited directory matching
+\fBfoo\fR.
+.TP 14
+\fBze -t foo\fR Change to the most recently visited directory matching \fBfoo\fR.
+.TP 14
+\fBze -f foo\fR Interactively select a matching directory using \fBfzf\fR.
+.SH INSTALLATION
 .P
-Put something like this in your \fB$HOME/.bashrc\fR or \fB$HOME/.zshrc\fR:
+Put the following in your shell rc file (\fB.bashrc\fR, \fB.kshrc\fR, etc.):
 .RS
 .P
-\fB. /path/to/z.sh\fR
+\fBsource /path/to/ze.sh\fR
 .RE
 .P
-\fBcd\fR around for a while to build up the db.
-.P
-PROFIT!!
-.P
-Optionally:
+Optionally, to track ordinary \fBcd\fR commands as well:
 .RS
-Set \fB$_Z_CMD\fR to change the command name (default \fBz\fR).
+.P
+\fBalias cd=_ze_cd\fR
 .RE
+.P
+Use \fBze\fR and aliased \fBcd\fR with pathname-based navigation for some time to
+build up the database. Afterwards use
+.B ze
+for pattern-based navigation of the directories known to the database.
+.SH DESIGN
+.P
+\fBze.sh\fR differs from \fBz.sh\fR in several ways:
 .RS
-Set \fB$_Z_DATA\fR to change the datafile (default \fB$HOME/.z\fR).
+.TP
+\fBevent clock\fR
+\fBze.sh\fR uses an event clock (each newly recorded \fBcd\fR event
+advances the clock by one tick) instead of wall-clock time for score decay. This
+prevents score decay during shell inactivity, especially during long periods (e.g.
+holidays).
+.TP
+\fBscoring\fR \fBze.sh\fR uses an \fBexponential moving sum (EMS)\fR scoring
+model. The score is the sum of exponentially decayed unit impulses at each visit
+time. The decay rate is controlled by \fB_ZE_LAMBDA\fR (default: \fB8e-3\fR).
+.TP
+\fBtracking\fR \fBze.sh\fR only tracks explicit \fBze\fR-based directory changes
+(or bare \fBcd\fR if aliased to \fB_ze_cd\fR). It does not use precommand hooks.
 .RE
+.SH DATABASE
+.P
+Data is stored in \fB~/.ze/ze.db\fR as a plain text file with one entry per line:
+.P
+\fBpath|visits|ticks|score\fR
+.P
+Where:
+.TP
+\fBpath\fR
+Absolute directory path.
+.TP
+\fBvisits\fR
+Cumulative visit count for this entry.
+.TP
+\fBticks\fR
+Global cumulative \fBcd\fR event count at time of last visit.
+.TP
+\fBscore\fR
+Exponentially decayed cumulative visit score as of the last visit.
+.SH CONFIGURATION
+.P
+The following environment variables can be set (e.g., in your shell rc file):
+.TP
+\fB_ZE_CMD\fR
+Command name (default: \fBze\fR).
+.TP
+\fB_ZE_DIR\fR
+Database directory (default: \fB~/.ze\fR).
+.TP
+\fB_ZE_LAMBDA\fR
+Decay constant in units of 1/\fBcd\fR action (default: \fB8e-3\fR).
+.TP
+\fB_ZE_DBMAX\fR
+Database size limit (default: \fB512\fR).
+.TP
+\fB_ZE_OWNER\fR
+Allow use on shared databases by specifying the owner username.
+.TP
+\fB_ZE_RESOLVE_SYMLINKS\fR
+Set to any non-empty value to resolve symlinks to physical paths (default: logical
+paths are honoured).
+.TP
+\fB_ZE_EXCLUDE_DIRS\fR Array of directory trees to exclude from tracking.
+.SH FZF INTEGRATION
+.P
+If \fBfzf\fR is installed, \fBze -f [pattern]\fR opens an interactive selector
+showing all matching directories ranked by score, with the best match at the top
+of the \fBfzf\fR display.
+.SH MIGRATING FROM Z.SH
+.P
+If you have an existing \fB~/.z\fR database from \fBz.sh\fR, you can convert it
+for use with \fBze.sh\fR:
 .RS
-Set \fB$_Z_MAX_SCORE\fR lower to age entries out faster (default \fB9000\fR).
-.RE
+.P
+\fBmkdir -p ~/.ze\fR
+.P
+\fBnow=$(awk -F'|' '{ now += $2 } END { print now }' ~/.z)\fR
+.P
+\fBsort -t'|' -k3,3n ~/.z | awk -F'|' -v now="$now" '\fR
 .RS
-Set \fB$_Z_NO_RESOLVE_SYMLINKS\fR to prevent symlink resolution.
+.P
+\fBBEGIN { OFS="|"; lambda=8e-3 }\fR
+.P
+\fB{   ticks += $2\fR
+.P
+\fB    r = exp(-lambda)\fR
+.P
+\fB    score = $2 == 1 ? 1 : (1 - r^$2) / (1 - r)\fR
+.P
+\fB    score *= exp(-lambda * (now - ticks))\fR
+.P
+\fB    print $1, $2, ticks, score\fR
+.P
+\fB}' > ~/.ze/ze.db\fR
 .RE
-.RS
-Set \fB$_Z_NO_PROMPT_COMMAND\fR to handle \fBPROMPT_COMMAND/precmd\fR yourself.
 .RE
-.RS
-Set \fB$_Z_EXCLUDE_DIRS\fR to an array of directory trees to exclude.
-.RE
-.RS
-Set \fB$_Z_OWNER\fR to allow usage when in 'sudo -s' mode.
-.RE
-.RS
-(These settings should go in .bashrc/.zshrc before the line added above.)
-.RE
-.RS
-Install the provided man page \fBz.1\fR somewhere in your \f$MANPATH, like
-\fB/usr/local/man/man1\fR.
-.RE
-.SS
-Aging:
-The rank of directories maintained by \fBz\fR undergoes aging based on a simple
-formula. The rank of each entry is incremented every time it is accessed. When
-the sum of ranks is over 9000, all ranks are multiplied by 0.99. Entries with a
-rank lower than 1 are forgotten.
-.SS
-Frecency:
-Frecency is a portmanteau of 'recent' and 'frequency'. It is a weighted rank
-that depends on how often and how recently something occurred. As far as I
-know, Mozilla came up with the term.
+.SH FILES
 .P
-To \fBz\fR, a directory that has low ranking but has been accessed recently
-will quickly have higher rank than a directory accessed frequently a long time
-ago.
+\fB~/.ze/ze.db\fR \- Default database file.
+.SH ENVIRONMENT
 .P
-Frecency is determined at runtime.
-.SS
-Common:
-When multiple directories match all queries, and they all have a common prefix,
-\fBz\fR will cd to the shortest matching directory, without regard to priority.
-This has been in effect, if undocumented, for quite some time, but should
-probably be configurable or reconsidered.
-.SS
-Tab Completion:
-\fBz\fR supports tab completion. After any number of arguments, press TAB to
-complete on directories that match each argument. Due to limitations of the
-completion implementations, only the last argument will be completed in the
-shell.
+A function \fB_ze\fR is defined, and the command specified by \fB_ZE_CMD\fR
+(default: \fBze\fR) is aliased to it.
+.SH SEE ALSO
 .P
-Internally, \fBz\fR decides you've requested a completion if the last argument
-passed is an absolute path to an existing directory. This may cause unexpected
-behavior if the last argument to \fBz\fR begins with \fB/\fR.
-.SH
-ENVIRONMENT
-A function \fB_z()\fR is defined.
+regex(7), pushd, popd, cdargs
 .P
-The contents of the variable \fB$_Z_CMD\fR is aliased to \fB_z 2>&1\fR. If not
-set, \fB$_Z_CMD\fR defaults to \fBz\fR.
-.P
-The environment variable \fB$_Z_DATA\fR can be used to control the datafile
-location. If it is not defined, the location defaults to \fB$HOME/.z\fR.
-.P
-The environment variable \fB$_Z_NO_RESOLVE_SYMLINKS\fR can be set to prevent
-resolving of symlinks. If it is not set, symbolic links will be resolved when
-added to the datafile.
-.P
-In bash, \fBz\fR appends a command to the \fBPROMPT_COMMAND\fR environment
-variable to maintain its database. In zsh, \fBz\fR appends a function
-\fB_z_precmd\fR to the \fBprecmd_functions\fR array.
-.P
-The environment variable \fB$_Z_NO_PROMPT_COMMAND\fR can be set if you want to
-handle \fBPROMPT_COMMAND\fR or \fBprecmd\fR yourself.
-.P
-The environment variable \fB$_Z_EXCLUDE_DIRS\fR can be set to an array of
-directory trees to exclude from tracking. \fB$HOME\fR is always excluded.
-Directories must be full paths without trailing slashes.
-.P
-The environment variable \fB$_Z_OWNER\fR can be set to your username, to
-allow usage of \fBz\fR when your sudo environment keeps \fB$HOME\fR set.
-.SH
-FILES
-Data is stored in \fB$HOME/.z\fR. This can be overridden by setting the
-\fB$_Z_DATA\fR environment variable. When initialized, \fBz\fR will raise an
-error if this path is a directory, and not function correctly.
-.P
-A man page (\fBz.1\fR) is provided.
-.SH
-SEE ALSO
-regex(7), pushd, popd, autojump, cdargs
-.P
-Please file bugs at https://github.com/rupa/z/
+Project repository: https://github.com/jghub/ze
+.SH NOTES
+.TP
+\fBSmartcase matching\fR Pattern matching is case-insensitive unless the pattern
+contains uppercase characters.
+.TP
+\fBStale entries\fR Entries for directories that no longer exist are retained in
+the database and filtered at match time. They may be pruned if the database
+exceeds the size limit.
+.TP
+\fBSymlinks\fR By default, logical paths are honoured. Set
+\fB_ZE_RESOLVE_SYMLINKS\fR to resolve symlinks to physical paths.
