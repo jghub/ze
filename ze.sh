@@ -79,10 +79,13 @@ function _ze_dirs {
 
 function _ze_cd {
     if command cd "$@"; then
+        # ksh93 may emit job-control notifications for the backgrounded helper despite wrapping it in
+        # a subshell (this happens not in all terminal emulators, but in most). this makes
+        # redirection of stderr to /dev/null necessary (and the subshell might thus go away, actually).
         if [[ $_ZE_RESOLVE_SYMLINKS ]]; then
-            (_ze --add "$(command pwd -P 2>/dev/null)" &)
+            (_ze --add "$(command pwd -P 2>/dev/null)" &) 2>/dev/null
         else
-            (_ze --add "$PWD" &)
+            (_ze --add "$PWD" &) 2>/dev/null
         fi
     else
         return $?
