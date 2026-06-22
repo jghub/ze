@@ -13,8 +13,8 @@ moving sum (EMS)\fR scoring model on an "\fBevent clock\fR" (a global monotonic
 event counter shared across all stored entries) and only tracks navigation
 performed through the \fBze\fR command itself (or \fBcd\fR if aliased to
 \fB_ze_cd\fR). After a short learning phase, \fBze\fR will take you to the
-highest-scoring directory that matches the given pattern(s).
-.SH OPTIONS
+highest-scoring directory that matches the given pattern(s). Patterns are
+interpreted as extended regular expressions (ERE),
 .TP
 \fB\-c\fR Restrict matches to subdirectories of the current directory.
 .TP
@@ -172,7 +172,7 @@ A function \fB_ze\fR is defined, and the command specified by \fB_ZE_CMD\fR
 (default: \fBze\fR) is aliased to it.
 .SH SEE ALSO
 .P
-regex(7), pushd, popd, cdargs
+re_format(7), awk(1), grep(1)
 .P
 Project repository: https://github.com/jghub/ze
 .SH NOTES
