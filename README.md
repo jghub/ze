@@ -67,8 +67,8 @@ unambiguous `&&`/`||` operators, and pattern matching support. In ze.sh, the
 `function f { ... }` definition style is used throughout instead of POSIX-style
 `f() { ... }` — in ksh93 and mksh, `typeset` variables are only locally scoped
 inside functions defined with the `function` keyword, whereas POSIX style
-functions do not provide local scoping in these shells. For historical POSIX sh
-compatibility, z.sh used `[` and `f() { }` but was never actually POSIX-compatible
+functions do not provide local scoping in these shells. For historical reasons,
+z.sh used `[` and `f() { }` but was never actually POSIX-compatible
 due to its use of arrays, process substitution, and shell-specific completion
 builtins — ze.sh drops the pretense and uses the cleaner syntax consistently.
 
