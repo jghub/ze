@@ -1,5 +1,12 @@
 # ze.sh: Changelog
 
+## v3.0.2 (2026-06-23)
+* **refactor of _ze**: the previous monolithic _ze function has been split into
+three helpers _ze_add, _ze_complete, _ze_query. _ze performs dispatch only.
+
+* **pruning logic**: database rewrite during pruning now uses %.17g formatting
+for score serialization, matching the precision used in update logic.
+
 ## v3.0.1 (2026-06-23)
 * **store scores with full floating point precision**: previously scores were
 stored with awk's default OFMT of %.6g. Over large numbers of recurring updates

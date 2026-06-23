@@ -39,7 +39,7 @@ function _ze_init {
     ((nprune = dbsize - dbmax + margin))
     (   set -o pipefail  # sub-process avoids overriding user settings
         awk -F'|' -v lambda="$lambda" '
-            BEGIN { OFS = FS }
+            BEGIN { OFS = FS; OFMT = "%.17g" }
             {
                 lines[NR] = $0
                 if ($3 > tmax) tmax = $3
@@ -50,7 +50,7 @@ function _ze_init {
                     print f[1], f[2], f[3], f[4], f[4] * exp(-lambda * (tmax - f[3]))
                 } 
             }' "$datafile" | LC_ALL=C sort -t'|' -k5,5g -k1,1 | awk -F'|' -v nprune="$nprune" '
-                    BEGIN { OFS = FS } NR > nprune { print $1, $2, $3, $4 }' >| "$tempfile"
+                    BEGIN { OFS = FS; OFMT = "%.17g" } NR > nprune { print $1, $2, $3, $4 }' >| "$tempfile"
     )
     _ze_commit $? "$tempfile" "$datafile"
 }
@@ -99,145 +99,158 @@ function _ze_fzf { ## pattern
         fzf -e --no-sort | cut -f2) && [[ $selection ]] && _ze_cd "$selection"
 }
 
-function _ze {
+function _ze_add {
     typeset datafile="${_ZE_DIR}/ze.db"
     typeset lambda=${_ZE_LAMBDA:-8e-3}
 
-    # add entries
+    # $HOME and / aren't worth matching, neither is $OLDPWD
+    [[ $1 == "$HOME" || $1 == "$OLDPWD" || $1 == "/" ]] && return
+
+    typeset exclude
+    for exclude in "${_ZE_EXCLUDE_DIRS[@]}"; do [[ $1 == "$exclude"* ]] && return; done
+
+    typeset tempfile
+    tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
+
+    path="$1" awk -v lambda="$lambda" -F"|" '
+        BEGIN { path = ENVIRON["path"]; OFS = FS; OFMT = "%.17g" }
+        {
+           lines[NR] = $0
+           if ($3 > tmax) tmax = $3
+        }
+        END {
+            # tmax is the last event clock tick (global cumulative visit count), new visit advances clock by one tick::
+            now = tmax + 1
+            for (i = 1; i <= NR; i++) {
+                split(lines[i], f, FS)
+                if (f[1] == path) {
+                    hit = 1
+                    f[2] = f[2] + 1
+                    f[4] = f[4] * exp(-lambda * (now - f[3])) + 1
+                    f[3] = now
+                }
+                print f[1], f[2], f[3], f[4]
+            }
+            if (!hit) print path, 1, now, 1
+        }
+    ' "$datafile" 2>/dev/null >| "$tempfile"
+    _ze_commit $? "$tempfile" "$datafile"
+}
+
+function _ze_complete {
+    typeset datafile="${_ZE_DIR}/ze.db"
+
+    [[ -s $datafile ]] || return
+
+    _ze_dirs | candidate=$1 awk -F"|" '
+        BEGIN {
+            q = ENVIRON["candidate"]
+            sub(/^[^ ]+[ ]+/, "", q)   # replace previous fixed-offset substring to account for possibility of non-default ZE_CMD value
+            lq = tolower(q)
+            case_sensitive = (q != lq)
+            if (!case_sensitive) q = lq
+            gsub(/ /, ".*", q)
+        }
+        {
+            candidate = case_sensitive ? $1 : tolower($1)
+            if (candidate ~ q) print $1
+        }
+    ' 2>/dev/null
+}
+
+function _ze_query {
+    typeset lambda=${_ZE_LAMBDA:-8e-3}
+
+    typeset fnd opt typ
+    typeset -i list=0 finder=0 emit=0
+    while [[ $1 ]]; do case "$1" in
+        --) while [[ $1 ]]; do shift; fnd=$fnd${fnd:+ }$1; done;;
+         -) fnd='-';;
+        -*) opt=${1:1}; while [[ $opt ]]; do case ${opt:0:1} in
+                c) fnd="^$PWD $fnd";;
+                e) emit=1;;
+                f) finder=1;;
+                h) printf '%s\n' "${_ZE_CMD:-ze} [-cefhlrt] args" >&2; return;;
+                l) list=1;;
+                r) typ="visits";;
+                t) typ="recent";;
+                *) fnd="$fnd${fnd:+ }$1"; opt='';;
+            esac; opt=${opt:1}; done;;
+         *) fnd="$fnd${fnd:+ }$1";;
+    esac; (($#)) && shift; done
+
+    ((finder)) && { _ze_fzf "$fnd"; return; }
+
+    [[ $fnd == "^$PWD " ]] && list=1  # if bare -c with no args, just list
+
+    # in cd mode, delegate to _ze_cd immediately if fnd is a real path, empty, or "-":
+    ((!(list || emit))) && [[ -d ${fnd:-$HOME} || $fnd == "-" ]] && { _ze_cd "${fnd:-$HOME}"; return; }
+
+    typeset result
+    result=$(_ze_dirs | fnd=$fnd awk -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
+        function output(matches, best_match, list,   x) {
+            if (list) {
+                for( x in matches ) printf "%-12s\t%s\n", matches[x], x | "LC_ALL=C sort -k1,1g -k2,2"
+            } else print best_match
+        }
+        BEGIN {
+            q = ENVIRON["fnd"]
+            gsub(" ", ".*", q)
+            lq = tolower(q)
+            case_sensitive = (q != lq)
+            if (!case_sensitive) q = lq
+            hi_score = -1e300
+        }
+        {
+           lines[NR] = $0
+           if ($3 > tmax) tmax = $3
+        }
+        END {
+            for (i = 1; i <= NR; i++) {
+                split(lines[i], f, FS)
+                if (typ == "visits") {
+                    weight = f[2]
+                } else if (typ == "recent") {
+                    weight = f[3]
+                } else weight = f[4] * exp(-lambda * (tmax - f[3]))
+
+                candidate = case_sensitive ? f[1] : tolower(f[1])
+                if (candidate ~ q) {
+                    matches[f[1]] = weight
+                    if (weight > hi_score) {
+                        best_match = f[1]
+                        hi_score = weight
+                    }
+                }
+            }
+            if (!best_match) exit(1)
+            output(matches, best_match, list)
+        }
+    ')
+    typeset -i rc=$?; ((rc)) && return $rc
+    [[ $result ]] || return
+
+    if ((list || emit)); then
+        printf '%s\n' "$result"
+    else
+        _ze_cd "$result"
+    fi
+}
+
+function _ze {
     if [[ $1 == "--add" ]]; then
         shift
-
-        # $HOME and / aren't worth matching, neither is $OLDPWD
-        [[ $1 == "$HOME" || $1 == "$OLDPWD" || $1 == "/" ]] && return
-
-        typeset exclude
-        for exclude in "${_ZE_EXCLUDE_DIRS[@]}"; do [[ $1 == "$exclude"* ]] && return; done
-
-        typeset tempfile
-        tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
-
-        path="$1" awk -v lambda="$lambda" -F"|" '
-            BEGIN { path = ENVIRON["path"]; OFS = FS; OFMT = "%.17g" }
-            {
-               lines[NR] = $0
-               if ($3 > tmax) tmax = $3
-            }
-            END {
-                # tmax is the last event clock tick (global cumulative visit count), new visit advances clock by one tick::
-                now = tmax + 1
-                for (i = 1; i <= NR; i++) {
-                    split(lines[i], f, FS)
-                    if (f[1] == path) {
-                        hit = 1
-                        f[2] = f[2] + 1
-                        f[4] = f[4] * exp(-lambda * (now - f[3])) + 1
-                        f[3] = now
-                    }
-                    print f[1], f[2], f[3], f[4]
-                }
-                if (!hit) print path, 1, now, 1
-            }
-        ' "$datafile" 2>/dev/null >| "$tempfile"
-        _ze_commit $? "$tempfile" "$datafile"
-
-    # tab completion
-    elif [[ $1 == "--complete" ]] && [[ -s $datafile ]]; then
-        _ze_dirs | candidate=$2 awk -F"|" '
-            BEGIN {
-                q = ENVIRON["candidate"]
-                sub(/^[^ ]+[ ]+/, "", q)   # replace previous fixed-offset substring to account for possibility of non-default ZE_CMD value
-                lq = tolower(q)
-                case_sensitive = (q != lq)
-                if (!case_sensitive) q = lq
-                gsub(/ /, ".*", q)
-            }
-            {
-                candidate = case_sensitive ? $1 : tolower($1)
-                if (candidate ~ q) print $1
-            }
-        ' 2>/dev/null
-
-    # list/go
+        _ze_add "$@"
+    elif [[ $1 == "--complete" ]]; then
+        shift
+        _ze_complete "$@"
     else
-        typeset fnd opt typ
-        typeset -i list=0 finder=0 emit=0
-        while [[ $1 ]]; do case "$1" in
-            --) while [[ $1 ]]; do shift; fnd=$fnd${fnd:+ }$1; done;;
-             -) fnd='-';;
-            -*) opt=${1:1}; while [[ $opt ]]; do case ${opt:0:1} in
-                    c) fnd="^$PWD $fnd";;
-                    e) emit=1;;
-                    f) finder=1;;
-                    h) printf '%s\n' "${_ZE_CMD:-ze} [-cefhlrt] args" >&2; return;;
-                    l) list=1;;
-                    r) typ="visits";;
-                    t) typ="recent";;
-                    *) fnd="$fnd${fnd:+ }$1"; opt='';;
-                esac; opt=${opt:1}; done;;
-             *) fnd="$fnd${fnd:+ }$1";;
-        esac; (($#)) && shift; done
-
-        ((finder)) && { _ze_fzf "$fnd"; return; }
-
-        [[ $fnd == "^$PWD " ]] && list=1  # if bare -c with no args, just list
-
-        # in cd mode, delegate to _ze_cd immediately if fnd is a real path, empty, or "-":
-        ((!(list || emit))) && [[ -d ${fnd:-$HOME} || $fnd == "-" ]] && { _ze_cd "${fnd:-$HOME}"; return; }
-
-        typeset result
-        result=$(_ze_dirs | fnd=$fnd awk -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
-            function output(matches, best_match, list,   x) {
-                if (list) {
-                    for( x in matches ) printf "%-12s\t%s\n", matches[x], x | "LC_ALL=C sort -k1,1g -k2,2"
-                } else print best_match
-            }
-            BEGIN {
-                q = ENVIRON["fnd"]
-                gsub(" ", ".*", q)
-                lq = tolower(q)
-                case_sensitive = (q != lq)
-                if (!case_sensitive) q = lq
-                hi_score = -1e300
-            }
-            {
-               lines[NR] = $0
-               if ($3 > tmax) tmax = $3
-            }
-            END {
-                for (i = 1; i <= NR; i++) {
-                    split(lines[i], f, FS)
-                    if (typ == "visits") {
-                        weight = f[2]
-                    } else if (typ == "recent") {
-                        weight = f[3]
-                    } else weight = f[4] * exp(-lambda * (tmax - f[3]))
-
-                    candidate = case_sensitive ? f[1] : tolower(f[1])
-                    if (candidate ~ q) {
-                        matches[f[1]] = weight
-                        if (weight > hi_score) {
-                            best_match = f[1]
-                            hi_score = weight
-                        }
-                    }
-                }
-                if (!best_match) exit(1)
-                output(matches, best_match, list)
-            }
-        ')
-        typeset -i rc=$?; ((rc)) && return $rc
-        [[ $result ]] || return
-
-        if ((list || emit)); then
-            printf '%s\n' "$result"
-        else
-            _ze_cd "$result"
-        fi
+        _ze_query "$@"
     fi
 }
 
 if ! _ze_init; then
-    unset -f _ze _ze_cd _ze_dirs _ze_fzf _ze_init
+    unset -f _ze _ze_add _ze_cd _ze_commit _ze_complete _ze_dirs _ze_fzf _ze_init _ze_query
     return 1
 fi
 unset -f _ze_init
