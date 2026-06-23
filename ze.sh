@@ -117,7 +117,7 @@ function _ze {
         tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
 
         path="$1" awk -v lambda="$lambda" -F"|" '
-            BEGIN { path = ENVIRON["path"]; OFS = FS }
+            BEGIN { path = ENVIRON["path"]; OFS = FS; OFMT = "%.17g" }
             {
                lines[NR] = $0
                if ($3 > tmax) tmax = $3

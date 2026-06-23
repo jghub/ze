@@ -1,5 +1,12 @@
 # ze.sh: Changelog
 
+## v3.0.1 (2026-06-23)
+* **store scores with full floating point precision**: previously scores were
+stored with awk's default OFMT of %.6g. Over large numbers of recurring updates
+rounding errors then accumulate, though with no relevant practical impact on
+ranking. The db now uses %.17g, guaranteeing lossless IEEE 754 double round-trip
+serialisation.
+
 ## v3.0.0 (2026-06-20)
 * **switch from wall clock to event clock**: this is a fundamental change from
 legacy behaviour that immediately resolves all issues with inactivity periods.
