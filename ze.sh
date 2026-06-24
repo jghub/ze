@@ -67,6 +67,12 @@ function _ze_commit {  ## rc tempfile datafile
     fi
 }
 
+if ! _ze_init; then
+    unset -f _ze_commit _ze_init
+    return 1
+fi
+unset -f _ze_init
+
 function _ze_dirs {
     typeset datafile="${_ZE_DIR}/ze.db"
     typeset -a lines
@@ -248,12 +254,6 @@ function _ze {
         _ze_query "$@"
     fi
 }
-
-if ! _ze_init; then
-    unset -f _ze _ze_add _ze_cd _ze_commit _ze_complete _ze_dirs _ze_fzf _ze_init _ze_query
-    return 1
-fi
-unset -f _ze_init
 
 if type compctl >/dev/null 2>&1; then
     # zsh completion
