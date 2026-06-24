@@ -121,23 +121,21 @@ function _ze_add {
     path="$1" awk -v lambda="$lambda" -F"|" '
         BEGIN { path = ENVIRON["path"]; OFS = FS; OFMT = "%.17g" }
         {
-           lines[NR] = $0
-           if ($3 > tmax) tmax = $3
+            if ($1 == path) {
+                hit = 1
+                visits = $2
+                ticks = $3
+                score = $4
+            } else print
+            if ($3 > tmax) tmax = $3
         }
         END {
-            # tmax is the last event clock tick (global cumulative visit count), new visit advances clock by one tick::
-            now = tmax + 1
-            for (i = 1; i <= NR; i++) {
-                split(lines[i], f, FS)
-                if (f[1] == path) {
-                    hit = 1
-                    f[2] = f[2] + 1
-                    f[4] = f[4] * exp(-lambda * (now - f[3])) + 1
-                    f[3] = now
-                }
-                print f[1], f[2], f[3], f[4]
-            }
-            if (!hit) print path, 1, now, 1
+            now = tmax + 1    # advance global event clock
+            if (hit) {
+                visits = visits + 1
+                score = score * exp(-lambda * (now - ticks)) + 1
+                print path, visits, now, score
+            } else print path, 1, now, 1
         }
     ' "$datafile" 2>/dev/null >| "$tempfile"
     _ze_commit $? "$tempfile" "$datafile"
