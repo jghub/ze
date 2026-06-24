@@ -159,13 +159,23 @@ non-empty value.
 
 | Variable                   | Default  | Meaning                             |
 |----------------------------|----------|-------------------------------------|
-| `_ZE_CMD`                  | `ze`     | command name                        |
+| `_ZE_CMD`                  | `ze`     | command name *(1)*                  |
 | `_ZE_DIR`                  | `~/.ze`  | database directory                  |
 | `_ZE_LAMBDA`               | `8e-3`   | decay constant (units: 1/cd action) |
 | `_ZE_DBMAX`                | `512`    | db size limit (pruning threshold)   |
 | `_ZE_OWNER`                | unset    | allow use on shared db              |
 | `_ZE_RESOLVE_SYMLINKS`     | unset    | resolve symlinks on cd              |
 | `_ZE_EXCLUDE_DIRS`         | unset    | array of directory trees to exclude |
+
+*(1)*: Since `ze` gives pathname interpretation preference over pattern matching,
+it is especially possible to consider
+
+```sh
+_ZE_CMD=cd
+```
+
+which then allows for ordinary cd navigation as well as pattern-based navigation
+and interaction with `ze`.
 
 ## fzf integration
 

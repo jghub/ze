@@ -1,15 +1,21 @@
-.TH "ZE" "1" "June 2026" "ze" "User Commands"
+.TH ZE 1 "June 2026" ze.sh "User Commands"
+.
 .SH NAME
 ze \- pattern-based navigation of a frecency-ranked dynamic directory stack
+.
 .SH SYNOPSIS
-.B ze [ \-cefhlrt ] [ args ]
+.SY ze
+.OP  \-cefhlrt
+.RI [ pattern | pathname | \- ]
+.
 .SH AVAILABILITY
 bash, zsh, ksh93, mksh
+.
 .SH DESCRIPTION
 .P
 \fBze.sh\fP is a directory jumper for \fBbash\fP, \fBzsh\fP, \fBksh93\fP, and
 \fBmksh\fP. Unlike its predecessor \fBz.sh\fP, \fBze.sh\fP uses an exponential
-moving sum (EMS) scoring model on an "event clock" (a global monotonic
+moving sum (EMS) scoring model on an event-driven clock (a global monotonic
 event counter shared across all stored entries) and only tracks navigation
 performed through the \fBze\fP command itself (or \fBcd\fP if aliased to
 \fB_ze_cd\fP). After a short learning phase, \fBze\fP will take you to the
@@ -36,10 +42,11 @@ Sort matches by visit count only.
 .TP
 \fB\-t
 Sort matches by recency of last visit only.
+.
 .SH EXAMPLES
 .TP
 .B ze
-Change to \fB$HOME\fP.
+Change to \fI$HOME\fP.
 .TP
 .BI "ze " \-
 Change to the previous directory.
@@ -49,38 +56,39 @@ Change to the absolute or relative pathname
 .I foo
 if it exists.
 .P
-Only if pathname interpretation does not succeed:
+If pathname interpretation does not succeed:
 .TP
 .BI ze " foo"
-Change to the highest-scoring directory matching \fBfoo\fP.
+Change to the highest-scoring directory matching \fIfoo\fP.
 .TP
 .BI ze " foo bar"
-Change to the highest-scoring directory matching both \fBfoo\fP
-and \fBbar\fP.
+Change to the highest-scoring directory matching both \fIfoo\fP
+and \fIbar\fP.
 .TP
 .BI "ze \-c " foo
-Change to the highest-scoring subdirectory of \fB$PWD\fP matching
-\fBfoo\fP.
+Change to the highest-scoring subdirectory of \fI$PWD\fP matching
+\fIfoo\fP.
 .TP
 .BI "ze \-l " foo
-List all directories matching \fBfoo\fP, sorted by score. Without
+List all directories matching \fIfoo\fP, sorted by score. Without
 argument, show full stack.
 .TP
 .BI "ze \-r " foo
 Change to the most frequently visited directory matching
-\fBfoo\fP.
+\fIfoo\fP.
 .TP
 .BI "ze \-t " foo
-Change to the most recently visited directory matching \fBfoo\fP.
+Change to the most recently visited directory matching \fIfoo\fP.
 .P
 If fzf is available:
 .TP
 .BI "ze \-f " foo
 Interactively select a matching directory using \fBfzf\fP. Without
 argument, use full stack.
+.
 .SH INSTALLATION
 .P
-Put the following in your shell rc file (\fB.bashrc\fP, \fB.kshrc\fP, etc.):
+Put the following in your shell rc file (\fI.bashrc\fP, \fI.kshrc\fP, etc.):
 .IP
 source /path/to/ze.sh
 .P
@@ -92,6 +100,7 @@ Use \fBze\fP and aliased \fBcd\fP with pathname-based navigation for some time t
 build up the database. Afterwards use
 .B ze
 for pattern-based navigation of the directories known to the database.
+.
 .SH DESIGN
 .P
 \fBze.sh\fP differs from \fBz.sh\fP in several ways:
@@ -110,31 +119,43 @@ time. The decay rate is controlled by \fB_ZE_LAMBDA\fP (default: \fB8e-3\fP).
 .B tracking
 \fBze.sh\fP only tracks explicit \fBze\fP-based directory changes
 (or bare \fBcd\fP if aliased to \fB_ze_cd\fP). It does not use precommand hooks.
+.
 .SH DATABASE
 .P
 Data is stored in \fB~/.ze/ze.db\fP as a plain text file with one entry per line:
 .IP
-path|visits|ticks|score
+\fIpath|visits|ticks|score\fP
 .P
 where:
 .TP
-\fBpath\fP
+\fIpath\fP
 Absolute directory path.
 .TP
-\fBvisits\fP
+\fIvisits\fP
 Cumulative visit count for this entry.
 .TP
-\fBticks\fP
+\fIticks\fP
 Global cumulative \fBcd\fP event count at time of last visit.
 .TP
-\fBscore\fP
+\fIscore\fP
 Exponentially decayed cumulative visit score as of the last visit.
+.
 .SH CONFIGURATION
 .P
-The following environment variables can be set (e.g., in your shell rc file):
+The following environment variables can be set before sourcing ze.sh (typically in
+your shell rc):
 .TP
 \fB_ZE_CMD\fP
-Command name (default: \fBze\fP).
+Command name (default: \fBze\fP). Given 
+.B ze's
+pathname preference behaviour, one useful choice could be to shadow the builtin cd command:
+.B _ZE_CMD=cd
+and to exclusivly use this command for navigation and interaction with 
+.BR ze.sh .
+(The semantics of the thus defined command of course then differs from that of
+builtin cd by providing pattern-based navigation and 
+.B ze
+comand options.)
 .TP
 \fB_ZE_DIR\fP
 Database directory (default: \fB~/.ze\fP).
@@ -153,11 +174,14 @@ Set to any non-empty value to resolve symlinks to physical paths (default: logic
 paths are honoured).
 .TP
 \fB_ZE_EXCLUDE_DIRS\fP Array of directory trees to exclude from tracking.
+.
 .SH FZF INTEGRATION
 .P
-If \fBfzf\fP is installed, \fBze -f [pattern]\fP opens an interactive selector
-showing all matching directories ranked by score, with the best match at the top
-of the \fBfzf\fP display.
+If \fBfzf\fP is installed,
+.BI "ze \-f " [pattern]
+opens an interactive selector showing all matching directories ranked by score,
+with the best match at the top of the \fBfzf\fP display.
+.
 .SH MIGRATING FROM Z.SH
 .P
 If you have an existing \fB~/.z\fP database from \fBz.sh\fP, you can convert it
@@ -176,18 +200,22 @@ BEGIN { OFS="|"; lambda=8e-3 }
 }' > ~/.ze/ze.db
 .EE
 .P
+.
 .SH FILES
 .P
 \fB~/.ze/ze.db\fP \- Default database file.
+.
 .SH ENVIRONMENT
 .P
 A function \fB_ze\fP is defined, and the command specified by \fB_ZE_CMD\fP
 (default: \fBze\fP) is aliased to it.
+.
 .SH SEE ALSO
 .P
 re_format(7), awk(1), grep(1)
 .P
 Project repository: https://github.com/jghub/ze
+.
 .SH NOTES
 .TP
 .B "Smartcase matching
