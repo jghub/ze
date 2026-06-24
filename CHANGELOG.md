@@ -1,5 +1,10 @@
 # ze.sh: Changelog
 
+## v3.0.3 WIP
+* **ze -f now honours -r or -t**: behaviour is now consistent with `ze -l` - if
+`-r` or `-t` are specified in addition to `-l` or `-f`, sort order is adjusted
+accordingly.
+
 ## v3.0.2 (2026-06-23)
 * **refactor of _ze**: the previous monolithic _ze function has been split into
 three helpers _ze_add, _ze_complete, _ze_query. _ze performs dispatch only.

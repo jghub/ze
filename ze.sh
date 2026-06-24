@@ -98,9 +98,10 @@ function _ze_cd {
     fi
 }
 
-function _ze_fzf { ## pattern
-    typeset selection
-    selection=$(_ze -l "$1" |
+function _ze_fzf { ## pattern typ
+    typeset selection opt
+    if [[ $2 == 'visits' ]]; then opt='-r'; elif [[ $2 == 'recent' ]]; then opt='-t'; fi
+    selection=$(_ze -l $opt "$1" |
         awk -F'\t' '{ buf[NR] = $NF } END { offs = NR+1; while (NR) print offs-NR FS buf[NR--] }' |
         fzf -e --no-sort | cut -f2) && [[ $selection ]] && _ze_cd "$selection"
 }
@@ -183,7 +184,7 @@ function _ze_query {
          *) fnd="$fnd${fnd:+ }$1";;
     esac; (($#)) && shift; done
 
-    ((finder)) && { _ze_fzf "$fnd"; return; }
+    ((finder)) && { _ze_fzf "$fnd" "$typ"; return; }
 
     [[ $fnd == "^$PWD " ]] && list=1  # if bare -c with no args, just list
 
