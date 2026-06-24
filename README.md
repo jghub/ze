@@ -93,8 +93,7 @@ filesystems) and filters them at match time rather than pruning them on update.
 ## Usage
 
 ```
-ze [options] [pattern|path|-]
-ze [-cefhlrt] [args]
+ze [-cefhlrt] [pattern|path|-]
 ```
 
 | Invocation      | Behavior                                |
