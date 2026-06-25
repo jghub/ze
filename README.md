@@ -1,6 +1,6 @@
 # ze.sh
 
-ze.sh is a frecency-based directory jumper for bash, zsh, ksh93, and mksh (e.g.
+ze.sh is a directory jumper for bash, zsh, ksh93, and mksh (e.g.
 Termux/Android), forked from [z.sh](https://github.com/rupa/z), with exponential
 moving sum (EMS) scoring model as well as several behavioral fixes and
 adjustments, see [list of changes](#changes-from-zsh).
@@ -179,7 +179,7 @@ and interaction with `ze`.
 ## fzf integration
 
 If [fzf](https://github.com/junegunn/fzf) is installed, `ze -f [pattern]` opens
-an interactive selector showing all matching directories ranked by frecency score,
+an interactive selector showing all matching directories ranked by score,
 best match at top. Select by pathname pattern or by entry number.
 
 ```sh

@@ -213,14 +213,13 @@ function _ze_query {
         END {
             for (i = 1; i <= NR; i++) {
                 split(lines[i], f, FS)
-                if (typ == "visits") {
-                    weight = f[2]
-                } else if (typ == "recent") {
-                    weight = f[3]
-                } else weight = f[4] * exp(-lambda * (tmax - f[3]))
-
                 candidate = case_sensitive ? f[1] : tolower(f[1])
                 if (candidate ~ q) {
+                    if (typ == "visits") {
+                        weight = f[2]
+                    } else if (typ == "recent") {
+                        weight = f[3]
+                    } else weight = f[4] * exp(-lambda * (tmax - f[3]))
                     matches[f[1]] = weight
                     if (weight > hi_score) {
                         best_match = f[1]
