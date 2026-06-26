@@ -89,9 +89,9 @@ function _ze_cd {
         # a subshell (this happens not in all terminal emulators, but in most). this makes
         # redirection of stderr to /dev/null necessary (and the subshell might thus go away, actually).
         if [[ $_ZE_RESOLVE_SYMLINKS ]]; then
-            (_ze --add "$(command pwd -P 2>/dev/null)" &) 2>/dev/null
+            (_ze_add "$(command pwd -P 2>/dev/null)" &) 2>/dev/null
         else
-            (_ze --add "$PWD" &) 2>/dev/null
+            (_ze_add "$PWD" &) 2>/dev/null
         fi
     else
         return $?
@@ -163,7 +163,7 @@ function _ze_complete {
     ' 2>/dev/null
 }
 
-function _ze_query {
+function _ze {
     typeset lambda=${_ZE_LAMBDA:-8e-3}
 
     typeset fnd opt typ
@@ -241,18 +241,6 @@ function _ze_query {
     fi
 }
 
-function _ze {
-    if [[ $1 == "--add" ]]; then
-        shift
-        _ze_add "$@"
-    elif [[ $1 == "--complete" ]]; then
-        shift
-        _ze_complete "$@"
-    else
-        _ze_query "$@"
-    fi
-}
-
 if type compctl >/dev/null 2>&1; then
     # zsh completion
     function _ze_zsh_tab_completion {
@@ -260,13 +248,13 @@ if type compctl >/dev/null 2>&1; then
         # shellcheck disable=SC2162 # false alarm
         read -l compl
         # shellcheck disable=SC2034,SC2206,SC2296 # false alarm
-        reply=(${(f)"$(_ze --complete "$compl")"})
+        reply=(${(f)"$(_ze_complete "$compl")"})
     }
     compctl -U -K _ze_zsh_tab_completion "${_ZE_CMD:-ze}"
 elif type complete >/dev/null 2>&1; then
     # bash completion
     # shellcheck disable=SC2016 # false alarm
-    complete -o filenames -C '_ze --complete "$COMP_LINE"' "${_ZE_CMD:-ze}"
+    complete -o filenames -C '_ze_complete "$COMP_LINE"' "${_ZE_CMD:-ze}"
 fi
 
 # shellcheck disable=SC2086,SC2139 # false alarm
