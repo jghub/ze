@@ -46,7 +46,7 @@ function _ze_init {
             }
             END {
                 for (i = 1; i <= NR; i++) {
-                    split(lines[i], f, FS)
+                    split(lines[i], f)
                     print f[1], f[2], f[3], f[4], f[4] * exp(-lambda * (tmax - f[3]))
                 } 
             }' "$datafile" | LC_ALL=C sort -t'|' -k5,5g -k1,1 | awk -F'|' -v nprune="$nprune" '
@@ -212,7 +212,7 @@ function _ze {
         }
         END {
             for (i = 1; i <= NR; i++) {
-                split(lines[i], f, FS)
+                split(lines[i], f)
                 candidate = case_sensitive ? f[1] : tolower(f[1])
                 if (candidate ~ q) {
                     if (typ == "visits") {
