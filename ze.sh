@@ -193,11 +193,6 @@ function _ze {
 
     typeset result
     result=$(_ze_dirs | fnd=$fnd awk -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
-        function output(matches, best_match, list,   x) {
-            if (list) {
-                for( x in matches ) printf "%-12s\t%s\n", matches[x], x | "LC_ALL=C sort -k1,1g -k2,2"
-            } else print best_match
-        }
         BEGIN {
             q = ENVIRON["fnd"]
             gsub(" ", ".*", q)
@@ -227,8 +222,11 @@ function _ze {
                     }
                 }
             }
-            if (!best_match) exit(1)
-            output(matches, best_match, list)
+            if (list)
+                for (x in matches) printf "%-12s\t%s\n", matches[x], x | "LC_ALL=C sort -k1,1g -k2,2"
+            else if (best_match)
+                print best_match
+            else exit(1)
         }
     ')
     typeset -i rc=$?; ((rc)) && return $rc
