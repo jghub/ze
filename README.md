@@ -13,17 +13,20 @@ Source from your shell rc file:
 source /path/to/ze.sh
 ```
 
-**Important**: Unlike z.sh, ze.sh does not track ordinary `cd` commands. It only
-tracks navigation performed through the `ze` command itself. However, since `ze`
-accepts explicit pathnames just as cd does, it covers ordinary pathname-based cd
-usage as a subset. If you want to also track ordinary `cd` commands, add
+**Important**: The original z.sh relies on (bash/zsh specific) hooks and requires
+that a directory has been visited at least once via ordinary `cd` in
+order to start tracking of that directory. ze.sh instead uses `ze` for all
+navigation, including pathname-based directory changes.
+If you want to also track ordinary `cd` commands, add
 
 ```sh
 alias cd=_ze_cd
 ```
 
 to your shell rc file. If you do not install this alias, directories reached via
-ordinary cd commands are not recorded in the database.
+ordinary cd commands are not recorded in the database. For a more complete cd
+replacement that also enables pattern-based navigation, see _ZE_CMD in the
+Configuration section.
 
 ## Design
 
@@ -166,8 +169,11 @@ non-empty value.
 | `_ZE_RESOLVE_SYMLINKS`     | unset    | resolve symlinks on cd              |
 | `_ZE_EXCLUDE_DIRS`         | unset    | array of directory trees to exclude |
 
-*(1)*: Since `ze` gives pathname interpretation preference over pattern matching,
-it is especially possible to consider
+*(1)*: Setting _ZE_CMD=cd makes the `ze` command available as `cd`, enabling both
+pathname navigation and pattern-based jumping from the same command. Note that
+this changes cd semantics since unrecognized pathnames wiil be tried as patterns
+against the database rather than producing an error. For transparent tracking of
+ordinary cd without changed semantics, use `alias cd=_ze_cd` instead.
 
 ```sh
 _ZE_CMD=cd
