@@ -25,7 +25,7 @@ alias cd=_ze_cd
 
 to your shell rc file. If you do not install this alias, directories reached via
 ordinary cd commands are not recorded in the database. For a more complete cd
-replacement that also enables pattern-based navigation, see _ZE_CMD in the
+replacement that also enables pattern-based navigation, see `_ZE_CMD` in the
 Configuration section.
 
 ## Design
