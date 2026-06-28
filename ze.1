@@ -13,14 +13,23 @@ bash, zsh, ksh93, mksh
 .
 .SH DESCRIPTION
 .P
-\fBze.sh\fP is a directory jumper for \fBbash\fP, \fBzsh\fP, \fBksh93\fP, and
-\fBmksh\fP. Unlike its predecessor \fBz.sh\fP, \fBze.sh\fP uses an exponential
-moving sum (EMS) scoring model on an event-driven clock (a global monotonic
-event counter shared across all stored entries) and only tracks navigation
-performed through the \fBze\fP command itself (or \fBcd\fP if aliased to
-\fB_ze_cd\fP). After a short learning phase, \fBze\fP will take you to the
-highest-scoring directory that matches the given pattern(s). Patterns are
-interpreted as extended regular expressions (ERE),
+\fBze.sh\fP is a shell-native directory jumper for \fBbash\fP, \fBzsh\fP,
+\fBksh93\fP, and \fBmksh\fP. Unlike its predecessor \fBz.sh\fP, \fBze.sh\fP uses
+an exponential moving sum (EMS) scoring model on an event-driven clock (a global
+monotonic event counter shared across all stored entries).
+.B ze.sh
+uses the
+.B ze
+command for all navigation, including pathname-based directory changes. If you
+want to also track ordinary 
+.B cd
+commands, alias
+.B cd
+to
+.BR _ze_cd .
+After a short learning phase, \fBze\fP will take you to the highest-scoring
+directory that matches the given pattern. Patterns are interpreted as extended
+regular expressions (ERE),
 .TP
 .BI \-c
 Restrict matches to subdirectories of the current directory.

@@ -1,6 +1,6 @@
 # ze.sh
 
-ze.sh is a directory jumper for bash, zsh, ksh93, and mksh (e.g.
+ze.sh is a shell-native directory jumper for bash, zsh, ksh93, and mksh (e.g.
 Termux/Android), forked from [z.sh](https://github.com/rupa/z), with exponential
 moving sum (EMS) scoring model as well as several behavioral fixes and
 adjustments, see [list of changes](#changes-from-zsh).
