@@ -169,18 +169,12 @@ non-empty value.
 | `_ZE_RESOLVE_SYMLINKS`     | unset    | resolve symlinks on cd              |
 | `_ZE_EXCLUDE_DIRS`         | unset    | array of directory trees to exclude |
 
-*(1)*: Setting _ZE_CMD=cd makes the `ze` command available as `cd`, enabling both
-pathname navigation and pattern-based jumping from the same command. Note that
-this changes cd semantics since unrecognized pathnames wiil be tried as patterns
-against the database rather than producing an error. For transparent tracking of
-ordinary cd without changed semantics, use `alias cd=_ze_cd` instead.
-
-```sh
-_ZE_CMD=cd
-```
-
-which then allows for ordinary cd navigation as well as pattern-based navigation
-and interaction with `ze`.
+*(1)*: Setting `_ZE_CMD=cd` might be used to shadow ordinary `cd` with `ze`,
+enabling both pathname navigation and pattern-based jumping using this name. Note
+that this changes `cd` semantics since unrecognized pathnames will be tried as
+patterns against the database rather than producing an error. For transparent
+tracking of ordinary `cd` without changed semantics, use `alias cd=_ze_cd`
+instead.
 
 ## fzf integration
 
