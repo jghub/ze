@@ -122,7 +122,7 @@ ze [-cefhlrt] [pattern|path|-]
 | Bare call        | lists database                                | follows builtin cd semantics: cd to $HOME      |
 | `-` argument     | not handled, lists database                   | follows builtin cd semantics: cd to previous directory |
 | Stale db entries | pruned on next cd action                      | retained in db, filtered at match time *(3)*         |
-| `-x` option      | deletes current dir from database             | removed; edit ~/.ze/ze.db directly to remove entries |
+| `-x` option      | deletes current dir from database             | removed *(4)* |
 | `-l` option      | output to stderr, not pipeable                | output to stdout, pipeable to pager etc.       |
 | Database         | single flat file `~/.z`                       | directory `~/.ze/`, database `~/.ze/ze.db`     |
 | Shell compat     | bash/zsh only                                 | bash, zsh, ksh93, mksh                         |
@@ -130,7 +130,7 @@ ze [-cefhlrt] [pattern|path|-]
 | Concurrency      | tempfile-name collisions may cause db corruption | `mktemp(1)` eliminates tempfile-name collisions, concurrent updates remain "last writer wins" |
 | `-f` option      | not available                                 | interactive fzf selector (if fzf installed)    |
 | Pattern matching | case-sensitive with case-insensitive fallback | smartcase: case-insensitive except when pattern contains uppercase |
-| Symlinks         | resolved to physical paths by default         | logical paths are honoured by default *(4)*  |
+| Symlinks         | resolved to physical paths by default         | logical paths are honoured by default *(5)*  |
 | Unknown options  | not handled, lists database                   | treated as pattern                             |
 
 *(1)*: The common-prefix heuristic of z.sh overrides the highest-scoring match in
@@ -151,7 +151,13 @@ on the next cd action. In ze.sh, score-based pruning takes place when the db
 exceeds a configurable size limit (default: 512 entries), which eventually removes
 lowest scoring entries including never-again-used stale entries.
 
-*(4)*: The legacy behaviour to resolve all symlinks to physical paths for storage
+*(4)*: The -x option in z.sh serves mainly to remove entries that have accumulated
+high scores and dominate the stack inappropriately. Ze.sh's exponential scoring
+model largely prevents this problem - scores decay naturally and directories do
+not become permanently entrenched. In the rare case that an entry must be removed
+(for privacy reasons, e.g.), the database at ~/.ze/ze.db can be edited directly.
+
+*(5)*: The legacy behaviour to resolve all symlinks to physical paths for storage
 in the db seems not optimal for a directory navigation tool where logical paths
 are usually the expected paradigm. Consequently, ze.sh honours the logical paths
 by default. To revert to legacy behaviour, set `_ZE_RESOLVE_SYMLINKS` to any
