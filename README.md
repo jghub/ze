@@ -256,9 +256,9 @@ respects. SD stores the full visit history as an event log. Scores can therefore
 be recomputed from scratch if the decay parameter or scoring model is changed.
 
 [zoxide](https://github.com/ajeetdsouza/zoxide) — compiled Rust binary inspired by
-z.sh, wider shell support including fish and nushell, widely adopted. Like z.sh,
-frecency scoring multiplies cumulative visit count by a recency factor based on
-the most recent visit which can produce undesirable ranking — a long-unvisited
+z.sh, wider shell support including powershelland nushell, widely adopted. Like
+z.sh, frecency scoring multiplies cumulative visit count by a recency factor based
+on the most recent visit which can produce undesirable ranking — a long-unvisited
 directory with a large historical visit count can acquire a disproportionately
 high rank on first revisit if its historical visit count is large.
 
