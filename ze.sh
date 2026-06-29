@@ -89,9 +89,9 @@ function _ze_cd {
         # a subshell (this happens not in all terminal emulators, but in most). this makes
         # redirection of stderr to /dev/null necessary (and the subshell might thus go away, actually).
         if [[ $_ZE_RESOLVE_SYMLINKS ]]; then
-            (_ze_add "$(command pwd -P 2>/dev/null)" &) 2>/dev/null
+            (_ze_record "$(command pwd -P 2>/dev/null)" &) 2>/dev/null
         else
-            (_ze_add "$PWD" &) 2>/dev/null
+            (_ze_record "$PWD" &) 2>/dev/null
         fi
     else
         return $?
@@ -106,12 +106,12 @@ function _ze_fzf { ## pattern typ
             fzf -e --no-sort | cut -f2) && [[ $selection ]] && _ze_cd "$selection"
 }
 
-function _ze_add { ## pathname
+function _ze_record { ## pathname
     typeset pathname=$1
     typeset datafile="${_ZE_DIR}/ze.db"
     typeset lambda=${_ZE_LAMBDA:-8e-3}
 
-    # $HOME and / aren't worth db update, neither is $OLDPWD
+    # navigation to $HOME, $OLDPWD, or "/" aren't worth recording, 
     [[ $pathname == "$HOME" || $pathname == "$OLDPWD" || $pathname == "/" ]] && return
 
     typeset exclude

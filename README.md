@@ -1,11 +1,13 @@
 # ze.sh
 
 ze.sh is a shell-native directory jumper for bash, zsh, ksh93, and mksh (e.g.
-Termux/Android), forked from [z.sh](https://github.com/rupa/z). It replaces
+Termux/Android). ze.sh originated as a fork of [z.sh](https://github.com/rupa/z)
+but has been substantially rewritten. The interface and the cd-driven database
+update model remain z.sh-like while the scoring model, internal structure, and
+shell compatibility approach are independent reimplementations. ze.sh replaces
 z.sh's frecency heuristic with an exponential moving sum (EMS) scoring model and
-includes numerous behavioral improvements (see [list of
-changes](#changes-from-zsh)). fish is supported via a lightweight wrapper around
-the native implementation.
+includes numerous behavioral improvements (see [list of changes](#changes-from-zsh)).
+fish is supported via a lightweight wrapper around the native implementation.
 
 ## Installation
 
