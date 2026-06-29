@@ -1,9 +1,14 @@
 # ze.sh: Changelog
 
-## v3.0.3 WIP
-* **ze -f now honours -r or -t**: behaviour is now consistent with `ze -l` - if
-`-r` or `-t` are specified in addition to `-l` or `-f`, sort order is adjusted
-accordingly.
+## v3.1.0 (2026-06-29)
+
+* **add fish shell support**: wrapper functions (`ze.fish`, `cd.fish`) and a
+backend driver (`zex.sh`) have been added. The native implementation remains
+unchanged. fish communicates with it through the backend driver. The README has
+been updated with fish installation and usage instructions.
+
+* **ze -f now honours -r or -t**: when `-r` or `-t` are specified in addition to
+`-l` or `-f`, sort order is adjusted accordingly.
 
 ## v3.0.2 (2026-06-23)
 * **refactor of _ze**: the previous monolithic _ze function has been split into

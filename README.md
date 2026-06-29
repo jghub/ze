@@ -1,23 +1,25 @@
 # ze.sh
 
 ze.sh is a shell-native directory jumper for bash, zsh, ksh93, and mksh (e.g.
-Termux/Android), forked from [z.sh](https://github.com/rupa/z), with exponential
-moving sum (EMS) scoring model as well as several behavioral fixes and
-adjustments, see [list of changes](#changes-from-zsh).
+Termux/Android), forked from [z.sh](https://github.com/rupa/z). It replaces
+z.sh's frecency heuristic with an exponential moving sum (EMS) scoring model and
+includes numerous behavioral improvements (see [list of
+changes](#changes-from-zsh)). fish is supported via a lightweight wrapper around
+the native implementation.
 
 ## Installation
 
-Source from your shell rc file:
+For native use with `bash`, `zsh`, `ksh`, and `mksh`, source from your shell rc file:
 
 ```sh
 source /path/to/ze.sh
 ```
 
 **Important**: The original z.sh relies on (bash/zsh specific) hooks and requires
-that a directory has been visited at least once via ordinary `cd` in
-order to start tracking of that directory. ze.sh instead uses `ze` for all
-navigation, including pathname-based directory changes.
-If you want to also track ordinary `cd` commands, add
+that a directory has been visited at least once via ordinary `cd` in order to
+start tracking of that directory. ze.sh is designed to use `ze` for all navigation,
+including pathname-based directory changes. If you want to also track ordinary
+`cd` commands, add
 
 ```sh
 alias cd=_ze_cd
@@ -27,6 +29,16 @@ to your shell rc file. If you do not install this alias, directories reached via
 ordinary cd commands are not recorded in the database. For a more complete cd
 replacement that also enables pattern-based navigation, see `_ZE_CMD` in the
 Configuration section.
+
+For fish, install ze.sh, zex.sh, and the wrapper functions:
+
+    cp ze.sh zex.sh ~/bin/          # or any directory on $PATH
+    chmod +x ~/bin/ze.sh ~/bin/zex.sh
+    cp contrib/fish/ze.fish contrib/fish/cd.fish ~/.config/fish/functions/
+
+zex.sh is the backend driver used by the fish wrapper, defaulting to bash
+for execution. Changing the shebang to ksh (#!/usr/bin/env ksh) provides a modest
+performance improvement if available.
 
 ## Design
 
@@ -152,7 +164,7 @@ exceeds a configurable size limit (default: 512 entries), which eventually remov
 lowest scoring entries including never-again-used stale entries.
 
 *(4)*: The -x option in z.sh serves mainly to remove entries that have accumulated
-high scores and dominate the stack inappropriately. Ze.sh's exponential scoring
+high scores and dominate the stack inappropriately. ze.sh's exponential scoring
 model largely prevents this problem - scores decay naturally and directories do
 not become permanently entrenched. In the rare case that an entry must be removed
 (for privacy reasons, e.g.), the database at ~/.ze/ze.db can be edited directly.
@@ -193,6 +205,20 @@ ze -f        # interactive selection from all tracked directories
 ze -f foo    # interactive selection from directories matching foo
 ```
 
+## fish users
+
+A fish wrapper is provided in `contrib/fish/`. It exposes the same user interface
+as the native implementation, including `ze -f` integration with `fzf`.
+
+Unlike the native shells, fish does not source `ze.sh` directly. Instead,
+`ze.fish` invokes the `zex.sh` backend, while `cd.fish` wraps fish's builtin `cd`
+to record directory changes in the ze database, analogous to `alias cd=_ze_cd` in
+the native shells. The backend driver (zex.sh) always invokes the native
+implementation directly and is normally not used interactively.
+
+Under fish, _ZE_CMD is not used. To change the command name, rename the wrapper
+function in `ze.fish`.
+
 ## Migrating from z.sh
 
 If you have an existing `~/.z` database, you can convert it for use with ze.sh
@@ -214,7 +240,7 @@ sort -t'|' -k3,3n ~/.z | awk -F'|' -v now="$now" '
 ```
 This maps z.sh's three-column format to ze.sh's four-column format. Entries are
 sorted by their original timestamp and assigned global cumulative visit counts as
-tick values accordingly. The score approximation assumes all visits were evenly
+tick values accordingly. The score approximation assumes all visits were uniformly
 distributed over time. Directories not visited recently will start with
 correspondingly lower initial scores. In subsequent use, the scores will adjust
 and develop according to `ze`'s algorithm.
