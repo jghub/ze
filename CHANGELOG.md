@@ -1,5 +1,10 @@
 # ze.sh: Changelog
 
+## v3.1.1 (2026-06-29)
+* **fix oversight**: shellcheck workflow on github now picks up zex.sh as well and
+we need to tell shellcheck to ignore the sourcing of ze.sh in that file since it
+already has seen it.
+
 ## v3.1.0 (2026-06-29)
 
 * **add fish shell support**: wrapper functions (`ze.fish`, `cd.fish`) and a
