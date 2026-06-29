@@ -103,26 +103,27 @@ function _ze_fzf { ## pattern typ
     if [[ $2 == 'visits' ]]; then opt='-r'; elif [[ $2 == 'recent' ]]; then opt='-t'; fi
     selection=$(_ze -l $opt "$1" |
         awk -F'\t' '{ buf[NR] = $NF } END { offs = NR+1; while (NR) print offs-NR FS buf[NR--] }' |
-        fzf -e --no-sort | cut -f2) && [[ $selection ]] && _ze_cd "$selection"
+            fzf -e --no-sort | cut -f2) && [[ $selection ]] && _ze_cd "$selection"
 }
 
-function _ze_add {
+function _ze_add { ## pathname
+    typeset pathname=$1
     typeset datafile="${_ZE_DIR}/ze.db"
     typeset lambda=${_ZE_LAMBDA:-8e-3}
 
-    # $HOME and / aren't worth matching, neither is $OLDPWD
-    [[ $1 == "$HOME" || $1 == "$OLDPWD" || $1 == "/" ]] && return
+    # $HOME and / aren't worth db update, neither is $OLDPWD
+    [[ $pathname == "$HOME" || $pathname == "$OLDPWD" || $pathname == "/" ]] && return
 
     typeset exclude
-    for exclude in "${_ZE_EXCLUDE_DIRS[@]}"; do [[ $1 == "$exclude"* ]] && return; done
+    for exclude in "${_ZE_EXCLUDE_DIRS[@]}"; do [[ $pathname == "$exclude"* ]] && return; done
 
     typeset tempfile
     tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
 
-    path="$1" awk -v lambda="$lambda" -F"|" '
-        BEGIN { path = ENVIRON["path"]; OFS = FS; OFMT = "%.17g" }
+    pathname=$pathname awk -v lambda="$lambda" -F"|" '
+        BEGIN { pathname = ENVIRON["pathname"]; OFS = FS; OFMT = "%.17g" }
         {
-            if ($1 == path) {
+            if ($1 == pathname) {
                 hit = 1
                 visits = $2
                 ticks = $3
@@ -135,14 +136,14 @@ function _ze_add {
             if (hit) {
                 visits = visits + 1
                 score = score * exp(-lambda * (now - ticks)) + 1
-                print path, visits, now, score
-            } else print path, 1, now, 1
+                print pathname, visits, now, score
+            } else print pathname, 1, now, 1
         }
     ' "$datafile" 2>/dev/null >| "$tempfile"
     _ze_commit $? "$tempfile" "$datafile"
 }
 
-function _ze_complete {
+function _ze_complete {  ## candidate
     typeset datafile="${_ZE_DIR}/ze.db"
 
     [[ -s $datafile ]] || return
