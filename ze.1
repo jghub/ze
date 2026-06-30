@@ -9,7 +9,7 @@ ze \- pattern-based navigation of a dynamically ranked directory stack
 .RI [ pattern | pathname | \- ]
 .
 .SH AVAILABILITY
-bash, zsh, ksh93, mksh
+bash, zsh, ksh93, mksh, fish
 .
 .SH DESCRIPTION
 .P
@@ -159,14 +159,14 @@ The following environment variables can be set before sourcing ze.sh (typically 
 your shell rc):
 .TP
 \fB_ZE_CMD\fP
-Command name (default: \fBze\fP). Given 
+Command name (default: \fBze\fP). Given
 .B ze's
 pathname preference behaviour, one useful choice could be to shadow the builtin cd command:
 .B _ZE_CMD=cd
-and to exclusivly use this command for navigation and interaction with 
+and to exclusivly use this command for navigation and interaction with
 .BR ze.sh .
 (The semantics of the thus defined command of course then differs from that of
-builtin cd by providing pattern-based navigation and 
+builtin cd by providing pattern-based navigation and
 .B ze
 comand options.)
 .TP
