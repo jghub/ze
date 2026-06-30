@@ -23,6 +23,7 @@ function ze
             fzf -e --no-sort | cut -f2)
         test -n "$result"
         and cd $result
+        return 0
     else if set -q _flag_l; or set -q _flag_e
         zex.sh $_flag_l $_flag_e $modifiers $argv
     else
