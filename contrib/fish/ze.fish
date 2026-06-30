@@ -9,7 +9,7 @@ function ze
     #   -r   rank by visit count
     #   -t   rank by recency
     # ---------------------------------------------------------------------------
-    argparse c e f h l r t -- $argv; or return
+    argparse c e f h l r t -- $argv; or return 1
     set -l modifiers $_flag_c $_flag_r $_flag_t
 
     if set -q _flag_h
@@ -27,7 +27,7 @@ function ze
     else if set -q _flag_l; or set -q _flag_e
         zex.sh $_flag_l $_flag_e $modifiers $argv
     else
-        if not set -q argv[1]; and not set -q modifiers[1]
+        if not set -q argv[1]
             cd
         else if test (count $argv) -eq 1; and test "$argv[1]" = "-"
             cd -
