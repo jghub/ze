@@ -34,8 +34,8 @@ Configuration section.
 
 For fish, install ze.sh, zex.sh, and the wrapper functions:
 
-    cp ze.sh zex.sh ~/bin/          # or any directory on $PATH
-    chmod +x ~/bin/ze.sh ~/bin/zex.sh
+    cp ze.sh zex.sh ~/bin   # or any directory on $PATH. 
+    chmod +x ~/bin/zex.sh
     cp contrib/fish/ze.fish contrib/fish/cd.fish ~/.config/fish/functions/
 
 zex.sh is the backend driver used by the fish wrapper, defaulting to bash
