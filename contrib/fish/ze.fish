@@ -31,6 +31,8 @@ function ze
             cd
         else if test (count $argv) -eq 1; and test "$argv[1]" = "-"
             cd -
+        else if test (count $argv) -eq 1; and test -d "$argv[1]"
+            cd $argv[1]
         else
             set -l result (zex.sh -e $modifiers $argv)
             if test -n "$result"
