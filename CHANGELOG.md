@@ -1,12 +1,24 @@
 # ze.sh: Changelog
 
+## v3.1.2 (2026-07-01)
+* **fish wrapper**: `ze -` toggle implemented, matching bash/ksh semantics.
+
+* **fish wrapper**: valid pathname argument now takes priority over db pattern
+matching in line with native behavior.
+
+* **fish wrapper**: fzf abort no longer reported as error.
+
+* **function rename**: `_ze_add` renamed to `_ze_record`.
+
+* **backend driver**: `zex.sh` now locates `ze.sh` relative to its own path: both
+must reside in the same directory.
+
 ## v3.1.1 (2026-06-29)
 * **fix oversight**: shellcheck workflow on github now picks up zex.sh as well and
 we need to tell shellcheck to ignore the sourcing of ze.sh in that file since it
 already has seen it.
 
 ## v3.1.0 (2026-06-29)
-
 * **add fish shell support**: wrapper functions (`ze.fish`, `cd.fish`) and a
 backend driver (`zex.sh`) have been added. The native implementation remains
 unchanged. fish communicates with it through the backend driver. The README has
