@@ -1,4 +1,4 @@
-function cd
+function _ze_cd
     if test "$argv" = "-"
         set argv $_ZE_OLDPWD
     end

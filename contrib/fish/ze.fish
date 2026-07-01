@@ -22,23 +22,23 @@ function ze
             awk -F'\t' '{buf[NR]=$NF} END{offs=NR+1; while(NR) print offs-NR FS buf[NR--]}' |
             fzf -e --no-sort | cut -f2)
         test -n "$result"
-        and cd $result
+        and _ze_cd $result
         return 0
     else if set -q _flag_l; or set -q _flag_e
         zex.sh $_flag_l $_flag_e $modifiers $argv
     else
         if not set -q argv[1]
-            cd
+            _ze_cd
         else if test (count $argv) -eq 1; and test "$argv[1]" = "-"
-            cd -
+            _ze_cd -
         else if test (count $argv) -eq 1; and test -d "$argv[1]"
-            cd $argv[1]
+            _ze_cd $argv[1]
         else
             set -l result (zex.sh -e $modifiers $argv)
             if test -n "$result"
-                cd $result
+                _ze_cd $result
             else
-                cd $argv
+                _ze_cd $argv
             end
         end
     end

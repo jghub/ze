@@ -106,21 +106,32 @@ put the following in your shell rc file (\fI.bashrc\fP, \fI.kshrc\fP, etc.):
 .IP
 source /path/to/ze.sh
 .P
-Optionally, to track ordinary \fBcd\fP commands as well:
+Optionally, to track ordinary \fBcd\fP commands while retaining native \fBcd\fP
+semantics:
 .IP
 alias cd=_ze_cd
+.P
+For full \fBze\fP behaviour including pattern navigation on every \fBcd\fP
+invocation, use \fB_ZE_CMD=cd\fP instead (see CONFIGURATION).
 .P
 For
 .BR fish ,
 install ze.sh, zex.sh, and the wrapper functions in suitable locations, e.g.
 .LP
 .EX
-    cp ze.sh zex.sh ~/bin   # or any other directory on your $PATH. 
+    cp ze.sh zex.sh ~/bin   # or any other directory on your $PATH
     chmod +x ~/bin/zex.sh
-    cp contrib/fish/ze.fish contrib/fish/cd.fish ~/.config/fish/functions/
+    cp contrib/fish/ze.fish contrib/fish/_ze_cd.fish ~/.config/fish/functions/
 .EE
 .LP
 Note that ze.sh and zex.sh need to reside in the same directory.
+.LP
+To track \fBcd\fP or shadow it with full \fBze\fP behaviour under fish, add one
+of the following to \fI~/.config/fish/config.fish\fP:
+.IP
+alias cd _ze_cd
+.IP
+alias cd ze
 .LP
 Use \fBze\fP and aliased \fBcd\fP with pathname-based navigation for some time to
 build up the database. Afterwards use
@@ -171,16 +182,11 @@ The following environment variables can be set before sourcing ze.sh (typically 
 your shell rc):
 .TP
 \fB_ZE_CMD\fP
-Command name (default: \fBze\fP). Given
-.B ze's
-pathname preference behaviour, one useful choice could be to shadow the builtin cd command:
-.B _ZE_CMD=cd
-and to exclusivly use this command for navigation and interaction with
-.BR ze.sh .
-(The semantics of the thus defined command of course then differs from that of
-builtin cd by providing pattern-based navigation and
-.B ze
-comand options.)
+Command name (default: \fBze\fP). Must be set before sourcing ze.sh so that tab
+completion is registered under the chosen name. For example, \fB_ZE_CMD=myze\fP
+makes \fBmyze\fP the command name with working tab completion. Setting
+\fB_ZE_CMD=cd\fP shadows the builtin \fBcd\fP with full \fBze\fP behaviour
+including pattern navigation, changing \fBcd\fP semantics accordingly.
 .TP
 \fB_ZE_DIR\fP
 Database directory (default: \fB~/.ze\fP).

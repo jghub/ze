@@ -17,26 +17,23 @@ For native use with `bash`, `zsh`, `ksh`, and `mksh`, source from your shell rc 
 source /path/to/ze.sh
 ```
 
-**Important**: The original z.sh relies on (bash/zsh specific) hooks and requires
-that a directory has been visited at least once via ordinary `cd` in order to
-start tracking of that directory. ze.sh is designed to use `ze` for all navigation,
-including pathname-based directory changes. If you want to also track ordinary
-`cd` commands, add
+**Important**: ze.sh is designed to use `ze` for all navigation, including
+pathname-based directory changes. Ordinary `cd` commands are not tracked by
+default. To also track `cd`, add
 
 ```sh
 alias cd=_ze_cd
 ```
 
-to your shell rc file. If you do not install this alias, directories reached via
-ordinary cd commands are not recorded in the database. For a more complete cd
-replacement that also enables pattern-based navigation, see `_ZE_CMD` in the
-Configuration section.
+to your shell rc file. This triggers database updates on every `cd` while
+retaining native `cd` semantics. To additionally enable pattern-based navigation
+on every `cd` invocation, use `_ZE_CMD=cd` (see Configuration).
 
 For fish, install ze.sh, zex.sh, and the wrapper functions:
 
     cp ze.sh zex.sh ~/bin   # or any directory on $PATH. 
     chmod +x ~/bin/zex.sh
-    cp contrib/fish/ze.fish contrib/fish/cd.fish ~/.config/fish/functions/
+    cp contrib/fish/ze.fish contrib/fish/_ze_cd.fish ~/.config/fish/functions/
 
 zex.sh is the backend driver used by the fish wrapper, defaulting to bash
 for execution. Changing the shebang to ksh (#!/usr/bin/env ksh) provides a modest
@@ -189,12 +186,13 @@ non-empty value.
 | `_ZE_RESOLVE_SYMLINKS`     | unset    | resolve symlinks on cd              |
 | `_ZE_EXCLUDE_DIRS`         | unset    | array of directory trees to exclude |
 
-*(1)*: Setting `_ZE_CMD=cd` might be used to shadow ordinary `cd` with `ze`,
-enabling both pathname navigation and pattern-based jumping using this name. Note
-that this changes `cd` semantics since unrecognized pathnames will be tried as
-patterns against the database rather than producing an error. For transparent
-tracking of ordinary `cd` without changed semantics, use `alias cd=_ze_cd`
-instead.
+
+*(1)*: Must be set before sourcing ze.sh so that tab completion is registered
+under the chosen name. For example, `_ZE_CMD=myze` makes `myze` the command name
+with working tab completion - `alias myze=ze` alone would not register completion.
+Setting `_ZE_CMD=cd` shadows the builtin `cd` with full `ze` behaviour including
+pattern navigation. Note that this changes `cd` semantics: unrecognized pathnames
+are tried as patterns against the database rather than producing an error.
 
 ## fzf integration
 
@@ -213,13 +211,18 @@ A fish wrapper is provided in `contrib/fish/`. It exposes the same user interfac
 as the native implementation, including `ze -f` integration with `fzf`.
 
 Unlike the native shells, fish does not source `ze.sh` directly. Instead,
-`ze.fish` invokes the `zex.sh` backend, while `cd.fish` wraps fish's builtin `cd`
-to record directory changes in the ze database, analogous to `alias cd=_ze_cd` in
-the native shells. The backend driver (zex.sh) always invokes the native
-implementation directly and is normally not used interactively.
+`ze.fish` invokes the `zex.sh` backend, while `_ze_cd.fish` wraps fish's builtin
+`cd` to record directory changes in the ze database.
 
-Under fish, _ZE_CMD is not used. To change the command name, rename the wrapper
-function in `ze.fish`.
+`_ZE_CMD` is not used under fish. The three configuration cases from the native
+shells map to fish as follows. Add the relevant line to
+`~/.config/fish/config.fish`:
+
+```sh
+alias myze ze          # rename ze to arbitrary different command name
+alias cd   _ze_cd      # track cd, retain native cd semantics
+alias cd   ze          # track cd, enable pattern navigation on every cd
+```
 
 ## Migrating from z.sh
 
@@ -263,7 +266,7 @@ directory with a large historical visit count can acquire a disproportionately
 high rank on first revisit if its historical visit count is large.
 
 ze.sh occupies a specific niche: minimal (<220 LOC), single file, shell-native
-support of bash/zsh/ksh93/mksh, fish support via additional 30 LOC wrapper. The
+support of bash/zsh/ksh93/mksh, optional fish support via a 40 LOC wrapper. The
 exponential moving sum scoring on an event clock is comparable to SD's approach
 for a fixed decay parameter. However, only SD provides the ability to modify the
 decay parameter at any time and to fully reconstruct the corresponding scores from

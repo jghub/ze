@@ -1,14 +1,23 @@
 # ze.sh: Changelog
 
-## v3.1.2 (2026-07-01)
-* **fish wrapper**: `ze -` toggle implemented, matching bash/ksh semantics.
+## v3.1.2 (2026-07-02)
+* **fish wrapper**: `ze -` toggle implemented via `$_ZE_OLDPWD`, matching bash/ksh semantics.
+
+* **fish wrapper**: `cd -` toggle implemented in `_ze_cd.fish`, matching bash/ksh semantics.
 
 * **fish wrapper**: valid pathname argument now takes priority over db pattern
-matching in line with native behavior.
+matching, in line with native behavior.
+
+* **fish wrapper**: `ze -r`/`-t`/`-c` with no pattern now correctly go to `$HOME`,
+matching native behavior.
 
 * **fish wrapper**: fzf abort no longer reported as error.
 
-* **function rename**: `_ze_add` renamed to `_ze_record`.
+* **fish wrapper**: `cd.fish` renamed to `_ze_cd.fish`.
+
+* **function rename**: `_ze_add` renamed to `_ze_record` throughout.
+
+* **backend driver**: `zex.sh` `--add` flag renamed to `--record`.
 
 * **backend driver**: `zex.sh` now locates `ze.sh` relative to its own path: both
 must reside in the same directory.
