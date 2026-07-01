@@ -51,10 +51,10 @@ Show a brief help message.
 List all matching directories by score.
 .TP
 .B -r
-Sort matches by visit count only.
+Sort matches by visit count.
 .TP
 .B -t
-Sort matches by recency of last visit only.
+Sort matches by recency of last visit.
 .
 .SH EXAMPLES
 .TP
@@ -101,7 +101,8 @@ argument, use full stack.
 .
 .SH INSTALLATION
 .P
-Put the following in your shell rc file (\fI.bashrc\fP, \fI.kshrc\fP, etc.):
+For native use,
+put the following in your shell rc file (\fI.bashrc\fP, \fI.kshrc\fP, etc.):
 .IP
 source /path/to/ze.sh
 .P
@@ -109,11 +110,22 @@ Optionally, to track ordinary \fBcd\fP commands as well:
 .IP
 alias cd=_ze_cd
 .P
+For
+.BR fish ,
+install ze.sh, zex.sh, and the wrapper functions in suitable locations, e.g.
+.LP
+.EX
+    cp ze.sh zex.sh ~/bin   # or any other directory on your $PATH. 
+    chmod +x ~/bin/zex.sh
+    cp contrib/fish/ze.fish contrib/fish/cd.fish ~/.config/fish/functions/
+.EE
+.LP
+Note that ze.sh and zex.sh need to reside in the same directory.
+.LP
 Use \fBze\fP and aliased \fBcd\fP with pathname-based navigation for some time to
 build up the database. Afterwards use
 .B ze
 for pattern-based navigation of the directories known to the database.
-.
 .SH DESIGN
 .P
 \fBze.sh\fP differs from \fBz.sh\fP in several ways:
@@ -174,7 +186,7 @@ comand options.)
 Database directory (default: \fB~/.ze\fP).
 .TP
 \fB_ZE_LAMBDA\fP
-Decay constant in units of 1/\fBcd\fP action (default: \fB8e-3\fP).
+Decay constant in units of 1/cd-action (default: \fB8e-3\fP).
 .TP
 \fB_ZE_DBMAX\fP
 Database size limit (default: \fB512\fP).
