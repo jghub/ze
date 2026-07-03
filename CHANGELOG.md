@@ -1,9 +1,17 @@
 # ze.sh: Changelog
 
-## v3.1.2 (2026-07-02)
-* **fish wrapper**: `ze -` toggle implemented via `$_ZE_OLDPWD`, matching bash/ksh semantics.
+## v3.1.3 (2026-07-03)
+* **fish wrapper**: `_ze_record` now accepts an optional second argument
+specifying the previous working directory. This allows non-native wrappers to
+supply the correct `OLDPWD` value explicitly. `zex.sh` and `_ze_cd.fish` adjusted
+accordingly.
 
-* **fish wrapper**: `cd -` toggle implemented in `_ze_cd.fish`, matching bash/ksh semantics.
+## v3.1.2 (2026-07-02)
+* **fish wrapper**: `ze -` toggle implemented via `$_ZE_OLDPWD`, matching bash/ksh
+semantics.
+
+* **fish wrapper**: `cd -` toggle implemented in `_ze_cd.fish`, matching bash/ksh
+semantics.
 
 * **fish wrapper**: valid pathname argument now takes priority over db pattern
 matching, in line with native behavior.

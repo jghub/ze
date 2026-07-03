@@ -106,13 +106,13 @@ function _ze_fzf { ## pattern typ
             fzf -e --no-sort | cut -f2) && [[ $selection ]] && _ze_cd "$selection"
 }
 
-function _ze_record { ## pathname
-    typeset pathname=$1
+function _ze_record { ## pathname [oldpwd]  #2nd arg allows to drive recording from wrappers managing oldpwd themselves
+    typeset pathname=$1 oldpwd=${2:-$OLDPWD}
     typeset datafile="${_ZE_DIR}/ze.db"
     typeset lambda=${_ZE_LAMBDA:-8e-3}
 
-    # navigation to $HOME, $OLDPWD, or "/" aren't worth recording, 
-    [[ $pathname == "$HOME" || $pathname == "$OLDPWD" || $pathname == "/" ]] && return
+    # navigation to $HOME, $oldpwd, or "/" aren't worth recording, 
+    [[ $pathname == "$HOME" || $pathname == "$oldpwd" || $pathname == "/" ]] && return
 
     typeset exclude
     for exclude in "${_ZE_EXCLUDE_DIRS[@]}"; do [[ $pathname == "$exclude"* ]] && return; done
