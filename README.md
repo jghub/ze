@@ -142,7 +142,7 @@ ze [-cefhlrt] [pattern|path|-]
 | `-f` option      | not available                                 | interactive fzf selector (if fzf installed)    |
 | Pattern matching | case-sensitive with case-insensitive fallback | smartcase: case-insensitive except when pattern contains uppercase |
 | Symlinks         | resolved to physical paths by default         | logical paths are honoured by default *(5)*  |
-| Unknown options  | not handled, lists database                   | treated as pattern                             |
+| Unknown options  | not handled, lists database                   | silently stripped from option string before execution |
 
 *(1)*: The common-prefix heuristic of z.sh overrides the highest-scoring match in
 favor of a shorter path when all matches share a common prefix. With a

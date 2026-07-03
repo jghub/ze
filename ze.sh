@@ -99,11 +99,11 @@ function _ze_cd {
 }
 
 function _ze_fzf { ## pattern typ
-    typeset selection opt
+    typeset opt
     if [[ $2 == 'visits' ]]; then opt='-r'; elif [[ $2 == 'recent' ]]; then opt='-t'; fi
-    selection=$(_ze -l $opt "$1" |
+    _ze -l $opt -- "$1" |
         awk -F'\t' '{ buf[NR] = $NF } END { offs = NR+1; while (NR) print offs-NR FS buf[NR--] }' |
-            fzf -e --no-sort | cut -f2) && [[ $selection ]] && _ze_cd "$selection"
+            fzf -e --no-sort | cut -f2
 }
 
 function _ze_record { ## pathname [oldpwd]  #2nd arg allows to drive recording from wrappers managing oldpwd themselves
@@ -180,12 +180,16 @@ function _ze {
                 l) list=1;;
                 r) typ="visits";;
                 t) typ="recent";;
-                *) fnd="$fnd${fnd:+ }$1"; opt='';;
+                *) ;;   # silently ignore unrecognized options
             esac; opt=${opt:1}; done;;
          *) fnd="$fnd${fnd:+ }$1";;
     esac; (($#)) && shift; done
 
-    ((finder)) && { _ze_fzf "$fnd" "$typ"; return; }
+    ((finder)) && {
+        fnd=$(_ze_fzf "$fnd" "$typ")
+        [[ $fnd ]] || return
+        ((emit)) && { printf '%s\n' "$fnd"; return; }
+    }
 
     [[ $fnd == "^$PWD " ]] && list=1  # if bare -c with no args, just list
 

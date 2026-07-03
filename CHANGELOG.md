@@ -6,6 +6,15 @@ specifying the previous working directory. This allows non-native wrappers to
 supply the correct `OLDPWD` value explicitly. `zex.sh` and `_ze_cd.fish` adjusted
 accordingly.
 
+* **fzf interface**: fix infinite recursion corner case (added missing
+end-of-option indicator). `_ze_fzf` now prints the selection and delegates
+execution of cd to caller.
+
+* **option parser**: simplify parsing logic. Behavioural change: unrecognized
+options are now silently stripped from options string prior to command execution.
+A call like `ze -s` no longer treats `-s` as pattern but executes as bare `ze`
+(which jumps to $HOME). To enforce pattern interpretation, use `ze -- -s`.
+
 ## v3.1.2 (2026-07-02)
 * **fish wrapper**: `ze -` toggle implemented via `$_ZE_OLDPWD`, matching bash/ksh
 semantics.
