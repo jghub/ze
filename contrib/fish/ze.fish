@@ -1,45 +1,36 @@
 function ze
     # ---------------------------------------------------------------------------
     # ze -- fish wrapper for ze.sh / zex.sh
-    #   -c   restrict to subdirs of $PWD
+    # the wrapper detects the 'report only, do not cd' options and acts
+    # accordingly:
     #   -e   emit path to stdout
-    #   -f   fzf interactive selector
     #   -h   help
     #   -l   list matches with scores
-    #   -r   rank by visit count
-    #   -t   rank by recency
+    # in order to use argparse we still need to provide list of +all+ ze options
+    # although we do not act on any other option in the wrapper (all actions
+    # delegated to ze.sh).
     # ---------------------------------------------------------------------------
+    set -l args $argv
     argparse c e f h l r t -- $argv; or return 1
-    set -l modifiers $_flag_c $_flag_r $_flag_t
-
-    if set -q _flag_h
-        echo "ze [-cefhlrt] [args]" >&2
-        return 0
-    end
-
-    if set -q _flag_f
-        set -l result (zex.sh -l $modifiers $argv |
-            awk -F'\t' '{buf[NR]=$NF} END{offs=NR+1; while(NR) print offs-NR FS buf[NR--]}' |
-            fzf -e --no-sort | cut -f2)
-        test -n "$result"
-        and _ze_cd $result
-        return 0
-    else if set -q _flag_l; or set -q _flag_e
-        zex.sh $_flag_l $_flag_e $modifiers $argv
-    else
-        if not set -q argv[1]
-            _ze_cd
-        else if test (count $argv) -eq 1; and test "$argv[1]" = "-"
+    set argv $args
+    if not set -q argv[1]
+        _ze_cd
+        return
+    else if test (count $argv) -eq 1
+        if test "$argv[1]" = -
             _ze_cd -
-        else if test (count $argv) -eq 1; and test -d "$argv[1]"
-            _ze_cd $argv[1]
-        else
-            set -l result (zex.sh -e $modifiers $argv)
-            if test -n "$result"
-                _ze_cd $result
-            else
-                _ze_cd $argv
-            end
+            return
+        else if test -d "$argv[1]"
+            _ze_cd "$argv[1]"
+            return
         end
+    end
+    set -l result (zex.sh -e $argv); or return
+    if set -q _flag_e; or set -q _flag_h; or set -q _flag_l
+        printf '%s\n' $result
+    else if test (count $result) -eq 1; and test -d "$result"
+        _ze_cd "$result"
+    else
+        printf '%s\n' $result
     end
 end
