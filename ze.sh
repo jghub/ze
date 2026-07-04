@@ -234,7 +234,7 @@ function _ze {
             else exit(1)
         }
     ')
-    typeset -i rc=$?; ((rc)) && return $rc
+    typeset -i rc=$?; ((rc)) && { printf 'no match\n' >&2; return $rc; }
     [[ $result ]] || return
 
     if ((list || emit)); then
