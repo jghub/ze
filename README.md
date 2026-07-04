@@ -1,13 +1,13 @@
 # ze.sh
 
-ze.sh is a shell-native directory jumper for bash, zsh, ksh93, and mksh (e.g.
+ze.sh is a shell-native directory jumper for `bash`, `zsh`, `ksh93`, and `mksh` (e.g.
 Termux/Android). ze.sh originated as a fork of [z.sh](https://github.com/rupa/z)
 but has been substantially rewritten. The interface and the cd-driven database
 update model remain z.sh-like while the scoring model, internal structure, and
 shell compatibility approach are independent reimplementations. ze.sh replaces
 z.sh's frecency heuristic with an exponential moving sum (EMS) scoring model and
 includes numerous behavioral improvements (see [list of changes](#changes-from-zsh)).
-fish is supported via a lightweight wrapper around the native implementation.
+`fish` is supported via a lightweight wrapper around the native implementation.
 
 ## Installation
 
@@ -29,14 +29,14 @@ to your shell rc file. This triggers database updates on every `cd` while
 retaining native `cd` semantics. To additionally enable pattern-based navigation
 on every `cd` invocation, use `_ZE_CMD=cd` (see Configuration).
 
-For fish, install ze.sh, zex.sh, and the wrapper functions:
+For `fish`, install ze.sh, zex.sh, and the wrapper functions:
 
     cp ze.sh zex.sh ~/bin   # or any directory on $PATH. 
     chmod +x ~/bin/zex.sh
     cp contrib/fish/ze.fish contrib/fish/_ze_cd.fish ~/.config/fish/functions/
 
-zex.sh is the backend driver used by the fish wrapper, defaulting to bash
-for execution. Changing the shebang to ksh (#!/usr/bin/env ksh) provides a modest
+zex.sh is the backend driver used by the `fish` wrapper, defaulting to `bash`
+for execution. Changing the shebang to `ksh` (#!/usr/bin/env ksh) provides a modest
 performance improvement if available.
 
 ## Design
@@ -210,12 +210,12 @@ ze -f foo    # interactive selection from directories matching foo
 A fish wrapper is provided in `contrib/fish/`. It exposes the same user interface
 as the native implementation, including `ze -f` integration with `fzf`.
 
-Unlike the native shells, fish does not source `ze.sh` directly. Instead,
+Unlike the native shells, `fish does not source `ze.sh` directly. Instead,
 `ze.fish` invokes the `zex.sh` backend, while `_ze_cd.fish` wraps fish's builtin
 `cd` to record directory changes in the ze database.
 
-`_ZE_CMD` is not used under fish. The three configuration cases from the native
-shells map to fish as follows. Add the relevant line to
+`_ZE_CMD` is not used under `fish`. The three configuration cases from the native
+shells map to `fish` as follows. Add the relevant line to
 `~/.config/fish/config.fish`:
 
 ```sh
@@ -266,7 +266,7 @@ directory with a large historical visit count can acquire a disproportionately
 high rank on first revisit if its historical visit count is large.
 
 ze.sh occupies a specific niche: minimal (<220 LOC), single file, shell-native
-support of bash/zsh/ksh93/mksh, optional fish support via a 40 LOC wrapper. The
+support of `bash/zsh/ksh93/mksh`, optional `fish` support via a <40 LOC wrapper. The
 exponential moving sum scoring on an event clock is comparable to SD's approach
 for a fixed decay parameter. However, only SD provides the ability to modify the
 decay parameter at any time and to fully reconstruct the corresponding scores from
