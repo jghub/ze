@@ -11,8 +11,9 @@ function ze
     # delegated to ze.sh).
     # ---------------------------------------------------------------------------
     set -l args $argv
-    argparse c e f h l r t -- $argv; or return 1
+    argparse --ignore-unknown c e f h l r t -- $argv
     set argv $args
+
     if not set -q argv[1]
         _ze_cd
         return
@@ -25,7 +26,9 @@ function ze
             return
         end
     end
-    set -l result (zex.sh -e $argv); or return
+
+    set -l result (zex.sh -e $argv)
+    test -n "$result"; or return
     if set -q _flag_e; or set -q _flag_h; or set -q _flag_l
         printf '%s\n' $result
     else if test (count $result) -eq 1; and test -d "$result"
