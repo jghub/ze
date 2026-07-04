@@ -1,10 +1,16 @@
 # ze.sh: Changelog
 
-## v3.1.3 (2026-07-03)
+## v3.1.3 (2026-07-04)
 * **fish wrapper**: major simplification and improvement of `ze.fish`.
 `_ze_record` now accepts an optional second argument specifying the previous
 working directory. This allows the wrapper to specify the correct `OLDPWD` value
-explicitly. `zex.sh` and `_ze_cd.fish` adjusted accordingly.
+explicitly. `zex.sh` and `_ze_cd.fish` adjusted accordingly. The wrapper now
+delegates option handling to `ze.sh` as far as possible. There remains a single
+corner case where `ze.fish` behaves different from native `ze.sh`: the call `ze -t
+brandnewdir` where `brandnewdir` is not yet in the db will cd to that dir in
+native use while in fish it will be a no-op (handled as failed db lookup). This
+really only concerns calls with an additional option, `ze brandnewdir` will always
+succeed.
 
 * **fzf interface**: fix infinite recursion corner case (added missing
 end-of-option indicator). `_ze_fzf` now prints the selection and delegates
