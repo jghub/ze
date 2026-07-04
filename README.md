@@ -210,7 +210,7 @@ ze -f foo    # interactive selection from directories matching foo
 A fish wrapper is provided in `contrib/fish/`. It exposes the same user interface
 as the native implementation, including `ze -f` integration with `fzf`.
 
-Unlike the native shells, `fish does not source `ze.sh` directly. Instead,
+Unlike the native shells, `fish` does not source `ze.sh` directly. Instead,
 `ze.fish` invokes the `zex.sh` backend, while `_ze_cd.fish` wraps fish's builtin
 `cd` to record directory changes in the ze database.
 
