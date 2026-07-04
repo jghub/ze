@@ -9,5 +9,5 @@ if [[ $1 == "--record" ]]; then
     shift
     _ze_record "$@"
 else
-    _ze "$@"
+    _ze -e "$@"
 fi

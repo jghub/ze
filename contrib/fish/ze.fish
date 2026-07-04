@@ -10,10 +10,6 @@ function ze
     # although we do not act on any other option in the wrapper (all actions
     # delegated to ze.sh).
     # ---------------------------------------------------------------------------
-    set -l args $argv
-    argparse --ignore-unknown c e f h l r t -- $argv
-    set argv $args
-
     if not set -q argv[1]
         _ze_cd
         return
@@ -27,8 +23,10 @@ function ze
         end
     end
 
-    set -l result (zex.sh -e $argv)
+    set -l result (zex.sh $argv)
     test -n "$result"; or return
+
+    argparse --ignore-unknown c e f h l r t -- $argv
     if set -q _flag_e; or set -q _flag_h; or set -q _flag_l
         printf '%s\n' $result
     else if test (count $result) -eq 1; and test -d "$result"
