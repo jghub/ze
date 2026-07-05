@@ -136,7 +136,7 @@ ze [-cefhlrt] [pattern|path|-]
 | `-x` option      | deletes current dir from database             | removed *(4)* |
 | `-l` option      | output to stderr, not pipeable                | output to stdout, pipeable to pager etc.       |
 | Database         | single flat file `~/.z`                       | directory `~/.ze/`, database `~/.ze/ze.db`     |
-| Shell compat     | bash/zsh only                                 | bash, zsh, ksh93, mksh                         |
+| Shell compat     | bash/zsh only                                 | bash/zsh/ksh93/mksh (native), fish (wrapper)   |
 | Init             | minimal, no safety checks                     | validates db path, ownership, file type        |
 | Concurrency      | tempfile-name collisions may cause db corruption | `mktemp(1)` eliminates tempfile-name collisions, concurrent updates remain "last writer wins" |
 | `-f` option      | not available                                 | interactive fzf selector (if fzf installed)    |
