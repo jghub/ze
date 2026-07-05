@@ -244,7 +244,7 @@ sort -t'|' -k3,3n ~/.z | awk -F'|' -v now="$now" '
             step = ticks/visits
             decay_step = exp(-lambda * step)
             decay_full = exp(-lambda * ticks)
-            score = decay_full/decay_step * (1 - decay_full)/(1 - decay_step)
+            score = (1 - decay_full)/(1 - decay_step)
         }
         print $1, visits, ticks, score
     }' > ~/.ze/ze.db
