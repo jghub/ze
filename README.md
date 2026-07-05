@@ -234,7 +234,7 @@ mkdir -p ~/.ze
 # Only run the following if ~/.ze/ze.db does not already exist:
 now=$(awk -F'|' '{ now += $2 } END { print now }' ~/.z)
 sort -t'|' -k3,3n ~/.z | awk -F'|' -v now="$now" '
-    BEGIN { OFS = FS; lambda = 8e-3}
+    BEGIN { OFS = FS; lambda = 8e-3 }
     {
         visits = $2
         ticks += visits

@@ -222,13 +222,20 @@ for use with \fBze.sh\fP:
 mkdir -p ~/.ze
 now=$(awk -F'|' '{ now += $2 } END { print now }' ~/.z)
 sort -t'|' -k3,3n ~/.z | awk -F'|' -v now="$now" '
-BEGIN { OFS="|"; lambda=8e-3 }
-{   ticks += $2
-    r = exp(-lambda)
-    score = $2 == 1 ? 1 : (1 - r^$2) / (1 - r)
-    score *= exp(-lambda * (now - ticks))
-    print $1, $2, ticks, score
-}' > ~/.ze/ze.db
+    BEGIN { OFS = FS; lambda = 8e-3 }
+    {
+        visits = $2
+        ticks += visits
+        if (visits == 1) {
+            score = 1
+        } else {
+            step = ticks/visits
+            decay_step = exp(-lambda * step)
+            decay_full = exp(-lambda * ticks)
+            score = (1 - decay_full)/(1 - decay_step)
+        }
+        print $1, visits, ticks, score
+    }' > ~/.ze/ze.db
 .EE
 .P
 .
