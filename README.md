@@ -251,10 +251,16 @@ sort -t'|' -k3,3n ~/.z | awk -F'|' -v now="$now" '
 ```
 This maps z.sh's three-column format to ze.sh's four-column format. Entries are
 sorted by their original timestamp and assigned global cumulative visit counts as
-tick values accordingly. The score approximation assumes all visits were uniformly
-distributed over time. Directories not visited recently will start with
-correspondingly lower initial scores. In subsequent use, the scores will adjust
-and develop according to `ze`'s algorithm.
+tick values accordingly. The score approximation assumes all visits were
+uniformly distributed over time. Most initial scores after migration will be low,
+frequently well below 1, with only frequently visited recent directories
+exhibiting distinctly higher scores. This means the stack might initially exhibit
+abrupt reordering similar to z.sh when any directory is visited, since a single
+new visit adds a score increment of 1 which dominates most existing scores. Note
+that this is an artifact of the migration approximation, not a property of ze.sh's
+algorithm. After a few days of normal use, scores will adjust to levels where the
+exponential model's smooth ranking behavior becomes apparent and the stack
+stabilizes meaningfully.
 
 ## Related tools
 
