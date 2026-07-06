@@ -56,6 +56,7 @@ function _ze_init {
 }
 
 function _ze_commit {  ## rc tempfile datafile
+    (($# == 3)) || return  # safeguard against manual misuse (a bit...).
     # do our best to avoid clobbering the datafile in a race condition.
     # shellcheck disable=SC2181 # irrelevant
     typeset rc=$1 tempfile=$2 datafile=$3
@@ -99,6 +100,7 @@ function _ze_cd {
 }
 
 function _ze_fzf { ## pattern typ
+    command -v fzf >/dev/null || { printf '%s\n' "'fzf' not found" >&2; return 1; }
     typeset opt
     if [[ $2 == 'visits' ]]; then opt='-r'; elif [[ $2 == 'recent' ]]; then opt='-t'; fi
     _ze -l $opt -- "$1" |
@@ -107,7 +109,7 @@ function _ze_fzf { ## pattern typ
 }
 
 function _ze_record { ## pathname [oldpwd]  #2nd arg allows to drive recording from wrappers managing oldpwd themselves
-    typeset pathname=$1 oldpwd=${2:-$OLDPWD}
+    typeset pathname=${1:-"/"} oldpwd=${2:-$OLDPWD}  # 'pathname default="/" safeguards against manual misuse
     typeset datafile="${_ZE_DIR}/ze.db"
     typeset lambda=${_ZE_LAMBDA:-8e-3}
 
