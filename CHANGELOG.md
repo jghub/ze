@@ -1,5 +1,15 @@
 # ze.sh: Changelog
 
+## v3.1.4 (2026-07-09)
+* **backend driver**: `zex.sh` now does pathname resolution first in case the
+wrapper does not (or cannot) do this anyway. This especially enables tcsh
+support. It remains preferable, however, to let the wrapper handle this where
+possible, in which case this new code is not triggered.
+
+* **fzf interface**: the fzf window now a provides terse 'ls' preview.
+
+* **tcsh support**: alias definitions provided in `contrib/tcsh/ze.csh`.
+
 ## v3.1.3 (2026-07-04)
 * **fish wrapper**: major simplification and improvement of `ze.fish`.
 `_ze_record` now accepts an optional second argument specifying the previous

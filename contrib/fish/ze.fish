@@ -10,7 +10,7 @@ function ze
     # although we do not act on any other option in the wrapper (all actions
     # delegated to ze.sh).
     # ---------------------------------------------------------------------------
-    if not set -q argv[1]
+    if not set -q argv
         _ze_cd
         return
     else if test (count $argv) -eq 1

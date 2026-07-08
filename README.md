@@ -39,6 +39,9 @@ zex.sh is the backend driver used by the `fish` wrapper, defaulting to `bash`
 for execution. Changing the shebang to `ksh` (#!/usr/bin/env ksh) provides a modest
 performance improvement if available.
 
+`tcsh` users may include the alias definitions in `contrib/tcsh/ze.csh` in their
+.cshrc file to use `ze.sh` from `tcsh`.
+
 ## Design
 
 ze.sh departs from z.sh in three fundamental ways:
@@ -277,12 +280,12 @@ on the most recent visit which can produce undesirable ranking — a long-unvisi
 directory with a large historical visit count can acquire a disproportionately
 high rank on first revisit if its historical visit count is large.
 
-ze.sh occupies a specific niche: minimal (<220 LOC), single file, shell-native
-support of `bash/zsh/ksh93/mksh`, optional `fish` support via a <40 LOC wrapper. The
-exponential moving sum scoring on an event clock is comparable to SD's approach
-for a fixed decay parameter. However, only SD provides the ability to modify the
-decay parameter at any time and to fully reconstruct the corresponding scores from
-scratch.
+ze.sh occupies a specific niche: minimal (≈220 LOC), single file, shell-native
+support of `bash/zsh/ksh93/mksh`, optional `fish` support via a thin wrapper.
+The exponential moving sum scoring on an event clock is comparable to SD's
+approach for a fixed decay parameter. However, only SD provides the ability to
+modify the decay parameter at any time and to fully reconstruct the corresponding
+scores from scratch.
 
 ## License
 

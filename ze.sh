@@ -102,10 +102,13 @@ function _ze_cd {
 function _ze_fzf { ## pattern typ
     command -v fzf >/dev/null || { printf '%s\n' "'fzf' not found" >&2; return 1; }
     typeset opt
+    typeset -a fzfopts
     if [[ $2 == 'visits' ]]; then opt='-r'; elif [[ $2 == 'recent' ]]; then opt='-t'; fi
+    fzfopts=( -e --no-sort --preview-window='top,19%' )
+    fzfopts+=( --preview pathname='{2..}; LC_ALL=C ls -AC --color=always "$pathname"' )
     _ze -l $opt -- "$1" |
         awk -F'\t' '{ buf[NR] = $NF } END { offs = NR+1; while (NR) print offs-NR FS buf[NR--] }' |
-            fzf -e --no-sort | cut -f2
+            fzf "${fzfopts[@]}" | cut -f2
 }
 
 function _ze_record { ## pathname [oldpwd]  #2nd arg allows to drive recording from wrappers managing oldpwd themselves
