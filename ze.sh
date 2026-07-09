@@ -9,6 +9,7 @@
 # under the WTFPL v2. ze.sh is distributed under the MIT License.
 # -----------------------------------------------------------------------------
 # shellcheck shell=ksh
+# shellcheck disable=SC2016  # awk/fzf scripts in single quotes must not expand
 function _ze_init {
     _ZE_DIR=${_ZE_DIR:-$HOME/.ze}
     typeset datafile="${_ZE_DIR}/ze.db"
