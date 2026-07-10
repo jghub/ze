@@ -287,11 +287,11 @@ directory with a large historical visit count can acquire a disproportionately
 high rank on first revisit if its historical visit count is large.
 
 ze.sh occupies a specific niche: minimal (≈220 LOC), single file, shell-native
-support of `bash/zsh/ksh93/mksh`, optional `fish` support via a thin wrapper.
-The exponential moving sum scoring on an event clock is comparable to SD's
-approach for a fixed decay parameter. However, only SD provides the ability to
-modify the decay parameter at any time and to fully reconstruct the corresponding
-scores from scratch.
+support of `bash/zsh/ksh93/mksh`, with optional wrappers for `fish`, `tcsh`,
+and `dash` in `contrib/`. The exponential moving sum scoring on an event clock
+is comparable to SD's approach for a fixed decay parameter. However, only SD
+provides the ability to modify the decay parameter at any time and to fully
+reconstruct the corresponding scores from scratch.
 
 ## License
 
