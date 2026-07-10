@@ -49,7 +49,7 @@ function _ze_init {
                 for (i = 1; i <= NR; i++) {
                     split(lines[i], f)
                     print f[1], f[2], f[3], f[4], f[4] * exp(-lambda * (tmax - f[3]))
-                } 
+                }
             }' "$datafile" | LC_ALL=C sort -t'|' -k5,5g -k1,1 | awk -F'|' -v nprune="$nprune" '
                     BEGIN { OFS = FS; OFMT = "%.17g" } NR > nprune { print $1, $2, $3, $4 }' >| "$tempfile"
     )
@@ -112,12 +112,26 @@ function _ze_fzf { ## pattern typ
             fzf "${fzfopts[@]}" | cut -f2
 }
 
+function _ze_dig { ## fdopts_and_args
+    command -v fzf >/dev/null || { printf '%s\n' "'fzf' not found" >&2; return 1; }
+    if command -v fd >/dev/null; then
+        typeset fdex=fd
+    elif command -v fdfind >/dev/null; then
+        typeset fdex=fdfind
+    else
+        printf '%s\n' "'fd' not found" >&2; return 1
+    fi
+    typeset -a fzfopts=( -e --no-sort --preview-window='top,19%' )
+    fzfopts+=( --preview pathname='{2..}; LC_ALL=C ls -AC --color=always "$pathname"' )
+    "$fdex" -td "$@" | LC_ALL=C sort | nl | fzf "${fzfopts[@]}" | cut -f2
+}
+
 function _ze_record { ## pathname [oldpwd]  #2nd arg allows to drive recording from wrappers managing oldpwd themselves
     typeset pathname=${1:-"/"} oldpwd=${2:-$OLDPWD}  # 'pathname default="/" safeguards against manual misuse
     typeset datafile="${_ZE_DIR}/ze.db"
     typeset lambda=${_ZE_LAMBDA:-8e-3}
 
-    # navigation to $HOME, $oldpwd, or "/" aren't worth recording, 
+    # navigation to $HOME, $oldpwd, or "/" aren't worth recording
     [[ $pathname == "$HOME" || $pathname == "$oldpwd" || $pathname == "/" ]] && return
 
     typeset exclude
@@ -174,15 +188,16 @@ function _ze {
     typeset lambda=${_ZE_LAMBDA:-8e-3}
 
     typeset fnd opt typ
-    typeset -i list=0 finder=0 emit=0
+    typeset -i list=0 finder=0 digger=0 emit=0
     while [[ $1 ]]; do case "$1" in
         --) while [[ $1 ]]; do shift; fnd=$fnd${fnd:+ }$1; done;;
          -) fnd='-';;
         -*) opt=${1:1}; while [[ $opt ]]; do case ${opt:0:1} in
                 c) fnd="^$PWD $fnd";;
+                d) digger=1;;
                 e) emit=1;;
                 f) finder=1;;
-                h) printf '%s\n' "${_ZE_CMD:-ze} [-cefhlrt] args" >&2; return;;
+                h) printf '%s\n' "${_ZE_CMD:-ze} [-cdefhlrt] args" >&2; return;;
                 l) list=1;;
                 r) typ="visits";;
                 t) typ="recent";;
@@ -191,11 +206,13 @@ function _ze {
          *) fnd="$fnd${fnd:+ }$1";;
     esac; (($#)) && shift; done
 
-    ((finder)) && {
-        fnd=$(_ze_fzf "$fnd" "$typ")
+    if ((digger || finder)); then
+        # shellcheck disable=SC2086  # we want word splitting of $fnd to pass fd args as separate words
+        ((digger)) && fnd=$(_ze_dig $fnd)
+        ((finder)) && fnd=$(_ze_fzf "$fnd" "$typ")
         [[ $fnd ]] || return
         ((emit)) && { printf '%s\n' "$fnd"; return; }
-    }
+    fi
 
     [[ $fnd == "^$PWD " ]] && list=1  # if bare -c with no args, just list
 

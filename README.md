@@ -116,7 +116,7 @@ filesystems) and filters them at match time rather than pruning them on update.
 ## Usage
 
 ```
-ze [-cefhlrt] [pattern|path|-]
+ze [-cdefhlrt] [pattern|path|-]
 ```
 
 | Invocation      | Behavior                                |
@@ -126,6 +126,7 @@ ze [-cefhlrt] [pattern|path|-]
 | `ze path`       | cd to path directly (real path wins)    |
 | `ze pattern`    | cd to highest scoring match for pattern |
 | `ze -c pattern` | restrict matches to subdirs of $PWD     |
+| `ze -d [fdargs]`| discover and jump via fd+fzf, register in database |
 | `ze -e pattern` | print match instead of cd               |
 | `ze -f pattern` | use fzf for interactive selection       |
 | `ze -l pattern` | list matches according to current score |
@@ -149,8 +150,9 @@ ze [-cefhlrt] [pattern|path|-]
 | Init             | minimal, no safety checks                     | validates db path, ownership, file type        |
 | Concurrency      | tempfile-name collisions may cause db corruption | `mktemp(1)` eliminates tempfile-name collisions, concurrent updates remain "last writer wins" |
 | `-f` option      | not available                                 | interactive fzf selector (if fzf installed)    |
+| `-d [fdargs]`    | not available                                 | discover and jump to directory via `fd`+`fzf`, registering it in the database (*5*) |
 | Pattern matching | case-sensitive with case-insensitive fallback | smartcase: case-insensitive except when pattern contains uppercase |
-| Symlinks         | resolved to physical paths by default         | logical paths are honoured by default *(5)*  |
+| Symlinks         | resolved to physical paths by default         | logical paths are honoured by default *(6)*  |
 | Unknown options  | not handled, lists database                   | silently stripped from option string before execution |
 
 *(1)*: The common-prefix heuristic of z.sh overrides the highest-scoring match in
@@ -177,7 +179,13 @@ model largely prevents this problem - scores decay naturally and directories do
 not become permanently entrenched. In the rare case that an entry must be removed
 (for privacy reasons, e.g.), the database at ~/.ze/ze.db can be edited directly.
 
-*(5)*: The legacy behaviour to resolve all symlinks to physical paths for storage
+*(5)*: The -d option provides directory discovery via fd and fzf, similar to the
+ALT-C binding installed by fzf's shell integration, but working across all
+supported shells and - more importantly - immediately registering the selected
+directory in ze's database so it becomes available for future pattern-based
+jumping.
+
+*(6)*: The legacy behaviour to resolve all symlinks to physical paths for storage
 in the db seems not optimal for a directory navigation tool where logical paths
 are usually the expected paradigm. Consequently, ze.sh honours the logical paths
 by default. To revert to legacy behaviour, set `_ZE_RESOLVE_SYMLINKS` to any
