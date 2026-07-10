@@ -35,12 +35,18 @@ For `fish`, install ze.sh, zex.sh, and the wrapper functions:
     chmod +x ~/bin/zex.sh
     cp contrib/fish/ze.fish contrib/fish/_ze_cd.fish ~/.config/fish/functions/
 
-zex.sh is the backend driver used by the `fish` wrapper, defaulting to `bash`
-for execution. Changing the shebang to `ksh` (#!/usr/bin/env ksh) provides a modest
-performance improvement if available.
+`zex.sh` is the generic backend driver used by all wrappers, defaulting to `bash`
+for execution. Changing the shebang to `ksh` (`#!/usr/bin/env ksh`) reduces
+latency by about 40% if available, though latency remains imperceptible in
+interactive use either way.
 
 `tcsh` users may include the alias definitions in `contrib/tcsh/ze.csh` in their
 .cshrc file to use `ze.sh` from `tcsh`.
+
+A POSIX-compatible wrapper for `dash` and similar minimal shells is provided in
+`contrib/dash/ze.dash`. Source it from your `.profile`. It uses the `local`
+keyword (supported by `dash` as an extension) which may be removed for strict
+POSIX compliance.
 
 ## Design
 

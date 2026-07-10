@@ -1,5 +1,10 @@
 # ze.sh: Changelog
 
+## v3.1.5 (2026-07-10)
+* **dash support**: alias definitions and a `ze()` function provided in
+`contrib/dash/ze.dash`. POSIX-compatible except for a single use of `local`
+(a `dash` extension), which may be removed for strict compliance.
+
 ## v3.1.4 (2026-07-09)
 * **backend driver**: `zex.sh` now does pathname resolution first in case the
 wrapper does not (or cannot) do this anyway. This especially enables tcsh

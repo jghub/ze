@@ -1,0 +1,13 @@
+#!/usr/bin/env dash
+# ze.dash -- source from your .profile
+# ze.sh and zex.sh must be on $PATH.
+ze() {
+   local _ze_res  # to make 100% POSIX compliant, remove 'local'
+   [ "$1" = "-" ] && set -- "${OLDPWD:-$HOME}"
+   _ze_res=$(zex.sh "$@") || return
+   cd "$_ze_res" || return
+   (zex.sh --record "$PWD" "$OLDPWD" &)
+}
+alias cd=ze
+alias zl='zex.sh -l'
+alias zf='ze -f'
