@@ -26,7 +26,7 @@ function ze
     set -l result (zex.sh $argv)
     test -n "$result"; or return
 
-    argparse --ignore-unknown c e f h l r t -- $argv
+    argparse --ignore-unknown c d e f h l r t -- $argv
     if set -q _flag_e; or set -q _flag_h; or set -q _flag_l
         printf '%s\n' $result
     else if test (count $result) -eq 1; and test -d "$result"

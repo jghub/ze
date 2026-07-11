@@ -104,9 +104,9 @@ function _ze_fzf { ## pattern typ
     command -v fzf >/dev/null || { printf '%s\n' "'fzf' not found" >&2; return 1; }
     typeset opt
     typeset -i idx=0
-    typeset -a fzfopts attribute=(score frequency recency)
+    typeset -a fzfopts attribute=('EMS score' 'frequency' 'recency')
     if [[ $2 == 'visits' ]]; then opt='-r'; idx=1; elif [[ $2 == 'recent' ]]; then opt='-t'; idx=2; fi
-    fzfopts=( -e --no-sort --preview-window='top,19%' --header="dir stack (by ${attribute[idx]})" --color='header:bright-red' )
+    fzfopts=( -e --no-sort --preview-window='top,19%' --header="dir stack (sorted by ${attribute[idx]})" --color='header:bright-red' )
     fzfopts+=( --preview pathname='{2..}; LC_ALL=C ls -AC --color=always "$pathname"' )
     _ze -l $opt -- "$1" |
         awk -F'\t' '{ buf[NR] = $NF } END { offs = NR+1; while (NR) print offs-NR FS buf[NR--] }' |
@@ -124,7 +124,7 @@ function _ze_dig { ## fdopts_and_args
     fi
     typeset -a fzfopts=( -e --no-sort --preview-window='top,19%' --header='fd search' --color='header:bright-red' )
     fzfopts+=( --preview pathname='{2..}; LC_ALL=C ls -AC --color=always "$pathname"' )
-    "$fdex" -td --no-ignore -a "$@" | LC_ALL=C sort | nl | fzf "${fzfopts[@]}" | cut -f2
+    $fdex -td -pIa "$@" | LC_ALL=C sort | nl | fzf "${fzfopts[@]}" | cut -f2
 }
 
 function _ze_record { ## pathname [oldpwd]  #2nd arg allows to drive recording from wrappers managing oldpwd themselves
