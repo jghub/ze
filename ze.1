@@ -38,22 +38,29 @@ regular expressions (ERE),
 .B \-c
 Restrict matches to subdirectories of the current directory.
 .TP
+.BI \-d " [-- fdopts] [pattern [path]]
+If installed, search filesystem with
+.B fd
+to "discover" some directory and navigate to it. The directory 
+is recorded in the database and afterwards reachable via 
+.BR "ze pattern" .
+.TP
 .B \-e
 Print the best match, do not \fBcd\fP.
 .TP
-.B -f
+.B \-f
 Use \fBfzf\fP for interactive selection (if \fBfzf\fP is installed).
 .TP
-.B -h
+.B \-h
 Show a brief help message.
 .TP
-.B -l
+.B \-l
 List all matching directories by score.
 .TP
-.B -r
+.B \-r
 Sort matches by visit count.
 .TP
-.B -t
+.B \-t
 Sort matches by recency of last visit.
 .
 .SH EXAMPLES
@@ -98,6 +105,18 @@ Change to the most recently visited directory matching \fIfoo\fP.
 .BI "ze \-f " foo
 Interactively select a matching directory using \fBfzf\fP. Without
 argument, use full stack.
+.P
+.B "If fd is available, too:
+.TP
+.BI "ze \-d" " foo
+Search file tree rooted in $PWD 
+.B fd
+for directories matching pattern \fIfoo\fP. Bare
+.B "ze \-d
+searches for all directories. Options can be passed to \fBfd\fP by specifying
+the end of options marker of \fBze\fP, e.g.:
+.B "ze \-d" " -- -d3"
+to constrain the search depth to 3 levels.
 .
 .SH INSTALLATION
 .P
@@ -250,7 +269,7 @@ A function \fB_ze\fP is defined, and the command specified by \fB_ZE_CMD\fP
 .
 .SH SEE ALSO
 .P
-re_format(7), awk(1), grep(1)
+re_format(7), awk(1), grep(1), fd(1), fzf(1)
 .P
 Project repository: https://github.com/jghub/ze
 .
