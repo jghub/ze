@@ -103,9 +103,10 @@ function _ze_cd {
 function _ze_fzf { ## pattern typ
     command -v fzf >/dev/null || { printf '%s\n' "'fzf' not found" >&2; return 1; }
     typeset opt
-    typeset -a fzfopts
-    if [[ $2 == 'visits' ]]; then opt='-r'; elif [[ $2 == 'recent' ]]; then opt='-t'; fi
-    fzfopts=( -e --no-sort --preview-window='top,19%' )
+    typeset -i idx=0
+    typeset -a fzfopts attribute=(score frequency recency)
+    if [[ $2 == 'visits' ]]; then opt='-r'; idx=1; elif [[ $2 == 'recent' ]]; then opt='-t'; idx=2; fi
+    fzfopts=( -e --no-sort --preview-window='top,19%' --header="dir stack (by ${attribute[idx]})" --color='header:bright-red' )
     fzfopts+=( --preview pathname='{2..}; LC_ALL=C ls -AC --color=always "$pathname"' )
     _ze -l $opt -- "$1" |
         awk -F'\t' '{ buf[NR] = $NF } END { offs = NR+1; while (NR) print offs-NR FS buf[NR--] }' |
@@ -121,7 +122,7 @@ function _ze_dig { ## fdopts_and_args
     else
         printf '%s\n' "'fd' not found" >&2; return 1
     fi
-    typeset -a fzfopts=( -e --no-sort --preview-window='top,19%' )
+    typeset -a fzfopts=( -e --no-sort --preview-window='top,19%' --header='fd search' --color='header:bright-red' )
     fzfopts+=( --preview pathname='{2..}; LC_ALL=C ls -AC --color=always "$pathname"' )
     "$fdex" -td --no-ignore -a "$@" | LC_ALL=C sort | nl | fzf "${fzfopts[@]}" | cut -f2
 }
