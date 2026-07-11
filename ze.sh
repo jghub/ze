@@ -123,7 +123,7 @@ function _ze_dig { ## fdopts_and_args
     fi
     typeset -a fzfopts=( -e --no-sort --preview-window='top,19%' )
     fzfopts+=( --preview pathname='{2..}; LC_ALL=C ls -AC --color=always "$pathname"' )
-    "$fdex" -td "$@" | LC_ALL=C sort | nl | fzf "${fzfopts[@]}" | cut -f2
+    "$fdex" -td --no-ignore -a "$@" | LC_ALL=C sort | nl | fzf "${fzfopts[@]}" | cut -f2
 }
 
 function _ze_record { ## pathname [oldpwd]  #2nd arg allows to drive recording from wrappers managing oldpwd themselves
