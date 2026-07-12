@@ -11,7 +11,7 @@ wrapper does not (or cannot) do this anyway. This especially enables tcsh
 support. It remains preferable, however, to let the wrapper handle this where
 possible, in which case this new code is not triggered.
 
-* **fzf interface**: the fzf window now a provides terse 'ls' preview.
+* **fzf interface**: the fzf window now provides a terse 'ls' preview.
 
 * **tcsh support**: alias definitions provided in `contrib/tcsh/ze.csh`.
 
