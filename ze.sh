@@ -102,12 +102,15 @@ function _ze_cd {
 
 function _ze_fzf { ## pattern typ
     command -v fzf >/dev/null || { printf '%s\n' "'fzf' not found" >&2; return 1; }
-    typeset opt
-    typeset -i idx=0
-    typeset -a fzfopts attribute=('EMS score' 'frequency' 'recency')
-    if [[ $2 == 'visits' ]]; then opt='-r'; idx=1; elif [[ $2 == 'recent' ]]; then opt='-t'; idx=2; fi
-    fzfopts=( -e --no-sort --preview-window='top,19%' --header="dir stack (sorted by ${attribute[idx]})" --color='header:bright-red' )
-    fzfopts+=( --preview pathname='{2..}; LC_ALL=C ls -AC --color=always "$pathname"' )
+    typeset opt metric
+    typeset -a fzfopts
+    case $2 in
+        visits) metric='visit count'; opt='-r';;
+        recent) metric='recency'; opt='-t';;
+        *)      metric='EMS score';;
+    esac
+    fzfopts=( -e --no-sort --preview-window='top,19%' --header="dir stack (ranked by $metric)" --color='header:bright-red'
+        --preview pathname='{2..}; LC_ALL=C ls -AC --color=always "$pathname"' )
     _ze -l $opt -- "$1" |
         awk -F'\t' '{ buf[NR] = $NF } END { offs = NR+1; while (NR) print offs-NR FS buf[NR--] }' |
             fzf "${fzfopts[@]}" | cut -f2
@@ -122,9 +125,13 @@ function _ze_dig { ## fdopts_and_args
     else
         printf '%s\n' "'fd' not found" >&2; return 1
     fi
-    typeset -a fzfopts=( -e --no-sort --preview-window='top,19%' --header='fd search' --color='header:bright-red' )
-    fzfopts+=( --preview pathname='{2..}; LC_ALL=C ls -AC --color=always "$pathname"' )
-    $fdex -td -pIa "$@" | LC_ALL=C sort | nl | fzf "${fzfopts[@]}" | cut -f2
+    typeset -a fdargs; fdargs=(-td -pIa "$@")  # avoid 'typeset -a x=(...)' because of mksh
+    # shellcheck disable=SC2124 # this scalar assignment ensures join by single space independent of IFS
+    typeset argstring="${fdargs[@]}"
+    typeset -a fzfopts
+    fzfopts=( -e --no-sort --preview-window='top,19%' --header="$fdex $argstring" --color='header:bright-red'
+        --preview pathname='{2..}; LC_ALL=C ls -AC --color=always "$pathname"' )
+    $fdex "${fdargs[@]}" | LC_ALL=C sort | nl | fzf "${fzfopts[@]}" | cut -f2
 }
 
 function _ze_record { ## pathname [oldpwd]  #2nd arg allows to drive recording from wrappers managing oldpwd themselves
@@ -209,7 +216,7 @@ function _ze {
 
     if ((digger || finder)); then
         # shellcheck disable=SC2086  # we want word splitting of $fnd to pass fd args as separate words
-        ((digger)) && fnd=$(_ze_dig $fnd)
+        ((digger)) && { IFS=' ' fnd=$(_ze_dig $fnd); }
         ((finder)) && fnd=$(_ze_fzf "$fnd" "$typ")
         [[ $fnd ]] || return
         ((emit)) && { printf '%s\n' "$fnd"; return; }

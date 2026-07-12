@@ -116,7 +116,9 @@ for directories matching pattern \fIfoo\fP. Bare
 searches for all directories. Options can be passed to \fBfd\fP by specifying
 the end of options marker of \fBze\fP, e.g.:
 .B "ze \-d" " -- -d3"
-to constrain the search depth to 3 levels.
+to constrain the search depth to 3 levels. To search for all directories
+in a path other than $PWD, use
+.BR "ze -d . /path/to/root " or " ze -d '' /path/to/root" .
 .
 .SH INSTALLATION
 .P
