@@ -89,7 +89,7 @@ function _ze_cd {
     if command cd "$@"; then
         # ksh93 may emit job-control notifications for the backgrounded helper despite wrapping it in
         # a subshell (this happens not in all terminal emulators, but in most). this makes
-        # redirection of stderr to /dev/null necessary (and the subshell might thus go away, actually).
+        # redirection of stderr to /dev/null necessary.
         if [[ $_ZE_RESOLVE_SYMLINKS ]]; then
             (_ze_record "$(command pwd -P 2>/dev/null)" &) 2>/dev/null
         else
@@ -109,11 +109,12 @@ function _ze_fzf { ## pattern typ
         recent) metric='recency'; opt='-t';;
         *)      metric='EMS score';;
     esac
-    fzfopts=( -e --no-sort --preview-window='top,19%' --header="dir stack (ranked by $metric)" --color='header:bright-red'
+    fzfopts=( -0 -e --no-sort --preview-window='top,19%' --header="dir stack (ranked by $metric)" --color='header:bright-red'
         --preview pathname='{2..}; LC_ALL=C ls -AC --color=always "$pathname"' )
-    _ze -l $opt -- "$1" |
+    (set -o pipefail; _ze -l $opt -- "$1" |
         awk -F'\t' '{ buf[NR] = $NF } END { offs = NR+1; while (NR) print offs-NR FS buf[NR--] }' |
-            fzf "${fzfopts[@]}" | cut -f2
+            fzf "${fzfopts[@]}" | cut -f2)
+    (($? == 1)) && { printf '%s\n' 'no matches' >&2; return 1; }
 }
 
 function _ze_dig { ## fdopts_and_args
@@ -129,9 +130,10 @@ function _ze_dig { ## fdopts_and_args
     # shellcheck disable=SC2124 # this scalar assignment ensures join by single space independent of IFS
     typeset argstring="${fdargs[@]}"
     typeset -a fzfopts
-    fzfopts=( -e --no-sort --preview-window='top,19%' --header="$fdex $argstring" --color='header:bright-red'
+    fzfopts=( -0 -e --no-sort --preview-window='top,19%' --header="$fdex $argstring" --color='header:bright-red'
         --preview pathname='{2..}; LC_ALL=C ls -AC --color=always "$pathname"' )
-    $fdex "${fdargs[@]}" | LC_ALL=C sort | nl | fzf "${fzfopts[@]}" | cut -f2
+    (set -o pipefail; $fdex "${fdargs[@]}" | LC_ALL=C sort | nl | fzf "${fzfopts[@]}" | cut -f2)
+    (($? == 1)) && { printf '%s\n' 'no matches' >&2; return 1; }
 }
 
 function _ze_record { ## pathname [oldpwd]  #2nd arg allows to drive recording from wrappers managing oldpwd themselves
