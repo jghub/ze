@@ -1,5 +1,11 @@
 # ze.sh: Changelog
 
+## [3.2.0] (2026-07-15)
+
+* **directory discovery (`-d`)**: added an explicit filesystem discovery mode
+   using `fd` and `fzf`. The selected directory is immediately added to the ze
+   database, making it available for subsequent pattern-based jumps.
+
 ## v3.1.5 (2026-07-10)
 * **dash support**: alias definitions and a `ze()` function provided in
 `contrib/dash/ze.dash`. POSIX-compatible except for a single use of `local`
