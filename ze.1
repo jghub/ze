@@ -39,17 +39,27 @@ regular expressions (ERE),
 Restrict matches to subdirectories of the current directory.
 .TP
 .BI \-d " [-- fdopts] [pattern [path]]
-If installed, search filesystem with
+Instead of querying the database, search the filesystem with
 .B fd
-to "discover" some directory and navigate to it. The directory 
-is recorded in the database and afterwards reachable via 
-.BR "ze pattern" .
+to discover directories not yet recorded in
+.BR ze 's
+database. The directory to which to navigate is selected with
+.B fzf
+and recorded in the database. Note that
+.BI ze -d
+uses
+.BR fd 's
+native query language. In particular, quoted blanks remain literal, unlike
+ordinary
+.BI ze pattern
+matching where blanks are translated to '.*' and match arbitrary intervening
+characters.
 .TP
 .B \-e
 Print the best match, do not \fBcd\fP.
 .TP
 .B \-f
-Use \fBfzf\fP for interactive selection (if \fBfzf\fP is installed).
+Use \fBfzf\fP for interactive selection.
 .TP
 .B \-h
 Show a brief help message.
@@ -111,7 +121,7 @@ argument, use full stack.
 .BI "ze \-d" " foo
 Search file tree rooted in $PWD with
 .B fd
-for directories matching pattern \fIfoo\fP. Bare
+for directories matching the \fBfd\fP pattern \fIfoo\fP. Bare
 .B "ze \-d
 searches for all directories. Options can be passed to \fBfd\fP by specifying
 the end of options marker of \fBze\fP, e.g.:
@@ -242,8 +252,7 @@ for use with \fBze.sh\fP:
 .P
 .EX
 mkdir -p ~/.ze
-now=$(awk -F'|' '{ now += $2 } END { print now }' ~/.z)
-sort -t'|' -k3,3n ~/.z | awk -F'|' -v now="$now" '
+sort -t'|' -k3,3n ~/.z | awk -F'|' '
     BEGIN { OFS = FS; lambda = 8e-3 }
     {
         visits = $2

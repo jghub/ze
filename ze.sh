@@ -126,7 +126,7 @@ function _ze_dig { ## fdopts_and_args
     else
         printf '%s\n' "'fd' not found" >&2; return 1
     fi
-    typeset -a fdargs; fdargs=(-td -pIa "$@")  # avoid 'typeset -a x=(...)' because of mksh
+    typeset -a fdargs; fdargs=( -Ipa -td "$@")  # avoid 'typeset -a x=(...)' because of mksh
     # shellcheck disable=SC2124 # this scalar assignment ensures join by single space independent of IFS
     typeset argstring="${fdargs[@]}"
     typeset -a fzfopts
@@ -199,8 +199,9 @@ function _ze {
 
     typeset fnd opt typ
     typeset -i list=0 finder=0 digger=0 emit=0
+    typeset -a fdargs
     while [[ $1 ]]; do case "$1" in
-        --) while [[ $1 ]]; do shift; fnd=$fnd${fnd:+ }$1; done;;
+        --) shift; while [[ $1 ]]; do fnd+=${fnd:+ }$1; fdargs+=("$1"); shift; done;;
          -) fnd='-';;
         -*) opt=${1:1}; while [[ $opt ]]; do case ${opt:0:1} in
                 c) fnd="^$PWD $fnd";;
@@ -213,12 +214,11 @@ function _ze {
                 t) typ="recent";;
                 *) ;;   # silently ignore unrecognized options
             esac; opt=${opt:1}; done;;
-         *) fnd="$fnd${fnd:+ }$1";;
+         *) fnd+=${fnd:+ }$1; fdargs+=("$1");;
     esac; (($#)) && shift; done
 
     if ((digger || finder)); then
-        # shellcheck disable=SC2086  # we want word splitting of $fnd to pass fd args as separate words
-        ((digger)) && { IFS=' ' fnd=$(_ze_dig $fnd); }
+        ((digger)) && fnd=$(_ze_dig "${fdargs[@]}")
         ((finder)) && fnd=$(_ze_fzf "$fnd" "$typ")
         [[ $fnd ]] || return
         ((emit)) && { printf '%s\n' "$fnd"; return; }
