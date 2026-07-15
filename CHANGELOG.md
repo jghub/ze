@@ -1,6 +1,6 @@
 # ze.sh: Changelog
 
-## [3.2.0] (2026-07-15)
+## v3.2.0 (2026-07-15)
 
 * **directory discovery (`-d`)**: added an explicit filesystem discovery mode
    using `fd` and `fzf`. The selected directory is immediately added to the ze
