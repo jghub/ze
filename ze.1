@@ -46,12 +46,12 @@ to discover directories not yet recorded in
 database. The directory to which to navigate is selected with
 .B fzf
 and recorded in the database. Note that
-.BI ze -d
+.BI ze " -d
 uses
 .BR fd 's
 native query language. In particular, quoted blanks remain literal, unlike
 ordinary
-.BI ze pattern
+.BI ze " pattern
 matching where blanks are translated to '.*' and match arbitrary intervening
 characters.
 .TP
