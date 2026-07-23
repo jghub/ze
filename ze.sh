@@ -11,13 +11,13 @@
 # shellcheck shell=ksh
 # shellcheck disable=SC2016  # awk/fzf scripts in single quotes must not expand
 function _ze_init {
-    _ZE_DIR=${_ZE_DIR:-$HOME/.ze}
-    typeset datafile="${_ZE_DIR}/ze.db"
-    if [[ -e $_ZE_DIR && ! -d $_ZE_DIR ]]; then
-        printf '%s\n' "ze: $_ZE_DIR exists and is not a directory" >&2
+    typeset datadir=${_ZE_DIR:-$HOME/.ze}
+    typeset datafile="$datadir/ze.db"
+    if [[ -e $datadir  && ! -d $datadir  ]]; then
+        printf '%s\n' "ze: $datadir  exists and is not a directory" >&2
         return 1
-    elif [[ ! -d $_ZE_DIR ]]; then
-        mkdir -p "$_ZE_DIR" || { printf '%s\n' "ze: failed to create $_ZE_DIR" >&2; return 1; }
+    elif [[ ! -d $datadir  ]]; then
+        mkdir -p "$datadir " || { printf '%s\n' "ze: failed to create $datadir " >&2; return 1; }
     fi
     if [[ -e "$datafile" && ! -f "$datafile" ]]; then
         printf '%s\n' "ze: $datafile exists and is not a regular file" >&2
@@ -29,7 +29,7 @@ function _ze_init {
         printf '%s\n' "ze: $datafile not owned by current user" >&2
         return 1
     fi
-    typeset -i dbsize dbmax=${_ZE_DBMAX:-512}
+    typeset -i dbsize dbmax=${_ZE_DBMAX:-640}
     dbsize=$(wc -l < "$datafile")
     ((dbsize <= dbmax)) && return
 
@@ -76,7 +76,7 @@ fi
 unset -f _ze_init
 
 function _ze_dirs {
-    typeset datafile="${_ZE_DIR}/ze.db"
+    typeset datafile="${_ZE_DIR:-$HOME/.ze}/ze.db"
     typeset -a lines
     typeset line
     while IFS= read -r line; do
@@ -138,7 +138,7 @@ function _ze_dig { ## fdopts_and_args
 
 function _ze_record { ## pathname [oldpwd]  #2nd arg allows to drive recording from wrappers managing oldpwd themselves
     typeset pathname=${1:-"/"} oldpwd=${2:-$OLDPWD}  # 'pathname default="/" safeguards against manual misuse
-    typeset datafile="${_ZE_DIR}/ze.db"
+    typeset datafile="${_ZE_DIR:-$HOME/.ze}/ze.db"
     typeset lambda=${_ZE_LAMBDA:-8e-3}
 
     # navigation to $HOME, $oldpwd, or "/" aren't worth recording
@@ -174,7 +174,7 @@ function _ze_record { ## pathname [oldpwd]  #2nd arg allows to drive recording f
 }
 
 function _ze_complete {  ## candidate
-    typeset datafile="${_ZE_DIR}/ze.db"
+    typeset datafile="${_ZE_DIR:-$HOME/.ze}/ze.db"
 
     [[ -s $datafile ]] || return
 
