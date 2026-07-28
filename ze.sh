@@ -13,11 +13,11 @@
 function _ze_init {
     typeset datadir=${_ZE_DIR:-$HOME/.ze}
     typeset datafile="$datadir/ze.db"
-    if [[ -e $datadir  && ! -d $datadir  ]]; then
-        printf '%s\n' "ze: $datadir  exists and is not a directory" >&2
+    if [[ -e $datadir && ! -d $datadir ]]; then
+        printf '%s\n' "ze: $datadir exists and is not a directory" >&2
         return 1
-    elif [[ ! -d $datadir  ]]; then
-        mkdir -p "$datadir " || { printf '%s\n' "ze: failed to create $datadir " >&2; return 1; }
+    elif [[ ! -d $datadir ]]; then
+        mkdir -p "$datadir" || { printf '%s\n' "ze: failed to create $datadir" >&2; return 1; }
     fi
     if [[ -e "$datafile" && ! -f "$datafile" ]]; then
         printf '%s\n' "ze: $datafile exists and is not a regular file" >&2
