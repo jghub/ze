@@ -127,11 +127,11 @@ ze [-cdefhlrt] [pattern|path|-]
 | `ze pattern`    | cd to highest scoring match for pattern |
 | `ze -c pattern` | restrict matches to subdirs of $PWD     |
 | `ze -d [-- fdopts] [pattern [path]]`| discover and jump via fd+fzf, register in database |
-| `ze -e pattern` | print match instead of cd               |
+| `ze -e pattern` | print highest scoring match instead of cd|
 | `ze -f pattern` | use fzf for interactive selection       |
-| `ze -l pattern` | list matches according to current score |
-| `ze -r pattern` | sort by visit count                     |
-| `ze -t pattern` | sort by recency of last visit           |
+| `ze -l pattern` | list matches sorted by current score |
+| `ze [-cefl] -r pattern` | sort matches by visit count instead of score|
+| `ze [-cefl] -t pattern` | sort matches by recency of last visit instead of score|
 
 ## Changes from z.sh
 
