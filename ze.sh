@@ -114,7 +114,6 @@ function _ze_fzf { ## pattern typ
     (set -o pipefail; _ze -l $opt -- "$1" |
         awk -F'\t' '{ buf[NR] = $NF } END { offs = NR+1; while (NR) print offs-NR FS buf[NR--] }' |
             fzf "${fzfopts[@]}" | cut -f2)
-    (($? == 1)) && { printf '%s\n' 'no matches' >&2; return 1; }
 }
 
 function _ze_dig { ## fdopts_and_args
@@ -133,7 +132,7 @@ function _ze_dig { ## fdopts_and_args
     fzfopts=( -0 -e --no-sort --preview-window='top,19%' --header="$fdex $argstring" --color='header:bright-red'
         --preview pathname='{2..}; LC_ALL=C ls -AC --color=always "$pathname"' )
     (set -o pipefail; $fdex "${fdargs[@]}" | LC_ALL=C sort | nl | fzf "${fzfopts[@]}" | cut -f2)
-    (($? == 1)) && { printf '%s\n' 'no matches' >&2; return 1; }
+    typeset -i rc=$?; ((rc)) && { printf 'no match\n' >&2; return $rc; }
 }
 
 function _ze_record { ## pathname [oldpwd]  #2nd arg allows to drive recording from wrappers managing oldpwd themselves
@@ -161,8 +160,8 @@ function _ze_record { ## pathname [oldpwd]  #2nd arg allows to drive recording f
             if ($3 > tmax) tmax = $3
         }
         END {
-            now = tmax + 1      # advance global event clock
             visits = visits + 1
+            now = tmax + 1
             score = score * exp(-lambda * (now - ticks)) + 1
             print pathname, visits, now, score
         }
@@ -257,15 +256,13 @@ function _ze {
                     }
                 }
             }
+            if (!best_match) exit(1)
             if (list)
                 for (x in matches) printf "%-12s\t%s\n", matches[x], x | "LC_ALL=C sort -k1,1g -k2,2"
-            else if (best_match)
-                print best_match
-            else exit(1)
+            else print best_match
         }
     ')
     typeset -i rc=$?; ((rc)) && { printf 'no match\n' >&2; return $rc; }
-    [[ $result ]] || return
 
     if ((list || emit)); then
         printf '%s\n' "$result"
