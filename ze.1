@@ -1,4 +1,4 @@
-.TH ZE 1 "June 2026" ze.sh "User Commands"
+.TH ZE 1 "August 2026" ze.sh "User Commands"
 .
 .SH NAME
 ze \- pattern-based navigation of a dynamically ranked directory stack
@@ -276,8 +276,17 @@ sort -t'|' -k3,3n ~/.z | awk -F'|' '
 .
 .SH ENVIRONMENT
 .P
-A function \fB_ze\fP is defined, and the command specified by \fB_ZE_CMD\fP
-(default: \fBze\fP) is aliased to it.
+The following shell functions are defined in the global namespace after sourcing
+\fBze.sh\fP:
+.TP
+\fB_ze\fP
+Main function, aliased to the command name specified by \fB_ZE_CMD\fP (default: \fBze\fP).
+.TP
+\fB_ze_cd\fP
+cd wrapper. Alias \fBcd\fP to this function to track ordinary cd commands.
+.TP
+\fB_ze_commit\fP, \fB_ze_complete\fP, \fB_ze_dig\fP, \fB_ze_dirs\fP, \fB_ze_fzf\fP, \fB_ze_record\fP
+Internal functions, not intended for direct use.
 .
 .SH SEE ALSO
 .P
