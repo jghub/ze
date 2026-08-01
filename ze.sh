@@ -159,12 +159,7 @@ function _ze_record { ## pathname [oldpwd]  #2nd arg allows to drive recording f
             } else print
             if ($3 > tmax) tmax = $3
         }
-        END {
-            visits = visits + 1
-            now = tmax + 1
-            score = score * exp(-lambda * (now - ticks)) + 1
-            print pathname, visits, now, score
-        }
+        END { print pathname, visits + 1, tmax + 1, score * exp(-lambda * (tmax + 1 - ticks)) + 1 }
     ' "$datafile" 2>/dev/null >| "$tempfile"
     _ze_commit $? "$tempfile" "$datafile"
 }
