@@ -164,27 +164,6 @@ function _ze_record { ## pathname [oldpwd]  #2nd arg allows to drive recording f
     _ze_commit $? "$tempfile" "$datafile"
 }
 
-function _ze_complete {  ## candidate
-    typeset datafile="${_ZE_DIR:-$HOME/.ze}/ze.db"
-
-    [[ -s $datafile ]] || return
-
-    _ze_dirs | candidate=$1 awk -F"|" '
-        BEGIN {
-            q = ENVIRON["candidate"]
-            sub(/^[^ ]+[ ]+/, "", q)   # replace previous fixed-offset substring to account for possibility of non-default ZE_CMD value
-            lq = tolower(q)
-            case_sensitive = (q != lq)
-            if (!case_sensitive) q = lq
-            gsub(/ /, ".*", q)
-        }
-        {
-            candidate = case_sensitive ? $1 : tolower($1)
-            if (candidate ~ q) print $1
-        }
-    ' 2>/dev/null
-}
-
 function _ze {
     typeset lambda=${_ZE_LAMBDA:-8e-3}
 
@@ -264,6 +243,27 @@ function _ze {
     else
         _ze_cd "$result"
     fi
+}
+
+function _ze_complete {  ## candidate
+    typeset datafile="${_ZE_DIR:-$HOME/.ze}/ze.db"
+
+    [[ -s $datafile ]] || return
+
+    _ze_dirs | candidate=$1 awk -F"|" '
+        BEGIN {
+            q = ENVIRON["candidate"]
+            sub(/^[^ ]+[ ]+/, "", q)   # replace previous fixed-offset substring to account for possibility of non-default ZE_CMD value
+            lq = tolower(q)
+            case_sensitive = (q != lq)
+            if (!case_sensitive) q = lq
+            gsub(/ /, ".*", q)
+        }
+        {
+            candidate = case_sensitive ? $1 : tolower($1)
+            if (candidate ~ q) print $1
+        }
+    ' 2>/dev/null
 }
 
 if type compctl >/dev/null 2>&1; then
