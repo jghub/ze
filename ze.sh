@@ -154,7 +154,6 @@ function _ze_record { ## pathname [oldpwd]  #2nd arg allows to drive recording f
         BEGIN { pathname = ENVIRON["pathname"]; OFS = FS; OFMT = "%.17g" }
         {
             if ($1 == pathname) {
-                hit = 1
                 visits = $2
                 ticks = $3
                 score = $4
@@ -162,12 +161,10 @@ function _ze_record { ## pathname [oldpwd]  #2nd arg allows to drive recording f
             if ($3 > tmax) tmax = $3
         }
         END {
-            now = tmax + 1    # advance global event clock
-            if (hit) {
-                visits = visits + 1
-                score = score * exp(-lambda * (now - ticks)) + 1
-                print pathname, visits, now, score
-            } else print pathname, 1, now, 1
+            now = tmax + 1      # advance global event clock
+            visits = visits + 1
+            score = score * exp(-lambda * (now - ticks)) + 1
+            print pathname, visits, now, score
         }
     ' "$datafile" 2>/dev/null >| "$tempfile"
     _ze_commit $? "$tempfile" "$datafile"
