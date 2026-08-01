@@ -132,7 +132,7 @@ function _ze_dig { ## fdopts_and_args
     fzfopts=( -0 -e --no-sort --preview-window='top,19%' --header="$fdex $argstring" --color='header:bright-red'
         --preview pathname='{2..}; LC_ALL=C ls -AC --color=always "$pathname"' )
     (set -o pipefail; $fdex "${fdargs[@]}" | LC_ALL=C sort | nl | fzf "${fzfopts[@]}" | cut -f2)
-    typeset -i rc=$?; ((rc)) && { printf 'no match\n' >&2; return $rc; }
+    (($? == 1)) && printf 'no match\n' >&2
 }
 
 function _ze_record { ## pathname [oldpwd]  #2nd arg allows to drive recording from wrappers managing oldpwd themselves
