@@ -8,6 +8,7 @@ ze() {
    cd "$_ze_res" || return
    (zex.sh --record "$PWD" "$OLDPWD" &)
 }
-alias cd=ze
-alias zl='zex.sh -l'
+alias zd='ze -d --'
 alias zf='ze -f'
+alias zl='zex.sh -l'
+alias cd=ze
