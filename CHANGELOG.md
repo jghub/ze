@@ -1,7 +1,14 @@
 # ze.sh: Changelog
 
-## v3.2.0 (2026-07-15)
+## v3.2.1 (2026-08-15)
+* **`set -u` compatibility**: fixed sourcing and operation under shells using
+`nounset`, including unset optional variables, positional arguments, and
+exclusion-directory arrays.
 
+* **documentation**: clarified command-line options, updated the default database
+size to 640 entries, and documented the shell functions defined by `ze.sh`.
+
+## v3.2.0 (2026-07-15)
 * **directory discovery (`-d`)**: added an explicit filesystem discovery mode
    using `fd` and `fzf`. The selected directory is immediately added to the ze
    database, making it available for subsequent pattern-based jumps.

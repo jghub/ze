@@ -25,7 +25,7 @@ function _ze_init {
     elif [[ ! -f $datafile ]]; then
         touch "$datafile" || { printf '%s\n' "ze: failed to create $datafile" >&2; return 1; }
     fi
-    if [[ -z $_ZE_OWNER && ! -O $datafile ]]; then
+    if [[ -z ${_ZE_OWNER:-} && ! -O $datafile ]]; then
         printf '%s\n' "ze: $datafile not owned by current user" >&2
         return 1
     fi
@@ -62,7 +62,7 @@ function _ze_commit {  ## rc tempfile datafile
     # shellcheck disable=SC2181 # irrelevant
     typeset rc=$1 tempfile=$2 datafile=$3
     if ((rc == 0)); then
-        [[ $_ZE_OWNER ]] && chown "$_ZE_OWNER":"$(id -ng "$_ZE_OWNER")" "$tempfile"
+        [[ ${_ZE_OWNER:-} ]] && chown "$_ZE_OWNER":"$(id -ng "$_ZE_OWNER")" "$tempfile"
         \mv -f "$tempfile" "$datafile" || \rm -f "$tempfile"
     else
         \rm -f "$tempfile"
@@ -90,7 +90,7 @@ function _ze_cd {
         # ksh93 may emit job-control notifications for the backgrounded helper despite wrapping it in
         # a subshell (this happens not in all terminal emulators, but in most). this makes
         # redirection of stderr to /dev/null necessary.
-        if [[ $_ZE_RESOLVE_SYMLINKS ]]; then
+        if [[ ${_ZE_RESOLVE_SYMLINKS:-} ]]; then
             (_ze_record "$(command pwd -P 2>/dev/null)" &) 2>/dev/null
         else
             (_ze_record "$PWD" &) 2>/dev/null
@@ -102,7 +102,7 @@ function _ze_cd {
 
 function _ze_fzf { ## pattern typ
     command -v fzf >/dev/null || { printf '%s\n' "'fzf' not found" >&2; return 1; }
-    typeset opt metric
+    typeset metric opt=''
     typeset -a fzfopts
     case $2 in
         visits) metric='visit count'; opt='-r';;
@@ -143,8 +143,10 @@ function _ze_record { ## pathname [oldpwd]  #2nd arg allows to drive recording f
     # navigation to $HOME, $oldpwd, or "/" aren't worth recording
     [[ $pathname == "$HOME" || $pathname == "$oldpwd" || $pathname == "/" ]] && return
 
-    typeset exclude
-    for exclude in "${_ZE_EXCLUDE_DIRS[@]}"; do [[ $pathname == "$exclude"* ]] && return; done
+    if [[ ${_ZE_EXCLUDE_DIRS[*]+x} ]]; then   # avoid unset-array expansion under 'set -u'
+        typeset exclude
+        for exclude in "${_ZE_EXCLUDE_DIRS[@]}"; do [[ $pathname == "$exclude"* ]] && return; done
+    fi
 
     typeset tempfile
     tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
@@ -167,11 +169,11 @@ function _ze_record { ## pathname [oldpwd]  #2nd arg allows to drive recording f
 function _ze {
     typeset lambda=${_ZE_LAMBDA:-8e-3}
 
-    typeset fnd opt typ
+    typeset fnd='' opt='' typ=''
     typeset -i list=0 finder=0 digger=0 emit=0
     typeset -a fdargs
-    while [[ $1 ]]; do case "$1" in
-        --) shift; while [[ $1 ]]; do fnd+=${fnd:+ }$1; fdargs+=("$1"); shift; done;;
+    while (($#)); do case "$1" in
+        --) shift; while (($#)); do fnd+=${fnd:+ }$1; fdargs+=("$1"); shift; done;;
          -) fnd='-';;
         -*) opt=${1:1}; while [[ $opt ]]; do case ${opt:0:1} in
                 c) fnd="^$PWD $fnd";;
