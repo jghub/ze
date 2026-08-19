@@ -53,14 +53,15 @@ function _ze_init {
             }' "$datafile" | LC_ALL=C sort -t'|' -k5,5g -k1,1 | awk -F'|' -v nprune="$nprune" '
                     BEGIN { OFS = FS; OFMT = "%.17g" } NR > nprune { print $1, $2, $3, $4 }' >| "$tempfile"
     )
-    _ze_commit $? "$tempfile" "$datafile"
+    _ze_commit $? "$tempfile"
 }
 
-function _ze_commit {  ## rc tempfile datafile
-    (($# == 3)) || return  # safeguard against manual misuse (a bit...).
+function _ze_commit {  ## rc tempfile
+    (($# == 2)) || return 1                         # safeguard against manual misuse 
+    typeset rc=$1 tempfile=$2
+    typeset datafile="${_ZE_DIR:-$HOME/.ze}/ze.db"
+    [[ $tempfile == "$datafile."* ]] || return 1    # safeguard against manual misuse
     # do our best to avoid clobbering the datafile in a race condition.
-    # shellcheck disable=SC2181 # irrelevant
-    typeset rc=$1 tempfile=$2 datafile=$3
     if ((rc == 0)); then
         [[ ${_ZE_OWNER:-} ]] && chown "$_ZE_OWNER":"$(id -ng "$_ZE_OWNER")" "$tempfile"
         \mv -f "$tempfile" "$datafile" || \rm -f "$tempfile"
@@ -163,7 +164,7 @@ function _ze_record { ## pathname [oldpwd]  #2nd arg allows to drive recording f
         }
         END { print pathname, visits + 1, tmax + 1, score * exp(-lambda * (tmax + 1 - ticks)) + 1 }
     ' "$datafile" 2>/dev/null >| "$tempfile"
-    _ze_commit $? "$tempfile" "$datafile"
+    _ze_commit $? "$tempfile"
 }
 
 function _ze {
