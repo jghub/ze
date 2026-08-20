@@ -79,9 +79,9 @@ unset -f _ze_init
 function _ze_dirs {
     typeset datafile="${_ZE_DIR:-$HOME/.ze}/ze.db"
     typeset -a lines
-    typeset line
-    while IFS= read -r line; do
-        [[ -d ${line%%\|*} ]] && lines+=("$line")
+    typeset pathname remains ifs='|'
+    while IFS=$ifs read -r pathname remains; do
+        [[ -d $pathname ]] && lines+=("$pathname$ifs$remains")
     done < "$datafile"
     (( ${#lines[@]} )) && printf '%s\n' "${lines[@]}"
 }
