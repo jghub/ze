@@ -177,7 +177,7 @@ function _ze {
         --) shift; while (($#)); do fnd+=${fnd:+ }$1; fdargs+=("$1"); shift; done;;
          -) fnd='-';;
         -*) opt=${1:1}; while [[ $opt ]]; do case ${opt:0:1} in
-                c) fnd="^$PWD $fnd";;
+                c) fnd="^$(printf '%s\n' "$PWD"|sed 's/[].^$*+?(){}|\]/\\&/g') $fnd";;
                 d) digger=1;;
                 e) emit=1;;
                 f) finder=1;;
