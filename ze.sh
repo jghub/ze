@@ -221,21 +221,21 @@ function _ze {
                 split(lines[i], f)
                 candidate = case_sensitive ? f[1] : tolower(f[1])
                 if (candidate ~ q) {
+                    pathname = f[1]
                     if (typ == "visits") {
-                        weight = f[2]
+                        score[pathname] = f[2]
                     } else if (typ == "recent") {
-                        weight = f[3]
-                    } else weight = f[4] * exp(-lambda * (tmax - f[3]))
-                    matches[f[1]] = weight
-                    if (weight > hi_score) {
-                        best_match = f[1]
-                        hi_score = weight
+                        score[pathname] = f[3]
+                    } else score[pathname] = f[4] * exp(-lambda * (tmax - f[3]))
+                    if (score[pathname] > hi_score) {
+                        best_match = pathname
+                        hi_score = score[pathname]
                     }
                 }
             }
             if (!best_match) exit(1)
             if (list)
-                for (x in matches) printf "%-12s\t%s\n", matches[x], x | "LC_ALL=C sort -k1,1g -k2,2"
+                for (x in score) printf "%-12s\t%s\n", score[x], x | "LC_ALL=C sort -k1,1g -k2,2"
             else print best_match
         }
     ')
