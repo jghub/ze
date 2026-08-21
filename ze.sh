@@ -20,7 +20,7 @@ function _ze_init {
     fi
     typeset datafile name
     for name in ze.db zef.db; do
-        typeset datafile="$datadir/$name"
+        datafile="$datadir/$name"
         if [[ -e "$datafile" && ! -f "$datafile" ]]; then
             printf '%s\n' "ze: $datafile exists and is not a regular file" >&2
             return 1
@@ -117,7 +117,8 @@ function _ze_open {  ## pathname
     pathname=$(command realpath "$pathname" 2>/dev/null) || { printf '%s\n' "ze: could not resolve path: $pathname" >&2; return 1; }
 
     typeset editor=${VISUAL:-${EDITOR:-nano}}
-    if ! command -v "$editor" >/dev/null 2>&1; then editor='vi'; fi
+    if ! command -v "${editor%% *}" >/dev/null 2>&1; then editor='vi'; fi
+    
 
     (_ze_record "$pathname" files &) 2>/dev/null
     $editor "$pathname"
