@@ -12,55 +12,57 @@
 # shellcheck disable=SC2016  # awk/fzf scripts in single quotes must not expand
 function _ze_init {
     typeset datadir=${_ZE_DIR:-$HOME/.ze}
-    typeset datafile="$datadir/ze.db"
     if [[ -e $datadir && ! -d $datadir ]]; then
         printf '%s\n' "ze: $datadir exists and is not a directory" >&2
         return 1
     elif [[ ! -d $datadir ]]; then
         mkdir -p "$datadir" || { printf '%s\n' "ze: failed to create $datadir" >&2; return 1; }
     fi
-    if [[ -e "$datafile" && ! -f "$datafile" ]]; then
-        printf '%s\n' "ze: $datafile exists and is not a regular file" >&2
-        return 1
-    elif [[ ! -f $datafile ]]; then
-        touch "$datafile" || { printf '%s\n' "ze: failed to create $datafile" >&2; return 1; }
-    fi
-    if [[ -z ${_ZE_OWNER:-} && ! -O $datafile ]]; then
-        printf '%s\n' "ze: $datafile not owned by current user" >&2
-        return 1
-    fi
-    typeset -i dbsize dbmax=${_ZE_DBMAX:-640}
-    dbsize=$(wc -l < "$datafile")
-    ((dbsize <= dbmax)) && return
+    typeset datafile name
+    for name in ze.db zef.db; do
+        typeset datafile="$datadir/$name"
+        if [[ -e "$datafile" && ! -f "$datafile" ]]; then
+            printf '%s\n' "ze: $datafile exists and is not a regular file" >&2
+            return 1
+        elif [[ ! -f $datafile ]]; then
+            touch "$datafile" || { printf '%s\n' "ze: failed to create $datafile" >&2; return 1; }
+        fi
+        if [[ -z ${_ZE_OWNER:-} && ! -O $datafile ]]; then
+            printf '%s\n' "ze: $datafile not owned by current user" >&2
+            return 1
+        fi
+        typeset -i dbsize dbmax=${_ZE_DBMAX:-640}
+        dbsize=$(wc -l < "$datafile")
+        ((dbsize <= dbmax)) && continue
 
-    typeset -i margin nprune dbfrac=32
-    typeset tempfile lambda=${_ZE_LAMBDA:-8e-3}
-    tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
-    ((margin = dbmax/dbfrac))
-    ((nprune = dbsize - dbmax + margin))
-    (   set -o pipefail  # sub-process avoids overriding user settings
-        awk -F'|' -v lambda="$lambda" '
-            BEGIN { OFS = FS; OFMT = "%.17g" }
-            {
-                lines[NR] = $0
-                if ($3 > tmax) tmax = $3
-            }
-            END {
-                for (i = 1; i <= NR; i++) {
-                    split(lines[i], f)
-                    print f[1], f[2], f[3], f[4], f[4] * exp(-lambda * (tmax - f[3]))
+        typeset -i margin nprune dbfrac=32
+        typeset tempfile lambda=${_ZE_LAMBDA:-8e-3}
+        tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
+        ((margin = dbmax/dbfrac))
+        ((nprune = dbsize - dbmax + margin))
+        (   set -o pipefail  # sub-process avoids overriding user settings
+            awk -F'|' -v lambda="$lambda" '
+                BEGIN { OFS = FS; OFMT = "%.17g" }
+                {
+                    lines[NR] = $0
+                    if ($3 > tmax) tmax = $3
                 }
-            }' "$datafile" | LC_ALL=C sort -t'|' -k5,5g -k1,1 | awk -F'|' -v nprune="$nprune" '
-                    BEGIN { OFS = FS; OFMT = "%.17g" } NR > nprune { print $1, $2, $3, $4 }' >| "$tempfile"
-    )
-    _ze_commit $? "$tempfile"
+                END {
+                    for (i = 1; i <= NR; i++) {
+                        split(lines[i], f)
+                        print f[1], f[2], f[3], f[4], f[4] * exp(-lambda * (tmax - f[3]))
+                    }
+                }' "$datafile" | LC_ALL=C sort -t'|' -k5,5g -k1,1 | awk -F'|' -v nprune="$nprune" '
+                        BEGIN { OFS = FS; OFMT = "%.17g" } NR > nprune { print $1, $2, $3, $4 }' >| "$tempfile"
+        )
+        _ze_commit $? "$tempfile" "$datafile"
+    done
 }
 
-function _ze_commit {  ## rc tempfile
-    (($# == 2)) || return 1                         # safeguard against manual misuse 
-    typeset rc=$1 tempfile=$2
-    typeset datafile="${_ZE_DIR:-$HOME/.ze}/ze.db"
-    [[ $tempfile == "$datafile."* ]] || return 1    # safeguard against manual misuse
+function _ze_commit {  ## rc tempfile datafile
+    (($# == 3)) || return 1                          # safeguard against manual misuse
+    typeset rc=$1 tempfile=$2 datafile=$3
+    [[ $tempfile == "$datafile."* ]] || return 1     # safeguard against manual misuse
     # do our best to avoid clobbering the datafile in a race condition.
     if ((rc == 0)); then
         [[ ${_ZE_OWNER:-} ]] && chown "$_ZE_OWNER":"$(id -ng "$_ZE_OWNER")" "$tempfile"
@@ -76,12 +78,20 @@ if ! _ze_init; then
 fi
 unset -f _ze_init
 
-function _ze_dirs {
-    typeset datafile="${_ZE_DIR:-$HOME/.ze}/ze.db"
+function _ze_ere_escape { printf '%s\n' "$1" | sed 's/[].^$*+?(){}|\]/\\&/g'; }
+
+function _ze_dirs {  ## [dirs|files]
+    typeset mode=${1:-dirs}
+    typeset datafile="${_ZE_DIR:-$HOME/.ze}"
+    [[ $mode == files ]] && datafile+='/zef.db' || datafile+='/ze.db' 
     typeset -a lines
     typeset pathname remains ifs='|'
     while IFS=$ifs read -r pathname remains; do
-        [[ -d $pathname ]] && lines+=("$pathname$ifs$remains")
+        if [[ $mode == files ]]; then
+            [[ -f $pathname ]] && lines+=("$pathname$ifs$remains")
+        else
+            [[ -d $pathname ]] && lines+=("$pathname$ifs$remains")
+        fi
     done < "$datafile"
     (( ${#lines[@]} )) && printf '%s\n' "${lines[@]}"
 }
@@ -101,24 +111,44 @@ function _ze_cd {
     fi
 }
 
-function _ze_fzf { ## pattern typ
+function _ze_open {  ## pathname
+    typeset pathname=${1:?"_ze_open: pathname required"}
+    [[ -f $pathname ]] || { printf '%s\n' "ze: not a regular file: $pathname" >&2; return 1; }
+    pathname=$(command realpath "$pathname" 2>/dev/null) || { printf '%s\n' "ze: could not resolve path: $pathname" >&2; return 1; }
+
+    typeset editor=${VISUAL:-${EDITOR:-nano}}
+    if ! command -v "$editor" >/dev/null 2>&1; then editor='vi'; fi
+
+    (_ze_record "$pathname" files &) 2>/dev/null
+    $editor "$pathname"
+}
+
+function _ze_fzf { ## pattern typ [dirs|files]
     command -v fzf >/dev/null || { printf '%s\n' "'fzf' not found" >&2; return 1; }
-    typeset metric opt=''
+    typeset metric header opt='' mode=${3:-dirs} preview='pathname={2..}' 
     typeset -a fzfopts
     case $2 in
         visits) metric='visit count'; opt='-r';;
         recent) metric='recency'; opt='-t';;
         *)      metric='EMS score';;
     esac
-    fzfopts=( -0 -e --no-sort --preview-window='top,19%' --header="dir stack (ranked by $metric)" --color='header:bright-red'
-        --preview pathname='{2..}; LC_ALL=C ls -AC --color=always "$pathname"' )
+    case $mode in
+        dirs)  preview+='; LC_ALL=C ls -AC --color=always "$pathname"';;
+        files) preview+='; head -2000 -- "$pathname"'; opt+=' -o';;
+        *) printf '%s\n' "_ze_fzf: unexpected" 1>&2; return 1;;
+    esac
+   
+    header="${mode%s} stack (ranked by $metric)"
+    fzfopts=( -0 -e --no-sort --preview-window='top,19%' --header="$header" --color='header:bright-red' --preview "$preview" )
+    # shellcheck disable=SC2086 # word splitting of $opt intentional
     (set -o pipefail; _ze -l $opt -- "$1" |
         awk -F'\t' '{ buf[NR] = $NF } END { offs = NR+1; while (NR) print offs-NR FS buf[NR--] }' |
             fzf "${fzfopts[@]}" | cut -f2)
 }
 
-function _ze_dig { ## fdopts_and_args
+function _ze_dig { ## (dirs|files) fdopts_and_args
     command -v fzf >/dev/null || { printf '%s\n' "'fzf' not found" >&2; return 1; }
+    typeset mode=$1; shift
     if command -v fd >/dev/null; then
         typeset fdex=fd
     elif command -v fdfind >/dev/null; then
@@ -126,7 +156,9 @@ function _ze_dig { ## fdopts_and_args
     else
         printf '%s\n' "'fd' not found" >&2; return 1
     fi
-    typeset -a fdargs; fdargs=( -Ipa -td "$@")  # avoid 'typeset -a x=(...)' because of mksh
+    typeset fdtype=d
+    [[ $mode == files ]] && fdtype=f
+    typeset -a fdargs; fdargs=( -Ipa -t"$fdtype" "$@")  # avoid 'typeset -a x=(...)' because of mksh
     # shellcheck disable=SC2124 # this scalar assignment ensures join by single space independent of IFS
     typeset argstring="${fdargs[@]}"
     typeset -a fzfopts
@@ -136,17 +168,24 @@ function _ze_dig { ## fdopts_and_args
     (($? == 1)) && printf 'no match\n' >&2
 }
 
-function _ze_record { ## pathname [oldpwd]  #2nd arg allows to drive recording from wrappers managing oldpwd themselves
-    typeset pathname=${1:-"/"} oldpwd=${2:-$OLDPWD}  # 'pathname default="/" safeguards against manual misuse
-    typeset datafile="${_ZE_DIR:-$HOME/.ze}/ze.db"
-    typeset lambda=${_ZE_LAMBDA:-8e-3}
+function _ze_record { ## pathname [dirs|files] [oldpwd]
+    typeset pathname=${1:-"/"} mode=${2:-dirs} oldpwd=${3:-$OLDPWD}  # 'pathname default="/" safeguards against manual misuse
+    typeset datafile lambda=${_ZE_LAMBDA:-8e-3}
+    typeset -a exclude_list
 
-    # navigation to $HOME, $oldpwd, or "/" aren't worth recording
-    [[ $pathname == "$HOME" || $pathname == "$oldpwd" || $pathname == "/" ]] && return
+    if [[ $mode == files ]]; then
+        datafile="${_ZE_DIR:-$HOME/.ze}/zef.db"
+        [[ ${_ZE_EXCLUDE_FILES[*]+x} ]] && exclude_list=("${_ZE_EXCLUDE_FILES[@]}")  # avoid unset-array expansion under 'set -u'
+    else
+        datafile="${_ZE_DIR:-$HOME/.ze}/ze.db"
+        # navigation to $HOME, $oldpwd, or "/" aren't worth recording
+        [[ $pathname == "$HOME" || $pathname == "$oldpwd" || $pathname == "/" ]] && return
+        [[ ${_ZE_EXCLUDE_DIRS[*]+x} ]] && exclude_list=("${_ZE_EXCLUDE_DIRS[@]}")    # avoid unset-array expansion under 'set -u'
+    fi
 
-    if [[ ${_ZE_EXCLUDE_DIRS[*]+x} ]]; then   # avoid unset-array expansion under 'set -u'
+    if ((${#exclude_list[@]})); then
         typeset exclude
-        for exclude in "${_ZE_EXCLUDE_DIRS[@]}"; do [[ $pathname == "$exclude"* ]] && return; done
+        for exclude in "${exclude_list[@]}"; do [[ $pathname == "$exclude"* ]] && return; done
     fi
 
     typeset tempfile
@@ -164,25 +203,26 @@ function _ze_record { ## pathname [oldpwd]  #2nd arg allows to drive recording f
         }
         END { print pathname, visits + 1, tmax + 1, score * exp(-lambda * (tmax + 1 - ticks)) + 1 }
     ' "$datafile" 2>/dev/null >| "$tempfile"
-    _ze_commit $? "$tempfile"
+    _ze_commit $? "$tempfile" "$datafile"
 }
 
 function _ze {
     typeset lambda=${_ZE_LAMBDA:-8e-3}
 
-    typeset fnd='' opt='' typ=''
-    typeset -i list=0 finder=0 digger=0 emit=0
+    typeset fnd='' opt='' typ='' dbmode=dirs
+    typeset -i list=0 finder=0 digger=0 emit=0 open=0
     typeset -a fdargs
     while (($#)); do case "$1" in
         --) shift; while (($#)); do fnd+=${fnd:+ }$1; fdargs+=("$1"); shift; done;;
          -) fnd='-';;
         -*) opt=${1:1}; while [[ $opt ]]; do case ${opt:0:1} in
-                c) fnd="^$(printf '%s\n' "$PWD"|sed 's/[].^$*+?(){}|\]/\\&/g') $fnd";;
+                c) fnd="^$(_ze_ere_escape "$PWD") $fnd";;
                 d) digger=1;;
                 e) emit=1;;
                 f) finder=1;;
-                h) printf '%s\n' "${_ZE_CMD:-ze} [-cdefhlrt] args" >&2; return;;
+                h) printf '%s\n' "${_ZE_CMD:-ze} [-cdefhlorst] args" >&2; return;;
                 l) list=1;;
+                o) open=1; dbmode=files;;
                 r) typ="visits";;
                 t) typ="recent";;
                 *) ;;   # silently ignore unrecognized options
@@ -190,20 +230,25 @@ function _ze {
          *) fnd+=${fnd:+ }$1; fdargs+=("$1");;
     esac; (($#)) && shift; done
 
+    ((open)) && [[ ! -f $fnd ]] && ((!(list || emit || digger))) && finder=1
+
     if ((digger || finder)); then
-        ((digger)) && fnd=$(_ze_dig "${fdargs[@]}")
-        ((finder)) && fnd=$(_ze_fzf "$fnd" "$typ")
+        ((digger)) && fnd=$(_ze_dig "$dbmode" "${fdargs[@]}")
+        ((finder)) && fnd=$(_ze_fzf "$fnd" "$typ" "$dbmode")
         [[ $fnd ]] || return
         ((emit)) && { printf '%s\n' "$fnd"; return; }
     fi
 
-    [[ $fnd == "^$PWD " ]] && list=1  # if bare -c with no args, just list
+    [[ $fnd == "^$(_ze_ere_escape "$PWD") " ]] && list=1  # if bare -c with no args, just list
 
-    # in cd mode, delegate to _ze_cd immediately if fnd is a real path, empty, or "-":
-    ((!(list || emit))) && [[ -d ${fnd:-$HOME} || $fnd == "-" ]] && { _ze_cd "${fnd:-$HOME}"; return; }
+    if ((open)); then
+        ((!(list || emit))) && [[ -n $fnd && -f $fnd ]] && { _ze_open "$fnd"; return; }
+    else
+        ((!(list || emit))) && [[ -d ${fnd:-$HOME} || $fnd == "-" ]] && { _ze_cd "${fnd:-$HOME}"; return; }
+    fi
 
     typeset result
-    result=$(_ze_dirs | fnd=$fnd awk -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
+    result=$(_ze_dirs "$dbmode" | fnd=$fnd awk -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
         BEGIN {
             q = ENVIRON["fnd"]
             gsub(" ", ".*", q)
@@ -243,12 +288,15 @@ function _ze {
 
     if ((list || emit)); then
         printf '%s\n' "$result"
+    elif ((open)); then
+        _ze_open "$result"
     else
         _ze_cd "$result"
     fi
 }
 
 function _ze_complete {  ## candidate
+    # NOTE: dirs-only 
     typeset datafile="${_ZE_DIR:-$HOME/.ze}/ze.db"
 
     [[ -s $datafile ]] || return
