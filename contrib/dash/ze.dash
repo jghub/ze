@@ -5,10 +5,19 @@ ze() {
    local _ze_res  # to make 100% POSIX compliant, remove 'local'
    [ "$1" = "-" ] && set -- "${OLDPWD:-$HOME}"
    _ze_res=$(zex.sh "$@") || return
-   cd "$_ze_res" || return
-   (zex.sh --record "$PWD" "$OLDPWD" &)
+   case " $* " in
+       *" -o "*)
+           "${EDITOR:-vi}" "$_ze_res"
+           (zex.sh --record-file "$_ze_res" &)
+           ;;
+       *)
+           cd "$_ze_res" || return
+           (zex.sh --record "$PWD" "$OLDPWD" &)
+           ;;
+   esac
 }
 alias zd='ze -d --'
 alias zf='ze -f'
+alias zo='ze -o'
 alias zl='zex.sh -l'
 alias cd=ze

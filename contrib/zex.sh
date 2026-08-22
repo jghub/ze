@@ -14,6 +14,9 @@ zexdir=${zexpath%/*}  # safe since 'command -v' returns '/' containing pathname 
 if [[ $1 == "--record" ]]; then
     shift
     _ze_record "$@"
+elif [[ $1 == "--record-file" ]]; then
+    shift
+    _ze_record "$@" "" files
 else
     _ze -e "$@"
 fi

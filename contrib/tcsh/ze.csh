@@ -6,3 +6,8 @@ alias zd 'ze -d --'
 alias zf 'ze -f'
 alias zl 'zex.sh -l'
 alias cd ze
+# support for file tracking:
+alias zo  'set _ze_res=`zex.sh -o \!*`; if ($status == 0) vile "$_ze_res"; zex.sh --record-file "$_ze_res"; endif'
+alias zod 'set _ze_res=`zex.sh -od -- \!*`; if ($status == 0) vile "$_ze_res"; zex.sh --record-file "$_ze_res"; endif'
+alias zof 'set _ze_res=`zex.sh -of \!*`; if ($status == 0) vile "$_ze_res"; zex.sh --record-file "$_ze_res"; endif'
+alias zol 'zex.sh -ol'
