@@ -18,9 +18,9 @@ function _ze_init {
     elif [[ ! -d $datadir ]]; then
         mkdir -p "$datadir" || { printf '%s\n' "ze: failed to create $datadir" >&2; return 1; }
     fi
-    typeset datafile name
-    for name in ze.db zef.db; do
-        datafile="$datadir/$name"
+    typeset datafile dbname
+    for dbname in ze.db zef.db; do
+        datafile="$datadir/$dbname"
         if [[ -e "$datafile" && ! -f "$datafile" ]]; then
             printf '%s\n' "ze: $datafile exists and is not a regular file" >&2
             return 1
@@ -120,7 +120,7 @@ function _ze_open {  ## pathname
     if ! command -v "${editor%% *}" >/dev/null 2>&1; then editor='vi'; fi
     
 
-    (_ze_record "$pathname" files &) 2>/dev/null
+    (_ze_record "$pathname" "" files &) 2>/dev/null
     $editor "$pathname"
 }
 
@@ -169,8 +169,9 @@ function _ze_dig { ## (dirs|files) fdopts_and_args
     (($? == 1)) && printf 'no match\n' >&2
 }
 
-function _ze_record { ## pathname [dirs|files] [oldpwd]
-    typeset pathname=${1:-"/"} mode=${2:-dirs} oldpwd=${3:-$OLDPWD}  # 'pathname default="/" safeguards against manual misuse
+function _ze_record { ## pathname [oldpwd] [dirs|files]
+    # preserve the original two-arg (pathname, oldpwd) wrapper contract used by zex.sh
+    typeset pathname=${1:-"/"} oldpwd=${2:-$OLDPWD} mode=${3:-dirs}  # 'pathname default="/" safeguards against manual misuse
     typeset datafile lambda=${_ZE_LAMBDA:-8e-3}
     typeset -a exclude_list
 
@@ -231,7 +232,7 @@ function _ze {
          *) fnd+=${fnd:+ }$1; fdargs+=("$1");;
     esac; (($#)) && shift; done
 
-    ((open)) && [[ ! -f $fnd ]] && ((!(list || emit || digger))) && finder=1
+    #((open)) && [[ ! -f $fnd ]] && ((!(list || emit || digger))) && finder=1
 
     if ((digger || finder)); then
         ((digger)) && fnd=$(_ze_dig "$dbmode" "${fdargs[@]}")
