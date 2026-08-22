@@ -18,9 +18,9 @@ function _ze_init {
     elif [[ ! -d $datadir ]]; then
         mkdir -p "$datadir" || { printf '%s\n' "ze: failed to create $datadir" >&2; return 1; }
     fi
-    typeset datafile dbname
-    for dbname in ze.db zef.db; do
-        datafile="$datadir/$dbname"
+    typeset datafile mode
+    for mode in files dirs; do
+        [[ $mode == files ]] && datafile=$datadir/'zef.db' || datafile=$datadir/'ze.db'
         if [[ -e "$datafile" && ! -f "$datafile" ]]; then
             printf '%s\n' "ze: $datafile exists and is not a regular file" >&2
             return 1
@@ -55,21 +55,29 @@ function _ze_init {
                 }' "$datafile" | LC_ALL=C sort -t'|' -k5,5g -k1,1 | awk -F'|' -v nprune="$nprune" '
                         BEGIN { OFS = FS; OFMT = "%.17g" } NR > nprune { print $1, $2, $3, $4 }' >| "$tempfile"
         )
-        _ze_commit $? "$tempfile" "$datafile"
+        _ze_commit $? "$tempfile" "$mode"
     done
 }
 
-function _ze_commit {  ## rc tempfile datafile
+function _ze_commit {  ## rc tempfile mode(dirs|files)
     (($# == 3)) || return 1                          # safeguard against manual misuse
-    typeset rc=$1 tempfile=$2 datafile=$3
-    [[ $tempfile == "$datafile."* ]] || return 1     # safeguard against manual misuse
+    typeset tempfile=$2 mode=$3
+    case $1 in
+        ''|*[!0-9]*) return 1;;                      # safeguard against manual misuse (rc must be numeric)
+    esac
+    typeset -i rc=$1
+    typeset datafile
+    case $mode in
+        dirs)  datafile="${_ZE_DIR:-$HOME/.ze}/ze.db";;
+        files) datafile="${_ZE_DIR:-$HOME/.ze}/zef.db";;
+        *) return 1;;    # this function overwrites a datafile, so an unrecognized mode is treated as error
+    esac
+    [[ $tempfile == "$datafile."* ]] || return 1      # safeguard against manual misuse
+    ((rc == 0)) || { \rm -f "$tempfile"; return 1; }
+
     # do our best to avoid clobbering the datafile in a race condition.
-    if ((rc == 0)); then
-        [[ ${_ZE_OWNER:-} ]] && chown "$_ZE_OWNER":"$(id -ng "$_ZE_OWNER")" "$tempfile"
-        \mv -f "$tempfile" "$datafile" || \rm -f "$tempfile"
-    else
-        \rm -f "$tempfile"
-    fi
+    [[ ${_ZE_OWNER:-} ]] && chown "$_ZE_OWNER":"$(id -ng "$_ZE_OWNER")" "$tempfile"
+    \mv -f "$tempfile" "$datafile" || \rm -f "$tempfile"
 }
 
 if ! _ze_init; then
@@ -83,7 +91,7 @@ function _ze_ere_escape { printf '%s\n' "$1" | sed 's/[].^$*+?(){}|\]/\\&/g'; }
 function _ze_dirs {  ## [dirs|files]
     typeset mode=${1:-dirs}
     typeset datafile="${_ZE_DIR:-$HOME/.ze}"
-    [[ $mode == files ]] && datafile+='/zef.db' || datafile+='/ze.db' 
+    [[ $mode == files ]] && datafile+='/zef.db' || datafile+='/ze.db'
     typeset -a lines
     typeset pathname remains ifs='|'
     while IFS=$ifs read -r pathname remains; do
@@ -118,7 +126,6 @@ function _ze_open {  ## pathname
 
     typeset editor=${VISUAL:-${EDITOR:-nano}}
     if ! command -v "${editor%% *}" >/dev/null 2>&1; then editor='vi'; fi
-    
 
     (_ze_record "$pathname" "" files &) 2>/dev/null
     $editor "$pathname"
@@ -126,7 +133,7 @@ function _ze_open {  ## pathname
 
 function _ze_fzf { ## pattern typ [dirs|files]
     command -v fzf >/dev/null || { printf '%s\n' "'fzf' not found" >&2; return 1; }
-    typeset metric header opt='' mode=${3:-dirs} preview='pathname={2..}' 
+    typeset metric header opt='' mode=${3:-dirs} preview='pathname={2..}'
     typeset -a fzfopts
     case $2 in
         visits) metric='visit count'; opt='-r';;
@@ -134,11 +141,10 @@ function _ze_fzf { ## pattern typ [dirs|files]
         *)      metric='EMS score';;
     esac
     case $mode in
-        dirs)  preview+='; LC_ALL=C ls -AC --color=always "$pathname"';;
         files) preview+='; head -2000 -- "$pathname"'; opt+=' -o';;
-        *) printf '%s\n' "_ze_fzf: unexpected" 1>&2; return 1;;
+        *)     preview+='; LC_ALL=C ls -AC --color=always "$pathname"';;
     esac
-   
+
     header="${mode%s} stack (ranked by $metric)"
     fzfopts=( -0 -e --no-sort --preview-window='top,19%' --header="$header" --color='header:bright-red' --preview "$preview" )
     # shellcheck disable=SC2086 # word splitting of $opt intentional
@@ -157,14 +163,17 @@ function _ze_dig { ## (dirs|files) fdopts_and_args
     else
         printf '%s\n' "'fd' not found" >&2; return 1
     fi
-    typeset fdtype=d
-    [[ $mode == files ]] && fdtype=f
+    typeset fdtype=d preview='pathname={2..}'
+    case $mode in
+        files) fdtype=f; preview+='; head -2000 -- "$pathname"';;
+        *)     preview+='; LC_ALL=C ls -AC --color=always "$pathname"';;
+    esac
     typeset -a fdargs; fdargs=( -Ipa -t"$fdtype" "$@")  # avoid 'typeset -a x=(...)' because of mksh
     # shellcheck disable=SC2124 # this scalar assignment ensures join by single space independent of IFS
     typeset argstring="${fdargs[@]}"
     typeset -a fzfopts
     fzfopts=( -0 -e --no-sort --preview-window='top,19%' --header="$fdex $argstring" --color='header:bright-red'
-        --preview pathname='{2..}; LC_ALL=C ls -AC --color=always "$pathname"' )
+        --preview "$preview" )
     (set -o pipefail; $fdex "${fdargs[@]}" | LC_ALL=C sort | nl | fzf "${fzfopts[@]}" | cut -f2)
     (($? == 1)) && printf 'no match\n' >&2
 }
@@ -176,9 +185,11 @@ function _ze_record { ## pathname [oldpwd] [dirs|files]
     typeset -a exclude_list
 
     if [[ $mode == files ]]; then
+        [[ -f $pathname ]] || return 1
         datafile="${_ZE_DIR:-$HOME/.ze}/zef.db"
         [[ ${_ZE_EXCLUDE_FILES[*]+x} ]] && exclude_list=("${_ZE_EXCLUDE_FILES[@]}")  # avoid unset-array expansion under 'set -u'
     else
+        [[ -d $pathname ]] || return 1
         datafile="${_ZE_DIR:-$HOME/.ze}/ze.db"
         # navigation to $HOME, $oldpwd, or "/" aren't worth recording
         [[ $pathname == "$HOME" || $pathname == "$oldpwd" || $pathname == "/" ]] && return
@@ -205,7 +216,7 @@ function _ze_record { ## pathname [oldpwd] [dirs|files]
         }
         END { print pathname, visits + 1, tmax + 1, score * exp(-lambda * (tmax + 1 - ticks)) + 1 }
     ' "$datafile" 2>/dev/null >| "$tempfile"
-    _ze_commit $? "$tempfile" "$datafile"
+    _ze_commit $? "$tempfile" "$mode"
 }
 
 function _ze {
@@ -298,7 +309,7 @@ function _ze {
 }
 
 function _ze_complete {  ## candidate
-    # NOTE: dirs-only 
+    # NOTE: dirs-only
     typeset datafile="${_ZE_DIR:-$HOME/.ze}/ze.db"
 
     [[ -s $datafile ]] || return
