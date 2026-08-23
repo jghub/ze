@@ -92,7 +92,7 @@ function _ze_dirs {  ## [dirs|files]
     typeset mode=${1:-dirs}
     typeset datafile="${_ZE_DIR:-$HOME/.ze}"
     [[ $mode == files ]] && datafile+='/zef.db' || datafile+='/ze.db'
-    typeset -a lines
+    typeset -a lines; lines=()
     typeset pathname remains ifs='|'
     while IFS=$ifs read -r pathname remains; do
         if [[ $mode == files ]]; then
@@ -168,7 +168,7 @@ function _ze_dig { ## (dirs|files) fdopts_and_args
         files) fdtype=f; preview+='; head -2000 -- "$pathname"';;
         *)     preview+='; LC_ALL=C ls -AC --color=always "$pathname"';;
     esac
-    typeset -a fdargs; fdargs=( -Ipa -t"$fdtype" "$@")  # avoid 'typeset -a x=(...)' because of mksh
+    typeset -a fdargs; fdargs=( -Ipa -t"$fdtype" "$@")
     # shellcheck disable=SC2124 # this scalar assignment ensures join by single space independent of IFS
     typeset argstring="${fdargs[@]}"
     typeset -a fzfopts
@@ -179,10 +179,10 @@ function _ze_dig { ## (dirs|files) fdopts_and_args
 }
 
 function _ze_record { ## pathname [oldpwd] [dirs|files]
-    # preserve the original two-arg (pathname, oldpwd) wrapper contract used by zex.sh
-    typeset pathname=${1:-"/"} oldpwd=${2:-$OLDPWD} mode=${3:-dirs}  # 'pathname default="/" safeguards against manual misuse
+    # preserve the original two-arg (pathname, oldpwd) interface used by zex.sh
+    typeset pathname=${1:-"/"} oldpwd=${2:-${OLDPWD:-}} mode=${3:-dirs}  # 'pathname default="/" safeguards against manual misuse
     typeset datafile lambda=${_ZE_LAMBDA:-8e-3}
-    typeset -a exclude_list
+    typeset -a exclude_list; exclude_list=()
 
     if [[ $mode == files ]]; then
         [[ -f $pathname ]] || return 1
