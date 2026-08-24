@@ -1,12 +1,14 @@
 .TH ZE 1 "August 2026" ze.sh "User Commands"
 .
 .SH NAME
-ze \- pattern-based navigation of a dynamically ranked directory stack
+.
+ze - pattern-based navigation of a dynamically ranked directory stack
 .
 .SH SYNOPSIS
 .SY ze
+.OP  \-o
 .OP  \-cefhlrt
-.RI [ pattern | pathname | \- ]
+.RI [ pattern | pathname | - ]
 .
 .SH AVAILABILITY
 bash, zsh, ksh93, mksh, fish
@@ -46,7 +48,7 @@ to discover directories not yet recorded in
 database. The directory to which to navigate is selected with
 .B fzf
 and recorded in the database. Note that
-.BI ze " -d
+.BI ze " \-d
 uses
 .BR fd 's
 native query language. In particular, quoted blanks remain literal, unlike
@@ -67,6 +69,12 @@ Show a brief help message.
 .B \-l
 List all matching directories by score.
 .TP
+.B \-o
+Use the file database instead of the directory database. This mode tracks
+text files rather than directories; selecting a file opens it in the editor.
+The directory and file tracking modes use separate databases and do not affect
+each other.
+.TP
 .B \-r
 Sort matches by visit count.
 .TP
@@ -78,7 +86,7 @@ Sort matches by recency of last visit.
 .B ze
 Change to \fI$HOME\fP.
 .TP
-.BI "ze " \-
+.BI "ze " -
 Change to the previous directory.
 .TP
 .BI "ze " foo
@@ -103,6 +111,9 @@ Change to the highest-scoring subdirectory of \fI$PWD\fP matching
 List all directories matching \fIfoo\fP, sorted by score. Without
 argument, show full stack.
 .TP
+.BI "ze \-o " foo
+Open the highest-scoring text file matching \fIfoo\fP.
+.TP
 .BI "ze \-r " foo
 Change to the most frequently visited directory matching
 \fIfoo\fP.
@@ -125,11 +136,11 @@ for directories matching the \fBfd\fP pattern \fIfoo\fP. Bare
 .B "ze \-d
 searches for all directories. Options can be passed to \fBfd\fP by specifying
 the end of options marker of \fBze\fP, e.g.:
-.BI "ze \-d" " -- -d3"
+.BI "ze \-d" " -- \-d3"
 to constrain the search depth to 3 levels. To search for all directories
 in a path other than $PWD, use
-.BI "ze -d" " . /path/to/root
-or \fBze -d \fI'' /path/to/root\fR.
+.BI "ze \-d" " . /path/to/root
+or \fBze \-d \fI'' /path/to/root\fR.
 .
 .SH INSTALLATION
 .P
@@ -137,6 +148,8 @@ For native use,
 put the following in your shell rc file (\fI.bashrc\fP, \fI.kshrc\fP, etc.):
 .IP
 source /path/to/ze.sh
+.P
+\fBzsh\fP users have to declare \fBset -o POSIX_BUILTINS\fP in their rc file.
 .P
 Optionally, to track ordinary \fBcd\fP commands while retaining native \fBcd\fP
 semantics:
@@ -151,9 +164,9 @@ For
 install ze.sh, zex.sh, and the wrapper functions in suitable locations, e.g.
 .LP
 .EX
-    cp ze.sh zex.sh ~/bin   # or any other directory on your $PATH
-    chmod +x ~/bin/zex.sh
-    cp contrib/fish/ze.fish contrib/fish/_ze_cd.fish ~/.config/fish/functions/
+cp ze.sh zex.sh ~/bin   # or any other directory on your $PATH
+chmod +x ~/bin/zex.sh
+cp contrib/fish/ze.fish contrib/fish/_ze_cd.fish ~/.config/fish/functions/
 .EE
 .LP
 Note that ze.sh and zex.sh need to reside in the same directory.
@@ -187,6 +200,12 @@ time. The decay rate is controlled by \fB_ZE_LAMBDA\fP (default: \fB8e-3\fP).
 .B tracking
 \fBze.sh\fP only tracks explicit \fBze\fP-based directory changes
 (or bare \fBcd\fP if aliased to \fB_ze_cd\fP). It does not use precommand hooks.
+.P
+With \fB\-o\fP, \fBze.sh\fP uses a separate database for file tracking. File
+selection opens the selected file in the editor rather than changing directory.
+The two modes are independent: file tracking does not affect the directory
+database, and directory tracking does not affect the file database. File
+tracking is intended for text-only files.
 .
 .SH DATABASE
 .P
@@ -207,6 +226,8 @@ Global cumulative \fBcd\fP event count at time of last visit.
 .TP
 \fIscore\fP
 Exponentially decayed cumulative visit score as of the last visit.
+.P
+The file database used by \fB\-o\fP is separate from the directory database.
 .
 .SH CONFIGURATION
 .P
@@ -253,26 +274,26 @@ for use with \fBze.sh\fP:
 .EX
 mkdir -p ~/.ze
 sort -t'|' -k3,3n ~/.z | awk -F'|' '
-    BEGIN { OFS = FS; lambda = 8e-3 }
-    {
-        visits = $2
-        ticks += visits
-        if (visits == 1) {
-            score = 1
-        } else {
-            step = ticks/visits
-            decay_step = exp(-lambda * step)
-            decay_full = exp(-lambda * ticks)
-            score = (1 - decay_full)/(1 - decay_step)
-        }
-        print $1, visits, ticks, score
-    }' > ~/.ze/ze.db
+BEGIN { OFS = FS; lambda = 8e-3 }
+{
+visits = $2
+ticks += visits
+if (visits == 1) {
+score = 1
+} else {
+step = ticks/visits
+decay_step = exp(-lambda * step)
+decay_full = exp(-lambda * ticks)
+score = (1 - decay_full)/(1 - decay_step)
+}
+print $1, visits, ticks, score
+}' > ~/.ze/ze.db
 .EE
 .P
 .
 .SH FILES
 .P
-\fB~/.ze/ze.db\fP \- Default database file.
+\fB~/.ze/ze.db\fP - Default database file.
 .
 .SH ENVIRONMENT
 .P
@@ -285,7 +306,7 @@ Main function, aliased to the command name specified by \fB_ZE_CMD\fP (default: 
 \fB_ze_cd\fP
 cd wrapper. Alias \fBcd\fP to this function to track ordinary cd commands.
 .TP
-\fB_ze_commit\fP, \fB_ze_complete\fP, \fB_ze_dig\fP, \fB_ze_dirs\fP, \fB_ze_fzf\fP, \fB_ze_record\fP
+\fB_ze_commit\fP, \fB_ze_complete\fP, \fB_ze_dig\fP, \fB_ze_dirs\fP, \fB_ze_ere_escape\fI, \fB_ze_fzf\fP, \fB_ze_open\fI, \fB_ze_record\fP
 Internal functions, not intended for direct use.
 .
 .SH SEE ALSO

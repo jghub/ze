@@ -1,13 +1,14 @@
 # ze.sh
 
-ze.sh is a shell-native directory jumper for `bash`, `zsh`, `ksh93`, and `mksh` (e.g.
-Termux/Android). ze.sh originated as a fork of [z.sh](https://github.com/rupa/z)
-but has been substantially rewritten. The interface and the cd-driven database
-update model remain z.sh-like while the scoring model, internal structure, and
-shell compatibility approach are independent reimplementations. ze.sh replaces
-z.sh's frecency heuristic with an exponential moving sum (EMS) scoring model and
-includes numerous behavioral improvements (see [list of changes](#changes-from-zsh)).
-`fish` is supported via a lightweight wrapper around the native implementation.
+ze.sh is a shell-native directory jumper and file tracker for `bash`, `zsh`,
+`ksh93`, and `mksh` (e.g. Termux/Android). ze.sh originated as a fork of
+[z.sh](https://github.com/rupa/z) but has since been substantially rewritten. The
+interface and the cd-driven directory-tracking model remain z.sh-like while the
+scoring model, internal structure, and shell compatibility approach are
+independent reimplementations. ze.sh replaces z.sh's frecency heuristic with an
+exponential moving sum (EMS) scoring model and includes numerous behavioral
+improvements (see [list of changes](#changes-from-zsh)). `fish` is supported via
+a lightweight wrapper around the native implementation.
 
 ## Installation
 
@@ -16,6 +17,8 @@ For native use with `bash`, `zsh`, `ksh`, and `mksh`, source from your shell rc 
 ```sh
 source /path/to/ze.sh
 ```
+
+`zsh` users have to declare `set -o POSIX_BUILTINS` in their rc file.
 
 **Important**: ze.sh is designed to use `ze` for all navigation, including
 pathname-based directory changes. Ordinary `cd` commands are not tracked by
@@ -31,9 +34,11 @@ on every `cd` invocation, use `_ZE_CMD=cd` (see Configuration).
 
 For `fish`, install ze.sh, zex.sh, and the wrapper functions:
 
-    cp ze.sh zex.sh ~/bin   # or any directory on $PATH. 
-    chmod +x ~/bin/zex.sh
-    cp contrib/fish/ze.fish contrib/fish/_ze_cd.fish ~/.config/fish/functions/
+```
+cp ze.sh zex.sh ~/bin   # or any directory on $PATH. 
+chmod +x ~/bin/zex.sh
+cp contrib/fish/ze.fish contrib/fish/_ze_cd.fish ~/.config/fish/functions/
+```
 
 `zex.sh` is the generic backend driver used by all wrappers, defaulting to `bash`
 for execution. Changing the shebang to `ksh` (`#!/usr/bin/env ksh`) reduces
@@ -55,11 +60,11 @@ ze.sh departs from z.sh in three fundamental ways:
 **Event clock**: z.sh couples score decay to wall-clock time. This causes a
 well-known failure mode: after any extended period of inactivity, all scores decay
 toward zero, and the first directories visited on return immediately dominate the
-ranking regardless of prior history. The underlying issue is that elapsed
-wall-clock time during shell inactivity carries no information about directory
-relevance. ze.sh replaces wall-clock time with an event clock: each cd action
-advances the clock by one tick. The clock stands still during inactive periods
-and no score decay occurs during such periods.
+ranking regardless of prior history. The underlying issue is that elapsed wall-clock
+time during shell inactivity carries no information about directory relevance. ze.sh
+replaces wall-clock time with an event clock: each cd action advances the clock by one
+tick. The clock stands still during inactive periods and no score decay occurs during
+such periods.
 
 **Scoring**: z.sh's scoring heuristic multiplies a cumulative visit count by a
 recency factor derived from the most recent visit timestamp. This can produce
@@ -74,10 +79,10 @@ to a binary directory-visit event stream). The decay rate is controlled by
 
 **Tracking**: z.sh requires shell precommand hooks (`PROMPT_COMMAND` in bash,
 `precmd` in zsh) that fire on every command, updating the score of whichever
-directory the shell is currently in. This means _any_ command executed in
+directory the shell is currently in. This means *any* command executed in
 directory A increases that directory's score. For a directory jumper, using
-command activity _within_ a directory as a measure of how often a user might want
-to _reach_ that directory (so that it should be scored highly) seems inferior to
+command activity *within* a directory as a measure of how often a user might want
+to *reach* that directory (so that it should be scored highly) seems inferior to
 monitoring only cd activity. Therefore, ze.sh removes the hooks entirely. Only
 explicit `ze`-based directory changes (or bare `cd` if aliased to `_ze_cd`)
 trigger database updates.
@@ -88,7 +93,7 @@ compatibility requirement — all target shells support `[` — but `[[` is a sh
 keyword with cleaner semantics: no word splitting on unquoted variables,
 unambiguous `&&`/`||` operators, and pattern matching support. In ze.sh, the
 `function f { ... }` definition style is used throughout instead of POSIX-style
-`f() { ... }` — in ksh93 and mksh, `typeset` variables are only locally scoped
+`f() { }` — in ksh93 and mksh, `typeset` variables are only locally scoped
 inside functions defined with the `function` keyword, whereas POSIX style
 functions do not provide local scoping in these shells. For historical reasons,
 z.sh used `[` and `f() { }` but was never actually POSIX-compatible
@@ -103,57 +108,83 @@ The database at `~/.ze/ze.db` is a plain text file with one entry per line:
 path|visits|ticks|score
 ```
 
-| Field | Meaning |
-|-------|---------|
-| `path` | absolute directory path *(1)* |
-| `visits` | cumulative visit count for this entry, incremented on each visit |
-| `ticks` | global cumulative cd event count at time of last visit, used for score computation at query time and `-t` (recent) mode |
-| `score` | exponentially decayed cumulative visit score as of the last visit |
+| Field    | Meaning                                                                                                                 |
+| -------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `path`   | absolute directory path *(1)*                                                                                           |
+| `visits` | cumulative visit count for this entry, incremented on each visit                                                        |
+| `ticks`  | global cumulative cd event count at time of last visit, used for score computation at query time and `-t` (recent) mode |
+| `score`  | exponentially decayed cumulative visit score as of the last visit                                                       |
 
 *(1)*: ze.sh retains entries for directories that no longer exist (e.g. unmounted
 filesystems) and filters them at match time rather than pruning them on update.
 
-## Usage
+Directory and file tracking use separate databases. File tracking does not affect
+the directory database, and directory tracking does not affect the file database.
+
+## Directory tracking and navigation
+
+### Usage
 
 ```
 ze [-cdefhlrt] [pattern|path|-]
 ```
 
-| Invocation      | Behavior                                |
-|-----------------|-----------------------------------------|
-| `ze`            | cd to $HOME                             |
-| `ze -`          | cd to previous directory                |
-| `ze path`       | cd to path directly (real path wins)    |
-| `ze pattern`    | cd to highest scoring match for pattern |
-| `ze -c pattern` | restrict matches to subdirs of $PWD     |
-| `ze -d [-- fdopts] [pattern [path]]`| discover and jump via fd+fzf, register in database |
-| `ze -e pattern` | print highest scoring match instead of cd|
-| `ze -f pattern` | use fzf for interactive selection       |
-| `ze -l pattern` | list matches sorted by current score |
-| `ze [-cefl] -r pattern` | sort matches by visit count instead of score|
-| `ze [-cefl] -t pattern` | sort matches by recency of last visit instead of score|
+| Invocation                           | Behavior                                               |
+| ------------------------------------ | ------------------------------------------------------ |
+| `ze`                                 | cd to $HOME                                            |
+| `ze -`                               | cd to previous directory                               |
+| `ze path`                            | cd to path directly (real path wins)                   |
+| `ze pattern`                         | cd to highest scoring match for pattern                |
+| `ze -c pattern`                      | restrict matches to subdirs of $PWD                    |
+| `ze -d [-- fdopts] [pattern [path]]` | discover and jump via fd+fzf, register in database     |
+| `ze -e pattern`                      | print highest scoring match instead of cd              |
+| `ze -f pattern`                      | use fzf for interactive selection                      |
+| `ze -l pattern`                      | list matches sorted by current score                   |
+| `ze [-cefl] -r pattern`              | sort matches by visit count instead of score           |
+| `ze [-cefl] -t pattern`              | sort matches by recency of last visit instead of score |
+
+## File tracking (`-o`)
+
+`ze -o` provides a separate file-tracking and file-selection mode. It uses the
+same shell-native implementation, database infrastructure, scoring model, and
+selection UI as directory tracking, but maintains a separate file database.
+
+In directory mode, selecting a directory changes to that directory. In file mode,
+selecting a file opens it in the configured editor (this also applies to files
+selected via `ze -od`).
+
+The separate file-tracking mode was prompted by
+[lazy](https://github.com/elseawhy/lazy). Its implementation in ze.sh is
+independent and shares the existing ze scoring and selection infrastructure.
+
+The two modes are independent: file tracking does not affect the directory
+database, and directory tracking does not affect the file database.
+
+The selection and ranking options `-f`, `-l`, `-r`, and `-t` have the same general
+meaning as in directory mode, but operate on the file database when combined with
+`-o`.
 
 ## Changes from z.sh
 
-| Area             | z.sh                                          | ze.sh                                          |
-|------------------|-----------------------------------------------|------------------------------------------------|
-| Tracking         | precommand hook fires on every command        | tracks explicit cd navigation (`ze`, optionally aliased `cd`)|
-| Scoring          | frecency heuristic with common-prefix override *(1)* | exponential moving sum on event clock, no common-prefix override |
-| Path dispatch    | no pathname check, categorical pattern matching *(2)* | real paths take precedence over pattern matching |
-| Bare call        | lists database                                | follows builtin cd semantics: cd to $HOME      |
-| `-` argument     | not handled, lists database                   | follows builtin cd semantics: cd to previous directory |
-| Stale db entries | pruned on next cd action                      | retained in db, filtered at match time *(3)*         |
-| `-x` option      | deletes current dir from database             | removed *(4)* |
-| `-l` option      | output to stderr, not pipeable                | output to stdout, pipeable to pager etc.       |
-| Database         | single flat file `~/.z`                       | directory `~/.ze/`, database `~/.ze/ze.db`     |
-| Shell compat     | bash/zsh only                                 | bash/zsh/ksh93/mksh (native), fish (wrapper)   |
-| Init             | minimal, no safety checks                     | validates db path, ownership, file type        |
-| Concurrency      | tempfile-name collisions may cause db corruption | `mktemp(1)` eliminates tempfile-name collisions, concurrent updates remain "last writer wins" |
-| Pattern matching | case-sensitive with case-insensitive fallback | smartcase: case-insensitive except when pattern contains uppercase |
-| Symlinks         | resolved to physical paths by default         | logical paths are honoured by default *(5)*  |
-| Unknown options  | not handled, lists database                   | silently stripped from option string before execution |
-| `-f` option      | not available                                 | interactive fzf selector (if fzf installed)    |
-| `-d` option      | not available                                 | discover and jump to directory via `fd`+`fzf`, registering it in the database (*6*) |
+| Area             | z.sh                                                  | ze.sh                                                                                |
+| ---------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------|
+| Tracking         | precommand hook fires on every command                | tracks explicit cd navigation (`ze`, optionally aliased `cd`)                        |
+| Scoring          | frecency heuristic with common-prefix override *(1)*  | exponential moving sum on event clock, no common-prefix override                     |
+| Path dispatch    | no pathname check, categorical pattern matching *(2)* | real paths take precedence over pattern matching                                     |
+| Bare call        | lists database                                        | follows builtin cd semantics: cd to $HOME                                            |
+| `-` argument     | not handled, lists database                           | follows builtin cd semantics: cd to previous directory                               |
+| Stale db entries | pruned on next cd action                              | retained in db, filtered at match time *(3)*                                         |
+| `-x` option      | deletes current dir from database                     | removed *(4)*                                                                        |
+| `-l` option      | output to stderr, not pipeable                        | output to stdout, pipeable to pager etc.                                             |
+| Database         | single flat file `~/.z`                               | directory `~/.ze/`, database `~/.ze/ze.db`                                           |
+| Shell compat     | bash/zsh only                                         | bash/zsh/ksh93/mksh (native), fish (wrapper)                                         |
+| Init             | minimal, no safety checks                             | validates db path, ownership, file type                                              |
+| Concurrency      | tempfile-name collisions may cause db corruption      | `mktemp(1)` eliminates name collisions, concurrent updates remain "last writer wins" |
+| Pattern matching | case-sensitive with case-insensitive fallback         | smartcase: case-insensitive except when pattern contains uppercase                   |
+| Symlinks         | resolved to physical paths by default                 | logical paths are honoured by default *(5)*                                          |
+| Unknown options  | not handled, lists database                           | silently stripped from option string before execution                                |
+| `-f` option      | not available                                         | interactive fzf selector (if fzf installed)                                          |
+| `-d` option      | not available                                         | discover and jump to directory via `fd`+`fzf`, registering it in the database (*6*)  |
 
 *(1)*: The common-prefix heuristic of z.sh overrides the highest-scoring match in
 favor of a shorter path when all matches share a common prefix. With a
@@ -193,16 +224,15 @@ jumping.
 
 ## Configuration
 
-| Variable                   | Default  | Meaning                             |
-|----------------------------|----------|-------------------------------------|
-| `_ZE_CMD`                  | `ze`     | command name *(1)*                  |
-| `_ZE_DIR`                  | `~/.ze`  | database directory                  |
-| `_ZE_LAMBDA`               | `8e-3`   | decay constant (units: 1/cd-action) |
-| `_ZE_DBMAX`                | `512`    | db size limit (pruning threshold)   |
-| `_ZE_OWNER`                | unset    | allow use on shared db              |
-| `_ZE_RESOLVE_SYMLINKS`     | unset    | resolve symlinks on cd              |
-| `_ZE_EXCLUDE_DIRS`         | unset    | array of directory trees to exclude |
-
+| Variable               | Default | Meaning                             |
+| ---------------------- | ------- | ----------------------------------- |
+| `_ZE_CMD`              | `ze`    | command name *(1)*                  |
+| `_ZE_DIR`              | `~/.ze` | database directory                  |
+| `_ZE_LAMBDA`           | `8e-3`  | decay constant (units: 1/cd-action) |
+| `_ZE_DBMAX`            | `512`   | db size limit (pruning threshold)   |
+| `_ZE_OWNER`            | unset   | allow use on shared db              |
+| `_ZE_RESOLVE_SYMLINKS` | unset   | resolve symlinks on cd              |
+| `_ZE_EXCLUDE_DIRS`     | unset   | array of directory trees to exclude |
 
 *(1)*: Must be set before sourcing ze.sh so that tab completion is registered
 under the chosen name. For example, `_ZE_CMD=myze` makes `myze` the command name
@@ -215,7 +245,7 @@ are tried as patterns against the database rather than producing an error.
 
 If [fzf](https://github.com/junegunn/fzf) is installed, `ze -f [pattern]` opens
 an interactive selector showing all matching directories ranked by score,
-best match at top. Select by pathname pattern or by entry number.
+best match at top. With `-o`, the selector operates on matching files instead.
 
 ```sh
 ze -f        # interactive selection from all tracked directories
@@ -265,6 +295,7 @@ sort -t'|' -k3,3n ~/.z | awk -F'|' '
         print $1, visits, ticks, score
     }' > ~/.ze/ze.db
 ```
+
 This maps z.sh's three-column format to ze.sh's four-column format. Entries are
 sorted by their original timestamp and assigned global cumulative visit counts as
 tick values accordingly. The score approximation assumes all visits were
@@ -293,9 +324,9 @@ on the most recent visit which can produce undesirable ranking — a long-unvisi
 directory with a large historical visit count can acquire a disproportionately
 high rank on first revisit if its historical visit count is large.
 
-ze.sh occupies a specific niche: minimal (≈240 LOC), single file, shell-native
-support of `bash/zsh/ksh93/mksh`, with optional wrappers for `fish`, `tcsh`,
-and `dash` in `contrib/`. The exponential moving sum scoring on an event clock
+ze.sh occupies a specific niche: a small, single-file, shell-native directory
+jumper and file tracker for bash/zsh/ksh93/mksh, with optional wrappers for fish,
+tcsh, and dash in contrib/. The exponential moving sum scoring on an event clock
 is comparable to SD's approach for a fixed decay parameter. However, only SD
 provides the ability to modify the decay parameter at any time and to fully
 reconstruct the corresponding scores from scratch.

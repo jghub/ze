@@ -237,7 +237,7 @@ function _ze_record { ## pathname [oldpwd] [dirs|files]
 function _ze {
     typeset lambda=${_ZE_LAMBDA:-8e-3}
 
-    typeset fnd='' opt='' typ='' dbmode=dirs
+    typeset fnd='' opt='' typ='' mode=dirs
     typeset -i list=0 finder=0 digger=0 emit=0 open=0
     typeset -a fdargs
     while (($#)); do case "$1" in
@@ -250,7 +250,7 @@ function _ze {
                 f) finder=1;;
                 h) printf '%s\n' "${_ZE_CMD:-ze} [-cdefhlorst] args" >&2; return;;
                 l) list=1;;
-                o) open=1; dbmode=files;;
+                o) open=1; mode=files;;
                 r) typ="visits";;
                 t) typ="recent";;
                 *) ;;   # silently ignore unrecognized options
@@ -261,8 +261,8 @@ function _ze {
     #((open)) && [[ ! -f $fnd ]] && ((!(list || emit || digger))) && finder=1
 
     if ((digger || finder)); then
-        ((digger)) && fnd=$(_ze_dig "$dbmode" "${fdargs[@]}")
-        ((finder)) && fnd=$(_ze_fzf "$fnd" "$typ" "$dbmode")
+        ((digger)) && fnd=$(_ze_dig "$mode" "${fdargs[@]}")
+        ((finder)) && fnd=$(_ze_fzf "$fnd" "$typ" "$mode")
         [[ $fnd ]] || return
         ((emit)) && { printf '%s\n' "$fnd"; return; }
     fi
@@ -276,7 +276,7 @@ function _ze {
     fi
 
     typeset result
-    result=$(_ze_dirs "$dbmode" | fnd=$fnd awk -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
+    result=$(_ze_dirs "$mode" | fnd=$fnd awk -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
         BEGIN {
             q = ENVIRON["fnd"]
             gsub(" ", ".*", q)
