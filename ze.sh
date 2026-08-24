@@ -124,10 +124,16 @@ function _ze_open {  ## pathname
     [[ -f $pathname ]] || { printf '%s\n' "ze: not a regular file: $pathname" >&2; return 1; }
     pathname=$(command realpath "$pathname" 2>/dev/null) || { printf '%s\n' "ze: could not resolve path: $pathname" >&2; return 1; }
 
+    typeset mimetype
+    mimetype=$(command file -b --mime-type -- "$pathname" 2>/dev/null)
+    case $mimetype in
+        text/*|inode/x-empty|application/json|application/xml|application/javascript);;
+        *) printf '%s\n' "ze: refusing to open '$pathname': not a text file ($mimetype)" >&2; return 1;;
+    esac
+    (_ze_record "$pathname" "" files &) 2>/dev/null
+
     typeset editor=${VISUAL:-${EDITOR:-nano}}
     if ! command -v "${editor%% *}" >/dev/null 2>&1; then editor='vi'; fi
-
-    (_ze_record "$pathname" "" files &) 2>/dev/null
     $editor "$pathname"
 }
 
@@ -164,13 +170,22 @@ function _ze_dig { ## (dirs|files) fdopts_and_args
         printf '%s\n' "'fd' not found" >&2; return 1
     fi
     typeset fdtype=d preview='pathname={2..}'
+    typeset -a fdargs; fdargs=(-Ipa)
+    typeset -a fdskip; fdskip=()
     case $mode in
-        files) fdtype=f; preview+='; head -2000 -- "$pathname"';;
-        *)     preview+='; LC_ALL=C ls -AC --color=always "$pathname"';;
+        files) typeset ext
+               typeset -a block
+               block=(png jpg JPG jpeg heic HEIC gif bmp ico webp pdf zip tar gz bz2 xz 7z rar mp3 mp4 mkv avi mov wav flac
+                      woff woff2 ttf otf eot so o a dylib dll exe class pyc pyo jar war)
+               for ext in "${block[@]}"; do fdskip+=(-E "*.$ext"); done
+               fdtype=f
+               preview+='; head -256 -- "$pathname"';;
+        *) preview+='; LC_ALL=C ls -AC --color=always "$pathname"';;
     esac
-    typeset -a fdargs; fdargs=( -Ipa -t"$fdtype" "$@")
+    fdargs+=(-t"$fdtype")
     # shellcheck disable=SC2124 # this scalar assignment ensures join by single space independent of IFS
-    typeset argstring="${fdargs[@]}"
+    typeset argstring="${fdargs[@]} $@"  # don't pollute the header with the looong fdskip list
+    fdargs+=("${fdskip[@]}" "$@")
     typeset -a fzfopts
     fzfopts=( -0 -e --no-sort --preview-window='top,19%' --header="$fdex $argstring" --color='header:bright-red'
         --preview "$preview" )
