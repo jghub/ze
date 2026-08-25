@@ -203,7 +203,7 @@ function _ze {
         ((emit)) && { printf '%s\n' "$fnd"; return; }
     fi
 
-    [[ $fnd == "^$(_ze_ere_escape "$PWD") " ]] && list=1  # if bare -c with no args, just list
+    [[ $fnd == "^$PWD " ]] && list=1  # if bare -c with no args, just list
 
     # in cd mode, delegate to _ze_cd immediately if fnd is a real path, empty, or "-":
     ((!(list || emit))) && [[ -d ${fnd:-$HOME} || $fnd == "-" ]] && { _ze_cd "${fnd:-$HOME}"; return; }
