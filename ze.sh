@@ -86,6 +86,8 @@ if ! _ze_init; then
 fi
 unset -f _ze_init
 
+# shellcheck disable=SC2015 # the A && B || C construct is not problematic here (function definition will never return error in B)
+# shellcheck disable=SC2164 # false positive in this context
 [[ ${ZSH_VERSION:-} ]] && function _ze_builtin_cd { builtin cd "$@"; } || function _ze_builtin_cd { command cd "$@"; }
 
 function _ze_ere_escape { printf '%s\n' "$1" | sed 's/[].^$*+?(){}|\]/\\&/g'; }
