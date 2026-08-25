@@ -1,4 +1,4 @@
-# ze.sh -- a frecency-based directory jumper
+# ze.sh -- a frecency-based directory jumper and file tracker
 # Originally derived from z.sh: https://github.com/rupa/z
 # Repository: https://github.com/jghub/ze
 #
@@ -261,8 +261,6 @@ function _ze {
             esac; opt=${opt:1}; done;;
          *) fnd+=${fnd:+ }$1; fdargs+=("$1");;
     esac; (($#)) && shift; done
-
-    #((open)) && [[ ! -f $fnd ]] && ((!(list || emit || digger))) && finder=1
 
     if ((digger || finder)); then
         ((digger)) && fnd=$(_ze_dig "$mode" "${fdargs[@]}")
