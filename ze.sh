@@ -86,6 +86,8 @@ if ! _ze_init; then
 fi
 unset -f _ze_init
 
+[[ ${ZSH_VERSION:-} ]] && function _ze_builtin_cd { builtin cd "$@"; } || function _ze_builtin_cd { command cd "$@"; }
+
 function _ze_ere_escape { printf '%s\n' "$1" | sed 's/[].^$*+?(){}|\]/\\&/g'; }
 
 function _ze_dirs {  ## [dirs|files]
@@ -105,7 +107,7 @@ function _ze_dirs {  ## [dirs|files]
 }
 
 function _ze_cd {
-    if command cd "$@"; then
+    if _ze_builtin_cd "$@"; then
         # ksh93 may emit job-control notifications for the backgrounded helper despite wrapping it in
         # a subshell (this happens not in all terminal emulators, but in most). this makes
         # redirection of stderr to /dev/null necessary.
@@ -248,7 +250,7 @@ function _ze {
                 d) digger=1;;
                 e) emit=1;;
                 f) finder=1;;
-                h) printf '%s\n' "${_ZE_CMD:-ze} [-cdefhlorst] args" >&2; return;;
+                h) printf '%s\n' "${_ZE_CMD:-ze} [-cdefhlort] args" >&2; return;;
                 l) list=1;;
                 o) open=1; mode=files;;
                 r) typ="visits";;

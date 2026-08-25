@@ -18,8 +18,6 @@ For native use with `bash`, `zsh`, `ksh`, and `mksh`, source from your shell rc 
 source /path/to/ze.sh
 ```
 
-`zsh` users have to declare `set -o POSIX_BUILTINS` in their rc file.
-
 **Important**: ze.sh is designed to use `ze` for all navigation, including
 pathname-based directory changes. Ordinary `cd` commands are not tracked by
 default. To also track `cd`, add
