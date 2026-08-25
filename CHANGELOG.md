@@ -1,5 +1,20 @@
 # ze.sh: Changelog
 
+## v3.3.0 (2026-08-25)
+* **file tracking**: added optional file tracking with a separate `zef.db`
+database. The new `-o` option opens and records selected text files, with
+`-f`/`-d` supporting ranked and filesystem-based file selection.
+
+* **file safety**: added filtering of common binary file types during filesystem
+search and checks to prevent non-text files from being opened in the editor.
+
+* **zsh compatibility**: fixed use of `cd` under zsh without requiring
+`set -o POSIX_BUILTINS`.
+
+* **robustness**: generalized database initialization, pruning, filtering, and
+commit handling to support both directory and file databases, including
+additional safeguards against misuse of internal functions.
+
 ## v3.2.1 (2026-08-15)
 * **`set -u` compatibility**: fixed sourcing and operation under shells using
 `nounset`, including unset optional variables, positional arguments, and
@@ -10,8 +25,8 @@ size to 640 entries, and documented the shell functions defined by `ze.sh`.
 
 ## v3.2.0 (2026-07-15)
 * **directory discovery (`-d`)**: added an explicit filesystem discovery mode
-   using `fd` and `fzf`. The selected directory is immediately added to the ze
-   database, making it available for subsequent pattern-based jumps.
+using `fd` and `fzf`. The selected directory is immediately added to the ze
+database, making it available for subsequent pattern-based jumps.
 
 ## v3.1.5 (2026-07-10)
 * **dash support**: alias definitions and a `ze()` function provided in
