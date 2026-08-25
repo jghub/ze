@@ -269,7 +269,7 @@ function _ze {
         ((emit)) && { printf '%s\n' "$fnd"; return; }
     fi
 
-    [[ $fnd == "^$(_ze_ere_escape "$PWD") " ]] && list=1  # if bare -c with no args, just list
+    [[ $fnd == "^$PWD " ]] && list=1  # if bare -c with no args, just list
 
     if ((open)); then
         ((!(list || emit))) && [[ -n $fnd && -f $fnd ]] && { _ze_open "$fnd"; return; }
