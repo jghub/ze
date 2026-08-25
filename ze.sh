@@ -76,6 +76,12 @@ if ! _ze_init; then
 fi
 unset -f _ze_init
 
+# shellcheck disable=SC2015 # the A && B || C construct is not problematic here (function definition will never return error in B)
+# shellcheck disable=SC2164 # false positive in this context
+[[ ${ZSH_VERSION:-} ]] && function _ze_builtin_cd { builtin cd "$@"; } || function _ze_builtin_cd { command cd "$@"; }
+
+function _ze_ere_escape { printf '%s\n' "$1" | sed 's/[].^$*+?(){}|\]/\\&/g'; }
+
 function _ze_dirs {
     typeset datafile="${_ZE_DIR:-$HOME/.ze}/ze.db"
     typeset -a lines
@@ -87,7 +93,7 @@ function _ze_dirs {
 }
 
 function _ze_cd {
-    if command cd "$@"; then
+    if _ze_builtin_cd "$@"; then
         # ksh93 may emit job-control notifications for the backgrounded helper despite wrapping it in
         # a subshell (this happens not in all terminal emulators, but in most). this makes
         # redirection of stderr to /dev/null necessary.
@@ -177,7 +183,7 @@ function _ze {
         --) shift; while (($#)); do fnd+=${fnd:+ }$1; fdargs+=("$1"); shift; done;;
          -) fnd='-';;
         -*) opt=${1:1}; while [[ $opt ]]; do case ${opt:0:1} in
-                c) fnd="^$(printf '%s\n' "$PWD"|sed 's/[].^$*+?(){}|\]/\\&/g') $fnd";;
+                c) fnd="^$(_ze_ere_escape "$PWD") $fnd";;
                 d) digger=1;;
                 e) emit=1;;
                 f) finder=1;;
@@ -197,7 +203,7 @@ function _ze {
         ((emit)) && { printf '%s\n' "$fnd"; return; }
     fi
 
-    [[ $fnd == "^$PWD " ]] && list=1  # if bare -c with no args, just list
+    [[ $fnd == "^$(_ze_ere_escape "$PWD") " ]] && list=1  # if bare -c with no args, just list
 
     # in cd mode, delegate to _ze_cd immediately if fnd is a real path, empty, or "-":
     ((!(list || emit))) && [[ -d ${fnd:-$HOME} || $fnd == "-" ]] && { _ze_cd "${fnd:-$HOME}"; return; }
