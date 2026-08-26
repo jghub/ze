@@ -128,12 +128,9 @@ function _ze_open {  ## pathname
     [[ -f $pathname ]] || { printf '%s\n' "ze: not a regular file: $pathname" >&2; return 1; }
     pathname=$(command realpath "$pathname" 2>/dev/null) || { printf '%s\n' "ze: could not resolve path: $pathname" >&2; return 1; }
 
-    typeset mimetype
-    mimetype=$(command file -b --mime-type -- "$pathname" 2>/dev/null)
-    case $mimetype in
-        text/*|inode/x-empty|application/json|application/xml|application/javascript);;
-        *) printf '%s\n' "ze: refusing to open '$pathname': not a text file ($mimetype)" >&2; return 1;;
-    esac
+    if [[ -s $pathname ]]; then
+        LC_ALL=C grep -Iq . -- "$pathname" || { printf '%s\n' "ze: refusing to open '$pathname': binary file" >&2; return 1; }
+    fi
     (_ze_record "$pathname" "" files &) 2>/dev/null
 
     typeset editor=${VISUAL:-${EDITOR:-nano}}
