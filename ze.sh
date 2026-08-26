@@ -57,17 +57,18 @@ function _ze_init {
 }
 
 function _ze_commit {  ## rc tempfile
-    (($# == 2)) || return 1                         # safeguard against manual misuse 
+    (($# == 2)) || return 1                          # safeguard against manual misuse
     typeset rc=$1 tempfile=$2
+    case $rc in
+        ''|*[!0-9]*) return 1;;                      # safeguard against manual misuse (rc must be numeric)
+    esac
+    typeset -i rc
     typeset datafile="${_ZE_DIR:-$HOME/.ze}/ze.db"
     [[ $tempfile == "$datafile."* ]] || return 1    # safeguard against manual misuse
+    ((rc == 0)) || { \rm -f "$tempfile"; return 1; }
     # do our best to avoid clobbering the datafile in a race condition.
-    if ((rc == 0)); then
-        [[ ${_ZE_OWNER:-} ]] && chown "$_ZE_OWNER":"$(id -ng "$_ZE_OWNER")" "$tempfile"
-        \mv -f "$tempfile" "$datafile" || \rm -f "$tempfile"
-    else
-        \rm -f "$tempfile"
-    fi
+    [[ ${_ZE_OWNER:-} ]] && chown "$_ZE_OWNER":"$(id -ng "$_ZE_OWNER")" "$tempfile"
+    \mv -f "$tempfile" "$datafile" || \rm -f "$tempfile"
 }
 
 if ! _ze_init; then
@@ -84,7 +85,7 @@ function _ze_ere_escape { printf '%s\n' "$1" | sed 's/[].^$*+?(){}|\]/\\&/g'; }
 
 function _ze_dirs {
     typeset datafile="${_ZE_DIR:-$HOME/.ze}/ze.db"
-    typeset -a lines
+    typeset -a lines; lines=()
     typeset pathname remains ifs='|'
     while IFS=$ifs read -r pathname remains; do
         [[ -d $pathname ]] && lines+=("$pathname$ifs$remains")
@@ -143,7 +144,8 @@ function _ze_dig { ## fdopts_and_args
 }
 
 function _ze_record { ## pathname [oldpwd]  #2nd arg allows to drive recording from wrappers managing oldpwd themselves
-    typeset pathname=${1:-"/"} oldpwd=${2:-$OLDPWD}  # 'pathname default="/" safeguards against manual misuse
+    typeset pathname=${1:-"/"} oldpwd=${2:-${OLDPWD:-}}  # 'pathname default="/" safeguards against manual misuse
+    [[ -d $pathname ]] || return 1
     typeset datafile="${_ZE_DIR:-$HOME/.ze}/ze.db"
     typeset lambda=${_ZE_LAMBDA:-8e-3}
 
