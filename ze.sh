@@ -172,25 +172,22 @@ function _ze_dig { ## (dirs|files) fdopts_and_args
     fi
     typeset fdtype=d preview='pathname={2..}'
     typeset -a fdargs; fdargs=(-Ipa)
-    typeset -a fdskip; fdskip=()
     case $mode in
-        files) typeset ext
-               typeset -a block
-               block=(png jpg JPG jpeg heic HEIC gif bmp ico webp pdf zip tar gz bz2 xz 7z rar mp3 mp4 mkv avi mov wav flac
-                      woff woff2 ttf otf eot so o a dylib dll exe class pyc pyo jar war)
-               for ext in "${block[@]}"; do fdskip+=(-E "*.$ext"); done
-               fdtype=f
+        files) fdtype=f
+               typeset block='\.('
+               block+='png|jpg|jpeg|heic|gif|bmp|ico|webp|pdf|zip|tar|gz|bz2|xz|7z|rar|mp3|mp4|mkv|avi|mov'
+               block+='|wav|flac|woff|woff2|ttf|otf|eot|so|o|a|dylib|dll|exe|class|pyc|pyo|jar|war'
+               block+=')$'
                preview+='; head -256 -- "$pathname"';;
         *) preview+='; LC_ALL=C ls -AC --color=always "$pathname"';;
     esac
-    fdargs+=(-t"$fdtype")
+    fdargs+=(-t"$fdtype" "$@")
     # shellcheck disable=SC2124 # this scalar assignment ensures join by single space independent of IFS
-    typeset argstring="${fdargs[@]} $@"  # don't pollute the header with the looong fdskip list
-    fdargs+=("${fdskip[@]}" "$@")
+    typeset argstring="${fdargs[@]}"
     typeset -a fzfopts
     fzfopts=( -0 -e --no-sort --preview-window='top,19%' --header="$fdex $argstring" --color='header:bright-red'
         --preview "$preview" )
-    (set -o pipefail; $fdex "${fdargs[@]}" | LC_ALL=C sort | nl | fzf "${fzfopts[@]}" | cut -f2)
+    (set -o pipefail; $fdex "${fdargs[@]}" | grep -viE "$block" | LC_ALL=C sort | nl | fzf "${fzfopts[@]}" | cut -f2)
     (($? == 1)) && printf 'no match\n' >&2
 }
 
