@@ -172,12 +172,14 @@ function _ze_dig { ## (dirs|files) fdopts_and_args
     fi
     typeset fdtype=d preview='pathname={2..}'
     typeset -a fdargs; fdargs=(-Ipa)
+    typeset -a filter; filter=(cat)
     case $mode in
         files) fdtype=f
                typeset block='\.('
                block+='png|jpg|jpeg|heic|gif|bmp|ico|webp|pdf|zip|tar|gz|bz2|xz|7z|rar|mp3|mp4|mkv|avi|mov'
                block+='|wav|flac|woff|woff2|ttf|otf|eot|so|o|a|dylib|dll|exe|class|pyc|pyo|jar|war'
                block+=')$'
+               filter=(grep -viE "$block")
                preview+='; head -256 -- "$pathname"';;
         *) preview+='; LC_ALL=C ls -AC --color=always "$pathname"';;
     esac
@@ -187,7 +189,7 @@ function _ze_dig { ## (dirs|files) fdopts_and_args
     typeset -a fzfopts
     fzfopts=( -0 -e --no-sort --preview-window='top,19%' --header="$fdex $argstring" --color='header:bright-red'
         --preview "$preview" )
-    (set -o pipefail; $fdex "${fdargs[@]}" | grep -viE "$block" | LC_ALL=C sort | nl | fzf "${fzfopts[@]}" | cut -f2)
+    (set -o pipefail; $fdex "${fdargs[@]}" | "${filter[@]}" | LC_ALL=C sort | nl | fzf "${fzfopts[@]}" | cut -f2)
     (($? == 1)) && printf 'no match\n' >&2
 }
 
