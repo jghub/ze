@@ -238,14 +238,14 @@ function _ze_record { ## pathname [oldpwd] [dirs|files]
 function _ze {
     typeset lambda=${_ZE_LAMBDA:-8e-3}
 
-    typeset fnd='' opt='' typ='' mode=dirs
-    typeset -i list=0 finder=0 digger=0 emit=0 open=0
+    typeset fnd='' opt='' typ='' mode=dirs escpwd=''
+    typeset -i list=0 finder=0 digger=0 emit=0 open=0 cflag=0
     typeset -a fdargs
     while (($#)); do case "$1" in
         --) shift; while (($#)); do fnd+=${fnd:+ }$1; fdargs+=("$1"); shift; done;;
          -) fnd='-';;
         -*) opt=${1:1}; while [[ $opt ]]; do case ${opt:0:1} in
-                c) fnd="^$(_ze_ere_escape "$PWD") $fnd";;
+                c) escpwd=$(_ze_ere_escape "$PWD"); fnd="^$escpwd $fnd"; cflag=1;;
                 d) digger=1;;
                 e) emit=1;;
                 f) finder=1;;
@@ -266,7 +266,7 @@ function _ze {
         ((emit)) && { printf '%s\n' "$fnd"; return; }
     fi
 
-    [[ $fnd == "^$PWD " ]] && list=1  # if bare -c with no args, just list
+    ((cflag)) && [[ $fnd == "^$escpwd " ]] && list=1  # if bare -c with no args, just list
 
     if ((open)); then
         ((!(list || emit))) && [[ -n $fnd && -f $fnd ]] && { _ze_open "$fnd"; return; }
