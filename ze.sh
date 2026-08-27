@@ -220,7 +220,7 @@ function _ze_record { ## pathname [oldpwd] [dirs|files]
     tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
 
     pathname=$pathname awk -v lambda="$lambda" -F"|" '
-        BEGIN { pathname = ENVIRON["pathname"]; valid = (pathname !~ FS); OFS = FS; OFMT = "%.17g" }
+        BEGIN { pathname = ENVIRON["pathname"]; valid = (pathname !~ /\|/); OFS = FS; OFMT = "%.17g" }
         NF != 4 { next }  # guard against FS-containing pathnames making it into the db (also removes pre-fix entries of this kind from db)
         {
             if ($1 == pathname) {
