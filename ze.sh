@@ -220,7 +220,8 @@ function _ze_record { ## pathname [oldpwd] [dirs|files]
     tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
 
     pathname=$pathname awk -v lambda="$lambda" -F"|" '
-        BEGIN { pathname = ENVIRON["pathname"]; OFS = FS; OFMT = "%.17g" }
+        BEGIN { pathname = ENVIRON["pathname"]; valid = (pathname !~ FS); OFS = FS; OFMT = "%.17g" }
+        NF != 4 { next }  # guard against FS-containing pathnames making it into the db (also removes pre-fix entries of this kind from db)
         {
             if ($1 == pathname) {
                 visits = $2
@@ -229,7 +230,7 @@ function _ze_record { ## pathname [oldpwd] [dirs|files]
             } else print
             if ($3 > tmax) tmax = $3
         }
-        END { print pathname, visits + 1, tmax + 1, score * exp(-lambda * (tmax + 1 - ticks)) + 1 }
+        END { if (valid) print pathname, visits + 1, tmax + 1, score * exp(-lambda * (tmax + 1 - ticks)) + 1 }
     ' "$datafile" 2>/dev/null >| "$tempfile"
     _ze_commit $? "$tempfile" "$mode"
 }
