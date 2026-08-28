@@ -199,7 +199,7 @@ are never recognized and always treated as pattern.
 filesystems (USB drives, NFS mounts). They are ignored during matching but
 reactivate when the filesystem is remounted. z.sh prunes such entries immediately
 on the next cd action. In ze.sh, score-based pruning takes place when the db
-exceeds a configurable size limit (default: 512 entries), which eventually removes
+exceeds a configurable size limit (default: 640 entries), which eventually removes
 lowest scoring entries including never-again-used stale entries.
 
 *(4)*: The -x option in z.sh serves mainly to remove entries that have accumulated
@@ -227,7 +227,7 @@ jumping.
 | `_ZE_CMD`              | `ze`    | command name *(1)*                  |
 | `_ZE_DIR`              | `~/.ze` | database directory                  |
 | `_ZE_LAMBDA`           | `8e-3`  | decay constant (units: 1/cd-action) |
-| `_ZE_DBMAX`            | `512`   | db size limit (pruning threshold)   |
+| `_ZE_DBMAX`            | `640`   | db size limit (pruning threshold)   |
 | `_ZE_OWNER`            | unset   | allow use on shared db              |
 | `_ZE_RESOLVE_SYMLINKS` | unset   | resolve symlinks on cd              |
 | `_ZE_EXCLUDE_DIRS`     | unset   | array of directory trees to exclude |
