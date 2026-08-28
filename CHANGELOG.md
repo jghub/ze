@@ -1,5 +1,21 @@
 # ze.sh: Changelog
 
+## v3.3.1 (2026-08-28)
+
+* **regression fix**: `ze -d` (dirs-mode dig) reported "no match" unconditionally.
+
+* **regression fix**: bare `ze -c` failed to list when run from a directory
+  whose path contains characters like `.`.
+
+* **file safety**: binary-file detection no longer misclassifies some valid
+  text files (e.g. shell rc files) as binary.
+
+* **FS in pathname**: ze.sh uses `|` as its field separator, so pathnames
+  containing a literal `|` corrupt db parsing. This release blocks new such
+  entries and cleans up existing ones over time; if you have such a path in your
+  history, expect a brief window before it's fully purged. A cleaner fix
+  (pathname as last field, removing the delimiter conflict entirely) is deferred.
+
 ## v3.3.0 (2026-08-25)
 * **file tracking**: added optional file tracking with a separate `zef.db`
 database. The new `-o` option opens and records selected text files, with
