@@ -126,7 +126,14 @@ function _ze_cd {
 function _ze_open {  ## pathname
     typeset pathname=${1:?"_ze_open: pathname required"}
     [[ -f $pathname ]] || { printf '%s\n' "ze: not a regular file: $pathname" >&2; return 1; }
-    pathname=$(command realpath "$pathname" 2>/dev/null) || { printf '%s\n' "ze: could not resolve path: $pathname" >&2; return 1; }
+
+    if [[ ${_ZE_RESOLVE_SYMLINKS:-} ]]; then
+        pathname=$(command realpath "$pathname" 2>/dev/null) 
+    else
+        pathname=$(_ze_builtin_cd "$(dirname -- "$pathname")" 2>/dev/null && printf '%s/%s' "$PWD" "$(basename -- "$pathname")")
+    fi
+    # shellcheck disable=SC2181 # irrelevant
+    (($?)) && { printf '%s\n' "ze: could not resolve path: $pathname" >&2; return 1; }
 
     if [[ -s $pathname ]]; then
         LC_ALL=C grep -Iq . -- "$pathname" || { printf '%s\n' "ze: refusing to open '$pathname': binary file" >&2; return 1; }
@@ -134,7 +141,7 @@ function _ze_open {  ## pathname
     (_ze_record "$pathname" "" files &) 2>/dev/null
 
     typeset editor=${VISUAL:-${EDITOR:-nano}}
-    if ! command -v "${editor%% *}" >/dev/null 2>&1; then editor='vi'; fi
+    command -v "${editor%% *}" >/dev/null 2>&1 || editor='vi'
     $editor "$pathname"
 }
 
