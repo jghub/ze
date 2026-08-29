@@ -155,7 +155,7 @@ function _ze_fzf { ## pattern typ [dirs|files]
         *)      metric='EMS score';;
     esac
     case $mode in
-        files) preview+='; head -2000 -- "$pathname"'; opt+=' -o';;
+        files) preview+='; head -256 -- "$pathname"'; opt+=' -o';;
         *)     preview+='; LC_ALL=C ls -AC --color=always "$pathname"';;
     esac
 
@@ -228,8 +228,7 @@ function _ze_record { ## pathname [oldpwd] [dirs|files]
 
     pathname=$pathname awk -v lambda="$lambda" -F"|" '
         BEGIN { pathname = ENVIRON["pathname"]; valid = (pathname !~ /\|/); OFS = FS; OFMT = "%.17g" }
-        NF != 4 { next }  # guard against FS-containing pathnames making it into the db (also removes pre-fix entries of this kind from db)
-        {
+        NF == 4 {  # remove invalid entries from db (injection of new invalid pathname is prevented in END block).
             if ($1 == pathname) {
                 visits = $2
                 ticks = $3
