@@ -204,30 +204,22 @@ function _ze_record { ## pathname [oldpwd] [dirs|files]
     # preserve the original two-arg (pathname, oldpwd) interface used by zex.sh
     typeset pathname=${1:-"/"} oldpwd=${2:-${OLDPWD:-}} mode=${3:-dirs}  # 'pathname default="/" safeguards against manual misuse
     typeset datafile lambda=${_ZE_LAMBDA:-8e-3}
-    typeset -a exclude_list; exclude_list=()
 
     if [[ $mode == files ]]; then
         [[ -f $pathname ]] || return 1
         datafile="${_ZE_DIR:-$HOME/.ze}/zef.db"
-        [[ ${_ZE_EXCLUDE_FILES[*]+x} ]] && exclude_list=("${_ZE_EXCLUDE_FILES[@]}")  # avoid unset-array expansion under 'set -u'
     else
         [[ -d $pathname ]] || return 1
         datafile="${_ZE_DIR:-$HOME/.ze}/ze.db"
         # navigation to $HOME, $oldpwd, or "/" aren't worth recording
         [[ $pathname == "$HOME" || $pathname == "$oldpwd" || $pathname == "/" ]] && return
-        [[ ${_ZE_EXCLUDE_DIRS[*]+x} ]] && exclude_list=("${_ZE_EXCLUDE_DIRS[@]}")    # avoid unset-array expansion under 'set -u'
-    fi
-
-    if ((${#exclude_list[@]})); then
-        typeset exclude
-        for exclude in "${exclude_list[@]}"; do [[ $pathname == "$exclude"* ]] && return; done
     fi
 
     typeset tempfile
     tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
 
     pathname=$pathname awk -v lambda="$lambda" -F"|" '
-        BEGIN { pathname = ENVIRON["pathname"]; valid = (pathname !~ /\|/); OFS = FS; OFMT = "%.17g" }
+        BEGIN { pathname = ENVIRON["pathname"]; OFS = FS; OFMT = "%.17g" }
         NF == 4 {  # remove invalid entries from db (injection of new invalid pathname is prevented in END block).
             if ($1 == pathname) {
                 visits = $2
@@ -236,7 +228,7 @@ function _ze_record { ## pathname [oldpwd] [dirs|files]
             } else print
             if ($3 > tmax) tmax = $3
         }
-        END { if (valid) print pathname, visits + 1, tmax + 1, score * exp(-lambda * (tmax + 1 - ticks)) + 1 }
+        END { if (pathname !~ /\|/) print pathname, visits + 1, tmax + 1, score * exp(-lambda * (tmax + 1 - ticks)) + 1 }
     ' "$datafile" 2>/dev/null >| "$tempfile"
     _ze_commit $? "$tempfile" "$mode"
 }

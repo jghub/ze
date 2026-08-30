@@ -230,7 +230,6 @@ jumping.
 | `_ZE_DBMAX`            | `640`   | db size limit (pruning threshold)   |
 | `_ZE_OWNER`            | unset   | allow use on shared db              |
 | `_ZE_RESOLVE_SYMLINKS` | unset   | resolve symlinks on cd              |
-| `_ZE_EXCLUDE_DIRS`     | unset   | array of directory trees to exclude |
 
 *(1)*: Must be set before sourcing ze.sh so that tab completion is registered
 under the chosen name. For example, `_ZE_CMD=myze` makes `myze` the command name
