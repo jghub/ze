@@ -1,7 +1,18 @@
 # ze.sh: Changelog
 
-## v3.3.1 (2026-08-28)
+## v3.3.2 (2026-08-30)
+* **`_ze_open`: honour `_ZE_RESOLVE_SYMLINKS`**: path resolution in file-open
+  mode now follows the same symlink policy as directory-jump mode: logical
+  paths are preserved by default, physical paths are used only when
+  `_ZE_RESOLVE_SYMLINKS` is set.
 
+* **remove `_ZE_EXCLUDE_DIRS` and `_ZE_EXCLUDE_FILES`**: these configuration
+  variables served no defensible purpose in ze.sh. The EMS scoring model
+  eliminates the score-jump problems that presumably motivated exclusion lists in
+  z.sh, and the user controls what gets recorded through the choice of command
+  (`ze` vs builtin `cd` for directories; `ze -o` vs `$EDITOR` for files).
+
+## v3.3.1 (2026-08-28)
 * **regression fix**: `ze -d` (dirs-mode dig) reported "no match" unconditionally.
 
 * **regression fix**: bare `ze -c` failed to list when run from a directory
