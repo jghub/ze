@@ -128,7 +128,7 @@ function _ze_open {  ## pathname
     [[ -f $pathname ]] || { printf '%s\n' "ze: not a regular file: $pathname" >&2; return 1; }
 
     if [[ ${_ZE_RESOLVE_SYMLINKS:-} ]]; then
-        pathname=$(command realpath "$pathname" 2>/dev/null) 
+        pathname=$(command realpath "$pathname" 2>/dev/null)
     else
         pathname=$(_ze_builtin_cd "$(dirname -- "$pathname")" 2>/dev/null && printf '%s/%s' "$PWD" "$(basename -- "$pathname")")
     fi
@@ -247,11 +247,12 @@ function _ze {
                 d) digger=1;;
                 e) emit=1;;
                 f) finder=1;;
-                h) printf '%s\n' "${_ZE_CMD:-ze} [-cdefhlort] args" >&2; return;;
+                h) printf '%s\n' "${_ZE_CMD:-ze} [-Vcdefhlort] args" >&2; return;;
                 l) list=1;;
                 o) open=1; mode=files;;
                 r) typ="visits";;
                 t) typ="recent";;
+                V) printf '%s\n' "ze v3.3.2"; return;;
                 *) ;;   # silently ignore unrecognized options
             esac; opt=${opt:1}; done;;
          *) fnd+=${fnd:+ }$1; fdargs+=("$1");;

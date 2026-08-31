@@ -183,6 +183,7 @@ meaning as in directory mode, but operate on the file database when combined wit
 | Unknown options  | not handled, lists database                           | silently stripped from option string before execution                                |
 | `-f` option      | not available                                         | interactive fzf selector (if fzf installed)                                          |
 | `-d` option      | not available                                         | discover and jump to directory via `fd`+`fzf`, registering it in the database (*6*)  |
+| `-o` option      | not available                                         | switch `ze` to file mode: track and open files via $EDITOR (if set)                  |
 
 *(1)*: The common-prefix heuristic of z.sh overrides the highest-scoring match in
 favor of a shorter path when all matches share a common prefix. With a
