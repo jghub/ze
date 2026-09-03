@@ -96,6 +96,11 @@ Change to the previous directory.
 Change to the absolute or relative pathname
 .I foo
 if it exists.
+.TP
+.BI "ze -o " foo
+Open non-binary file
+.I foo
+if it exists.
 .P
 .B "If pathname interpretation does not succeed:
 .TP
@@ -115,7 +120,7 @@ List all directories matching \fIfoo\fP, sorted by score. Without
 argument, show full stack.
 .TP
 .BI "ze \-o " foo
-Open the highest-scoring text file matching \fIfoo\fP.
+Open the highest-scoring non-binary file matching \fIfoo\fP.
 .TP
 .BI "ze \-r " foo
 Change to the most frequently visited directory matching
@@ -202,11 +207,11 @@ time. The decay rate is controlled by \fB_ZE_LAMBDA\fP (default: \fB8e-3\fP).
 \fBze.sh\fP only tracks explicit \fBze\fP-based directory changes
 (or bare \fBcd\fP if aliased to \fB_ze_cd\fP). It does not use precommand hooks.
 .P
-With \fB\-o\fP, \fBze.sh\fP uses a separate database for file tracking. File
+With \fB-o\fP, \fBze.sh\fP uses a separate database for file tracking. File
 selection opens the selected file in the editor rather than changing directory.
 The two modes are independent: file tracking does not affect the directory
 database, and directory tracking does not affect the file database. File
-tracking is intended for text-only files.
+tracking accepts non-binary files.
 .
 .SH DATABASE
 .P
