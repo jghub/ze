@@ -7,7 +7,7 @@ ze - pattern-based directory jumper and file tracker with dynamically ranked dir
 .SH SYNOPSIS
 .SY ze
 .OP  \-o
-.OP  \-cefhlrt
+.OP  \-Vcefhlrt
 .RI [ pattern | pathname | - ]
 .
 .SH AVAILABILITY
@@ -36,6 +36,9 @@ to
 After a short learning phase, \fBze\fP will take you to the highest-scoring
 directory that matches the given pattern. Patterns are interpreted as extended
 regular expressions (ERE),
+.TP
+.B \-V
+Version info.
 .TP
 .B \-c
 Restrict matches to subdirectories of the current directory.
@@ -69,11 +72,11 @@ Show a brief help message.
 .B \-l
 List all matching directories by score.
 .TP
-.B \-o
+.B -o
 Use the file database instead of the directory database. This mode tracks
-text files rather than directories; selecting a file opens it in the editor.
-The directory and file tracking modes use separate databases and do not affect
-each other.
+non-binary files rather than directories. Selecting a file opens it in the
+editor. The directory and file tracking modes use separate databases and do
+not affect each other.
 .TP
 .B \-r
 Sort matches by visit count.
