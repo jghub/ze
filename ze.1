@@ -1,4 +1,4 @@
-.TH ZE 1 "August 2026" ze.sh "User Commands"
+.TH ZE 1 "September 2026" ze.sh "User Commands"
 .
 .SH NAME
 .
@@ -6,9 +6,9 @@ ze - pattern-based directory jumper and file tracker with dynamically ranked dir
 .
 .SH SYNOPSIS
 .SY ze
-.OP  \-o
-.OP  \-Vcefhlrt
-.RI [ pattern | pathname | - ]
+.OP \-o
+.OP \-Vcefhlrt
+.RI [ pattern | pathname | \- ]
 .
 .SH AVAILABILITY
 bash, zsh, ksh93, mksh, fish
@@ -72,7 +72,7 @@ Show a brief help message.
 .B \-l
 List all matching directories by score.
 .TP
-.B -o
+.B \-o
 Use the file database instead of the directory database. This mode tracks
 non-binary files rather than directories. Selecting a file opens it in the
 editor. The directory and file tracking modes use separate databases and do
@@ -89,18 +89,21 @@ Sort matches by recency of last visit.
 .B ze
 Change to \fI$HOME\fP.
 .TP
-.BI "ze " -
+.BI "ze " \-
 Change to the previous directory.
 .TP
 .BI "ze " foo
-Change to the absolute or relative pathname
+Change to (absolute or relative) pathname
 .I foo
-if it exists.
+if it is an existing directory.
 .TP
-.BI "ze -o " foo
-Open non-binary file
+.B ze \-o
+Open the highest-scoring (non-binary) file in editor.
+.TP
+.BI "ze \-o " foo
+Open pathname
 .I foo
-if it exists.
+in editor if it is an existing (non-binary) file.
 .P
 .B "If pathname interpretation does not succeed:
 .TP
@@ -112,22 +115,22 @@ Change to the highest-scoring directory matching both \fIfoo\fP
 and \fIbar\fP.
 .TP
 .BI "ze \-c " foo
-Change to the highest-scoring subdirectory of \fI$PWD\fP matching
-\fIfoo\fP.
+Change to the highest-scoring subdirectory of \fI$PWD\fP matching \fIfoo\fP.
 .TP
 .BI "ze \-l " foo
 List all directories matching \fIfoo\fP, sorted by score. Without
 argument, show full stack.
 .TP
 .BI "ze \-o " foo
-Open the highest-scoring non-binary file matching \fIfoo\fP.
+Open the highest-scoring (non-binary) file matching \fIfoo\fP.
 .TP
 .BI "ze \-r " foo
 Change to the most frequently visited directory matching
 \fIfoo\fP.
 .TP
 .BI "ze \-t " foo
-Change to the most recently visited directory matching \fIfoo\fP.
+Change to the most recently visited directory matching
+\fIfoo\fP.
 .P
 .B "If fzf is available:
 .TP
@@ -193,7 +196,7 @@ for pattern-based navigation of the directories known to the database.
 \fBze.sh\fP differs from \fBz.sh\fP in several ways:
 .TP
 .B event clock
-\fBze.sh\fP uses an event clock (each newly recorded \fBcd\fP event
+\fBze.sh\fP uses an event clock (each newly recorded navigation event
 advances the clock by one tick) instead of wall-clock time for score decay. This
 prevents score decay during shell inactivity, especially during long periods (e.g.
 holidays).
@@ -207,7 +210,7 @@ time. The decay rate is controlled by \fB_ZE_LAMBDA\fP (default: \fB8e-3\fP).
 \fBze.sh\fP only tracks explicit \fBze\fP-based directory changes
 (or bare \fBcd\fP if aliased to \fB_ze_cd\fP). It does not use precommand hooks.
 .P
-With \fB-o\fP, \fBze.sh\fP uses a separate database for file tracking. File
+With \fB\-o\fP, \fBze.sh\fP uses a separate database for file tracking. File
 selection opens the selected file in the editor rather than changing directory.
 The two modes are independent: file tracking does not affect the directory
 database, and directory tracking does not affect the file database. File
@@ -228,12 +231,14 @@ Absolute directory path.
 Cumulative visit count for this entry.
 .TP
 \fIticks\fP
-Global cumulative \fBcd\fP event count at time of last visit.
+Global cumulative event count at time of last visit.
 .TP
 \fIscore\fP
 Exponentially decayed cumulative visit score as of the last visit.
 .P
-The file database used by \fB\-o\fP is separate from the directory database.
+The file database used by \fB\-o\fP is stored separately from the directory
+database. Its entries have the same general format, with \fIpath\fP denoting
+an absolute file path.
 .
 .SH CONFIGURATION
 .P
@@ -296,8 +301,12 @@ print $1, visits, ticks, score
 .P
 .
 .SH FILES
-.P
-\fB~/.ze/ze.db\fP - Default database file.
+.TP
+.B ~/.ze/ze.db
+Default directory database file.
+.TP
+.B ~/.ze/zef.db
+Default file database (used by \fBze \-o\fP).
 .
 .SH ENVIRONMENT
 .P

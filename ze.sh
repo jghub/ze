@@ -252,7 +252,7 @@ function _ze {
                 o) open=1; mode=files;;
                 r) typ="visits";;
                 t) typ="recent";;
-                V) printf '%s\n' "ze v3.3.2+"; return;;
+                V) typeset ze_version="ze v3.3.2+"; printf '%s\n' "$ze_version"; return;;
                 *) ;;   # silently ignore unrecognized options
             esac; opt=${opt:1}; done;;
          *) fnd+=${fnd:+ }$1; fdargs+=("$1");;
