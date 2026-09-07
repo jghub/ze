@@ -141,15 +141,15 @@ ze [-cdefhlrt] [pattern|path|-]
 | `ze [-cefl] -r pattern`              | sort matches by visit count instead of score           |
 | `ze [-cefl] -t pattern`              | sort matches by recency of last visit instead of score |
 
-## File tracking (`-o`)
+## File tracking (`-[op]`)
 
-`ze -o` provides a separate file-tracking and file-selection mode. It uses the
+`ze -[op]` provides a separate file-tracking and file-selection mode. It uses the
 same shell-native implementation, database infrastructure, scoring model, and
 selection UI as directory tracking, but maintains a separate file database.
 
 In directory mode, selecting a directory changes to that directory. In file mode,
-selecting a file opens it in the configured editor (this also applies to files
-selected via `ze -od`).
+selecting a file via `ze -o` opens it in the configured editor (this also applies to files
+selected via `ze -od`) while with `ze -p` the file is opened in the configured pager.
 
 The separate file-tracking mode was prompted by
 [lazy](https://github.com/elseawhy/lazy). Its implementation in ze.sh is
@@ -160,7 +160,7 @@ database, and directory tracking does not affect the file database.
 
 The selection and ranking options `-f`, `-l`, `-r`, and `-t` have the same general
 meaning as in directory mode, but operate on the file database when combined with
-`-o`.
+`-[op]`.
 
 ## Changes from z.sh
 
@@ -181,9 +181,10 @@ meaning as in directory mode, but operate on the file database when combined wit
 | Pattern matching | case-sensitive with case-insensitive fallback         | smartcase: case-insensitive except when pattern contains uppercase                   |
 | Symlinks         | resolved to physical paths by default                 | logical paths are honoured by default *(5)*                                          |
 | Unknown options  | not handled, lists database                           | silently stripped from option string before execution                                |
-| `-f` option      | not available                                         | interactive fzf selector (if fzf installed)                                          |
 | `-d` option      | not available                                         | discover and jump to directory via `fd`+`fzf`, registering it in the database (*6*)  |
-| `-o` option      | not available                                         | switch `ze` to file mode: track and open files via $EDITOR (if set)                  |
+| `-f` option      | not available                                         | interactive fzf selector (if fzf installed)                                          |
+| `-o` option      | not available                                         | switch `ze` to file mode: track and open files via $EDITOR (or hardcoded fallback)   |
+| `-p` option      | not available                                         | switch `ze` to file mode: track and open files via $PAGER (or hardcoded fallback)    |
 
 *(1)*: The common-prefix heuristic of z.sh overrides the highest-scoring match in
 favor of a shorter path when all matches share a common prefix. With a
@@ -226,10 +227,12 @@ jumping.
 | Variable               | Default | Meaning                             |
 | ---------------------- | ------- | ----------------------------------- |
 | `_ZE_CMD`              | `ze`    | command name *(1)*                  |
+| `_ZE_DBMAX`            | `640`   | db size limit (pruning threshold)   |
 | `_ZE_DIR`              | `~/.ze` | database directory                  |
 | `_ZE_LAMBDA`           | `8e-3`  | decay constant (units: 1/cd-action) |
-| `_ZE_DBMAX`            | `640`   | db size limit (pruning threshold)   |
+| `_ZE_OPEN`             | unset   | editor command used by `ze -o`      |
 | `_ZE_OWNER`            | unset   | allow use on shared db              |
+| `_ZE_PAGER`            | unset   | pager command used by `ze -p`       |
 | `_ZE_RESOLVE_SYMLINKS` | unset   | resolve symlinks on cd              |
 
 *(1)*: Must be set before sourcing ze.sh so that tab completion is registered
@@ -243,7 +246,7 @@ are tried as patterns against the database rather than producing an error.
 
 If [fzf](https://github.com/junegunn/fzf) is installed, `ze -f [pattern]` opens
 an interactive selector showing all matching directories ranked by score,
-best match at top. With `-o`, the selector operates on matching files instead.
+best match at top. With `-[op]`, the selector operates on matching files instead.
 
 ```sh
 ze -f        # interactive selection from all tracked directories

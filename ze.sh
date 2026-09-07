@@ -92,7 +92,7 @@ unset -f _ze_init
 
 function _ze_ere_escape { printf '%s\n' "$1" | sed 's/[].^$*+?(){}|\]/\\&/g'; }
 
-function _ze_dirs {  ## [dirs|files]
+function _ze_read {  ## [dirs|files]
     typeset mode=${1:-dirs}
     typeset datafile="${_ZE_DIR:-$HOME/.ze}"
     [[ $mode == files ]] && datafile+='/zef.db' || datafile+='/ze.db'
@@ -123,9 +123,10 @@ function _ze_cd {
     fi
 }
 
-function _ze_open {  ## pathname
+function _ze_open {  ## pathname opcode
     typeset pathname=${1:?"_ze_open: pathname required"}
     [[ -f $pathname ]] || { printf '%s\n' "ze: not a regular file: $pathname" >&2; return 1; }
+    typeset -i opcode=${2:-1}
 
     if [[ ${_ZE_RESOLVE_SYMLINKS:-} ]]; then
         pathname=$(command realpath "$pathname" 2>/dev/null)
@@ -140,9 +141,13 @@ function _ze_open {  ## pathname
     fi
     (_ze_record "$pathname" "" files &) 2>/dev/null
 
-    typeset editor=${VISUAL:-${EDITOR:-nano}}
-    command -v "${editor%% *}" >/dev/null 2>&1 || editor='vi'
-    $editor "$pathname"
+    typeset opcmd lastchoice
+    case $opcode in 
+        1) opcmd=${_ZE_OPEN:-${VISUAL:-${EDITOR:-nano}}}; lastchoice='vi';;
+        *) opcmd=${_ZE_PAGER:-${PAGER:-less -NRS}}; lastchoice='more';;
+    esac
+    command -v "${opcmd%% *}" >/dev/null 2>&1 || opcmd=$lastchoice
+    $opcmd "$pathname"
 }
 
 function _ze_fzf { ## pattern typ [dirs|files]
@@ -237,24 +242,25 @@ function _ze {
     typeset lambda=${_ZE_LAMBDA:-8e-3}
 
     typeset fnd='' opt='' typ='' mode=dirs escpwd=''
-    typeset -i list=0 finder=0 digger=0 emit=0 open=0 cflag=0
+    typeset -i list=0 finder=0 digger=0 emit=0 opcode=0 cflag=0
     typeset -a fdargs
     while (($#)); do case "$1" in
         --) shift; while (($#)); do fnd+=${fnd:+ }$1; fdargs+=("$1"); shift; done;;
          -) fnd='-';;
-        -*) opt=${1:1}; while [[ $opt ]]; do case ${opt:0:1} in
+        -*) opt=${1:1}; while [[ $opt ]]; do case ${opt: 0:1} in
                 c) escpwd=$(_ze_ere_escape "$PWD"); fnd="^$escpwd $fnd"; cflag=1;;
                 d) digger=1;;
                 e) emit=1;;
                 f) finder=1;;
-                h) printf '%s\n' "${_ZE_CMD:-ze} [-Vcdefhlort] args" >&2; return;;
+                h) printf '%s\n' "${_ZE_CMD:-ze} [-Vcdefhloprt] args" >&2; return;;
                 l) list=1;;
-                o) open=1; mode=files;;
+                o) opcode=1; mode=files;;
+                p) opcode=2; mode=files;;
                 r) typ="visits";;
                 t) typ="recent";;
                 V) typeset ze_version="ze v3.3.2+"; printf '%s\n' "$ze_version"; return;;
                 *) ;;   # silently ignore unrecognized options
-            esac; opt=${opt:1}; done;;
+            esac; opt=${opt: 1}; done;;
          *) fnd+=${fnd:+ }$1; fdargs+=("$1");;
     esac; (($#)) && shift; done
 
@@ -267,14 +273,14 @@ function _ze {
 
     ((cflag)) && [[ $fnd == "^$escpwd " ]] && list=1  # if bare -c with no args, just list
 
-    if ((open)); then
-        ((!(list || emit))) && [[ -n $fnd && -f $fnd ]] && { _ze_open "$fnd"; return; }
+    if ((opcode)); then
+        ((!(list || emit))) && [[ -n $fnd && -f $fnd ]] && { _ze_open "$fnd" $opcode; return; }
     else
         ((!(list || emit))) && [[ -d ${fnd:-$HOME} || $fnd == "-" ]] && { _ze_cd "${fnd:-$HOME}"; return; }
     fi
 
     typeset result
-    result=$(_ze_dirs "$mode" | fnd=$fnd awk -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
+    result=$(_ze_read "$mode" | fnd=$fnd awk -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
         BEGIN {
             q = ENVIRON["fnd"]
             gsub(" ", ".*", q)
@@ -314,8 +320,8 @@ function _ze {
 
     if ((list || emit)); then
         printf '%s\n' "$result"
-    elif ((open)); then
-        _ze_open "$result"
+    elif ((opcode)); then
+        _ze_open "$result" $opcode
     else
         _ze_cd "$result"
     fi
@@ -327,7 +333,7 @@ function _ze_complete {  ## candidate
 
     [[ -s $datafile ]] || return
 
-    _ze_dirs | candidate=$1 awk -F"|" '
+    _ze_read | candidate=$1 awk -F"|" '
         BEGIN {
             q = ENVIRON["candidate"]
             sub(/^[^ ]+[ ]+/, "", q)   # replace previous fixed-offset substring to account for possibility of non-default ZE_CMD value

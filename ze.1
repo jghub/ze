@@ -6,7 +6,7 @@ ze - pattern-based directory jumper and file tracker with dynamically ranked dir
 .
 .SH SYNOPSIS
 .SY ze
-.OP \-o
+.OP \-op
 .OP \-Vcefhlrt
 .RI [ pattern | pathname | \- ]
 .
@@ -73,10 +73,13 @@ Show a brief help message.
 List all matching directories by score.
 .TP
 .B \-o
-Use the file database instead of the directory database. This mode tracks
-non-binary files rather than directories. Selecting a file opens it in the
-editor. The directory and file tracking modes use separate databases and do
-not affect each other.
+Use the file database instead of the directory database, tracking 
+non-binary files rather than directories. The directory and file tracking modes
+use separate databases and do not affect each other. Selecting a file opens it in
+the editor.
+.TP
+.B \-p
+Use the file database and open the selected file in a pager.
 .TP
 .B \-r
 Sort matches by visit count.
@@ -97,13 +100,13 @@ Change to (absolute or relative) pathname
 .I foo
 if it is an existing directory.
 .TP
-.B ze \-o
-Open the highest-scoring (non-binary) file in editor.
+.B ze \-[op]
+Open the highest-scoring (non-binary) file in editor/pager.
 .TP
-.BI "ze \-o " foo
+.BI "ze \-[op] " foo
 Open pathname
 .I foo
-in editor if it is an existing (non-binary) file.
+in editor/pager if it is an existing (non-binary) file.
 .P
 .B "If pathname interpretation does not succeed:
 .TP
@@ -252,14 +255,29 @@ makes \fBmyze\fP the command name with working tab completion. Setting
 \fB_ZE_CMD=cd\fP shadows the builtin \fBcd\fP with full \fBze\fP behaviour
 including pattern navigation, changing \fBcd\fP semantics accordingly.
 .TP
+\fB_ZE_DBMAX\fP
+Database size limit (default: \fB640\fP).
+.TP
 \fB_ZE_DIR\fP
 Database directory (default: \fB~/.ze\fP).
 .TP
 \fB_ZE_LAMBDA\fP
 Decay constant in units of 1/cd-action (default: \fB8e-3\fP).
 .TP
-\fB_ZE_DBMAX\fP
-Database size limit (default: \fB640\fP).
+\fB_ZE_OPEN\fP
+Editor command used for opening a file selected with \fB ze \-o\fP. If unset, one of
+.BR $VISUAL ,
+.BR $EDITOR ,
+.BR nano ,
+.B vi
+is used (in this order).
+.TP
+\fB_ZE_PAGER\fP
+Pager command used for opening a file selected with \fB ze \-p\fP. If unset, one of
+.BR $PAGER ,
+.BR "less -NRS" ,
+.B more
+is used (in this order).
 .TP
 \fB_ZE_OWNER\fP
 Allow use on shared databases by specifying the owner username.
@@ -319,7 +337,7 @@ Main function, aliased to the command name specified by \fB_ZE_CMD\fP (default: 
 \fB_ze_cd\fP
 cd wrapper. Alias \fBcd\fP to this function to track ordinary cd commands.
 .TP
-\fB_ze_commit\fP, \fB_ze_complete\fP, \fB_ze_dig\fP, \fB_ze_dirs\fP, \fB_ze_ere_escape\fP, \fB_ze_fzf\fP, \fB_ze_open\fP, \fB_ze_record\fP
+\fB_ze_commit\fP, \fB_ze_complete\fP, \fB_ze_dig\fP, \fB_ze_ere_escape\fP, \fB_ze_fzf\fP, \fB_ze_open\fP, \fB_ze_read\fP, \fB_ze_record\fP
 Internal functions, not intended for direct use.
 .
 .SH SEE ALSO
