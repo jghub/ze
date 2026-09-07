@@ -246,7 +246,7 @@ are tried as patterns against the database rather than producing an error.
 
 If [fzf](https://github.com/junegunn/fzf) is installed, `ze -f [pattern]` opens
 an interactive selector showing all matching directories ranked by score,
-best match at top. With `-[op]`, the selector operates on matching files instead.
+best match at top. With `[-o|-p]`, the selector operates on matching files instead.
 
 ```sh
 ze -f        # interactive selection from all tracked directories
