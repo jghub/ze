@@ -6,7 +6,7 @@ ze - pattern-based directory jumper and file tracker with dynamically ranked dir
 .
 .SH SYNOPSIS
 .SY ze
-.OP \-op
+.OP \-o|\-p
 .OP \-Vcefhlrt
 .RI [ pattern | pathname | \- ]
 .
@@ -79,7 +79,7 @@ use separate databases and do not affect each other. Selecting a file opens it i
 the editor.
 .TP
 .B \-p
-Use the file database and open the selected file in a pager.
+Use the file database and open the selected file in a pager. See also \fB\-o\fP.
 .TP
 .B \-r
 Sort matches by visit count.
@@ -100,13 +100,13 @@ Change to (absolute or relative) pathname
 .I foo
 if it is an existing directory.
 .TP
-.B ze \-[op]
-Open the highest-scoring (non-binary) file in editor/pager.
+.B ze [\-o|\-p]
+Open the highest-scoring (non-binary) file in editor|pager.
 .TP
-.BI "ze \-[op] " foo
+.BI "ze [\-o|\-p] " foo
 Open pathname
 .I foo
-in editor/pager if it is an existing (non-binary) file.
+in editor|pager if it is an existing (non-binary) file.
 .P
 .B "If pathname interpretation does not succeed:
 .TP
@@ -124,8 +124,8 @@ Change to the highest-scoring subdirectory of \fI$PWD\fP matching \fIfoo\fP.
 List all directories matching \fIfoo\fP, sorted by score. Without
 argument, show full stack.
 .TP
-.BI "ze \-o " foo
-Open the highest-scoring (non-binary) file matching \fIfoo\fP.
+.BI "ze [\-o|\-p] " foo
+Open the highest-scoring (non-binary) file matching \fIfoo\fP in editor|pager.
 .TP
 .BI "ze \-r " foo
 Change to the most frequently visited directory matching

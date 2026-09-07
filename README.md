@@ -141,9 +141,9 @@ ze [-cdefhlrt] [pattern|path|-]
 | `ze [-cefl] -r pattern`              | sort matches by visit count instead of score           |
 | `ze [-cefl] -t pattern`              | sort matches by recency of last visit instead of score |
 
-## File tracking (`-[op]`)
+## File tracking (`[-o|-p]`)
 
-`ze -[op]` provides a separate file-tracking and file-selection mode. It uses the
+`ze [-o|-p]` provides a separate file-tracking and file-selection mode. It uses the
 same shell-native implementation, database infrastructure, scoring model, and
 selection UI as directory tracking, but maintains a separate file database.
 
@@ -160,7 +160,7 @@ database, and directory tracking does not affect the file database.
 
 The selection and ranking options `-f`, `-l`, `-r`, and `-t` have the same general
 meaning as in directory mode, but operate on the file database when combined with
-`-[op]`.
+`[-o|-p]`.
 
 ## Changes from z.sh
 

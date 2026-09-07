@@ -247,7 +247,7 @@ function _ze {
     while (($#)); do case "$1" in
         --) shift; while (($#)); do fnd+=${fnd:+ }$1; fdargs+=("$1"); shift; done;;
          -) fnd='-';;
-        -*) opt=${1:1}; while [[ $opt ]]; do case ${opt: 0:1} in
+        -*) opt=${1:1}; while [[ $opt ]]; do case ${opt:0:1} in
                 c) escpwd=$(_ze_ere_escape "$PWD"); fnd="^$escpwd $fnd"; cflag=1;;
                 d) digger=1;;
                 e) emit=1;;
@@ -260,7 +260,7 @@ function _ze {
                 t) typ="recent";;
                 V) typeset ze_version="ze v3.3.2+"; printf '%s\n' "$ze_version"; return;;
                 *) ;;   # silently ignore unrecognized options
-            esac; opt=${opt: 1}; done;;
+            esac; opt=${opt:1}; done;;
          *) fnd+=${fnd:+ }$1; fdargs+=("$1");;
     esac; (($#)) && shift; done
 
