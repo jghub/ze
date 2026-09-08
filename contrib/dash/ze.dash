@@ -7,7 +7,11 @@ ze() {
    _ze_res=$(zex.sh "$@") || return
    case " $* " in
        *" -o "*)
-           "${EDITOR:-vi}" "$_ze_res"
+           ${_ZE_OPEN:-${VISUAL:-${EDITOR:-vi}}} "$_ze_res"
+           (zex.sh --record-file "$_ze_res" &)
+           ;;
+       *" -p "*)
+           ${_ZE_PAGER:-${PAGER:-more}} "$_ze_res"
            (zex.sh --record-file "$_ze_res" &)
            ;;
        *)
@@ -19,5 +23,6 @@ ze() {
 alias zd='ze -d --'
 alias zf='ze -f'
 alias zo='ze -o'
+alias zp='ze -p'
 alias zl='zex.sh -l'
 alias cd=ze
