@@ -126,7 +126,7 @@ function _ze_cd {
 function _ze_open {  ## pathname opcode
     typeset pathname=${1:?"_ze_open: pathname required"}
     [[ -f $pathname ]] || { printf '%s\n' "ze: not a regular file: $pathname" >&2; return 1; }
-    typeset -i opcode=${2:-1}
+    typeset -i opcode=${2:-2}
 
     if [[ ${_ZE_RESOLVE_SYMLINKS:-} ]]; then
         pathname=$(command realpath "$pathname" 2>/dev/null)
