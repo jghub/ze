@@ -75,9 +75,10 @@ function _ze_commit {  ## rc tempfile mode(dirs|files)
     [[ $tempfile == "$datafile."* ]] || return 1      # safeguard against manual misuse
     ((rc == 0)) || { \rm -f "$tempfile"; return 1; }
 
-    # do our best to avoid clobbering the datafile in a race condition.
     [[ ${_ZE_OWNER:-} ]] && chown "$_ZE_OWNER":"$(id -ng "$_ZE_OWNER")" "$tempfile"
-    \mv -f "$tempfile" "$datafile" || \rm -f "$tempfile"
+    # atomic replacement prevents db corruption in case of a race condition (although "last writer
+    # wins" implies loss of updates from any competing writers)
+    \mv -f "$tempfile" "$datafile" || { \rm -f "$tempfile"; return 1; }
 }
 
 if ! _ze_init; then
@@ -123,18 +124,18 @@ function _ze_cd {
     fi
 }
 
-function _ze_open {  ## pathname opcode
-    typeset pathname=${1:?"_ze_open: pathname required"}
-    [[ -f $pathname ]] || { printf '%s\n' "ze: not a regular file: $pathname" >&2; return 1; }
+function _ze_open {  ## origname opcode
+    typeset origname=${1:?"_ze_open: pathname required"} pathname 
+    [[ -f $origname ]] || { printf '%s\n' "ze: not a regular file: $origname" >&2; return 1; }
     typeset -i opcode=${2:-2}
 
     if [[ ${_ZE_RESOLVE_SYMLINKS:-} ]]; then
-        pathname=$(command realpath "$pathname" 2>/dev/null)
+        pathname=$(command realpath "$origname" 2>/dev/null)
     else
-        pathname=$(_ze_builtin_cd "$(dirname -- "$pathname")" 2>/dev/null && printf '%s/%s' "$PWD" "$(basename -- "$pathname")")
+        pathname=$(_ze_builtin_cd "$(dirname -- "$origname")" 2>/dev/null && printf '%s/%s' "$PWD" "$(basename -- "$origname")")
     fi
     # shellcheck disable=SC2181 # irrelevant
-    (($?)) && { printf '%s\n' "ze: could not resolve path: $pathname" >&2; return 1; }
+    (($?)) && { printf '%s\n' "ze: could not resolve path: $origname" >&2; return 1; }
 
     if [[ -s $pathname ]]; then
         LC_ALL=C grep -Iq . -- "$pathname" || { printf '%s\n' "ze: refusing to open '$pathname': binary file" >&2; return 1; }
@@ -258,7 +259,7 @@ function _ze {
                 p) opcode=2; mode=files;;
                 r) typ="visits";;
                 t) typ="recent";;
-                V) typeset ze_version="ze v3.3.2+"; printf '%s\n' "$ze_version"; return;;
+                V) typeset ze_version="ze v3.3.3"; printf '%s\n' "$ze_version"; return;;
                 *) ;;   # silently ignore unrecognized options
             esac; opt=${opt:1}; done;;
          *) fnd+=${fnd:+ }$1; fdargs+=("$1");;
