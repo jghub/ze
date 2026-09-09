@@ -64,4 +64,9 @@ function ze
         zex.sh --record-file "$result" &
         return
     end
+    if test (count $result) -eq 1; and test -d "$result"
+        _ze_cd "$result"
+    else
+        printf '%s\n' $result
+    end
 end
