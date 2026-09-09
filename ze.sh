@@ -203,7 +203,7 @@ function _ze_dig { ## (dirs|files) fdopts_and_args
     fzfopts=( -0 -e --no-sort --preview-window='top,19%' --header="$fdex $argstring" --color='header:bright-red'
         --preview "$preview" )
     (set -o pipefail; $fdex "${fdargs[@]}" | "${filter[@]}" | LC_ALL=C sort | nl | fzf "${fzfopts[@]}" | cut -f2)
-    (($? == 1)) && printf 'no match\n' >&2
+    typeset -i rc=$?; ((rc)) && { printf 'no match\n' >&2; return $rc; }
 }
 
 function _ze_record { ## pathname [oldpwd] [dirs|files]
@@ -259,7 +259,7 @@ function _ze {
                 p) opcode=2; mode=files;;
                 r) typ="visits";;
                 t) typ="recent";;
-                V) typeset ze_version="ze v3.3.3"; printf '%s\n' "$ze_version"; return;;
+                V) typeset ze_version="ze v3.3.3+"; printf '%s\n' "$ze_version"; return;;
                 *) ;;   # silently ignore unrecognized options
             esac; opt=${opt:1}; done;;
          *) fnd+=${fnd:+ }$1; fdargs+=("$1");;
