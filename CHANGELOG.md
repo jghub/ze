@@ -1,5 +1,17 @@
 # ze.sh: Changelog
 
+## v3.3.3 (2026-09-09)
+* **provide paging in file tracking mode**: a new `-p` option is provided as
+alternative to `-o` which opens the selected file in a pager (useful when the
+intent is read-only inspection rather than editing).
+
+* **new config variables `_ZE_OPEN` and `_ZE_PAGER`**: if set, these variables
+define the command to use for opening the file selected with `-o` and `-p`,
+respectively. This offers the possibility to choose defaults that differ from
+global settings of `EDITOR` and `PAGER`.
+
+* **add version information**: provided via a new `-V` option.
+
 ## v3.3.2 (2026-08-30)
 * **`_ze_open`: honour `_ZE_RESOLVE_SYMLINKS`**: path resolution in file-open
   mode now follows the same symlink policy as directory-jump mode: logical
