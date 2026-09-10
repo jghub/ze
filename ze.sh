@@ -244,7 +244,7 @@ function _ze {
 
     typeset fnd='' opt='' typ='' mode=dirs escpwd=''
     typeset -i list=0 finder=0 digger=0 emit=0 opcode=0 cflag=0
-    typeset -a fdargs
+    typeset -a fdargs; fdargs=()
     while (($#)); do case "$1" in
         --) shift; while (($#)); do fnd+=${fnd:+ }$1; fdargs+=("$1"); shift; done;;
          -) fnd='-';;
@@ -266,7 +266,15 @@ function _ze {
     esac; (($#)) && shift; done
 
     if ((digger || finder)); then
-        ((digger)) && fnd=$(_ze_dig "$mode" "${fdargs[@]}")
+        # NOTE TO SELF: the "${fdargs[@]+"${fdargs[@]}"}" construct below is required for 'set -u'
+        # safety under mksh specifically: mksh treats a zero-element array (even one explicitly
+        # assigned via fdargs=()) as indistinguishable from an unset variable for "${arr[@]}"
+        # expansion, and faults under nounset. bash, zsh, and ksh93 do not have this problem: plain
+        # "${fdargs[@]}" is fine there even on a zero-element array. A further observation is that
+        # zsh will expand "${fdargs[@]+"${fdargs[@]}"}" to include an extra, empty argument that will
+        # be passed to _ze_dig. This is only a non-issue because that arg will then be ignored in
+        # the 'fd' call.
+        ((digger)) && fnd=$(_ze_dig "$mode" "${fdargs[@]+"${fdargs[@]}"}")
         ((finder)) && fnd=$(_ze_fzf "$fnd" "$typ" "$mode")
         [[ $fnd ]] || return 1
         ((emit)) && { printf '%s\n' "$fnd"; return; }
