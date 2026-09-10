@@ -268,7 +268,7 @@ function _ze {
     if ((digger || finder)); then
         ((digger)) && fnd=$(_ze_dig "$mode" "${fdargs[@]}")
         ((finder)) && fnd=$(_ze_fzf "$fnd" "$typ" "$mode")
-        [[ $fnd ]] || return
+        [[ $fnd ]] || return 1
         ((emit)) && { printf '%s\n' "$fnd"; return; }
     fi
 
