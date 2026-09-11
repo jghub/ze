@@ -13,22 +13,22 @@
 function _ze_init {
     typeset datadir=${_ZE_DIR:-$HOME/.ze}
     if [[ -e $datadir && ! -d $datadir ]]; then
-        printf '%s\n' "ze: $datadir exists and is not a directory" >&2
+        printf '%s\n' "ze: $datadir exists and is not a directory (remove it or set _ZE_DIR suitably)" >&2
         return 1
     elif [[ ! -d $datadir ]]; then
-        mkdir -p "$datadir" || { printf '%s\n' "ze: failed to create $datadir" >&2; return 1; }
+        mkdir -p "$datadir" || { printf '%s\n' "ze: could not create $datadir" >&2; return 1; }
     fi
     typeset datafile mode
     for mode in files dirs; do
         [[ $mode == files ]] && datafile=$datadir/'zef.db' || datafile=$datadir/'ze.db'
         if [[ -e "$datafile" && ! -f "$datafile" ]]; then
-            printf '%s\n' "ze: $datafile exists and is not a regular file" >&2
+            printf '%s\n' "ze: not a regular file: $datafile" >&2
             return 1
         elif [[ ! -f $datafile ]]; then
-            touch "$datafile" || { printf '%s\n' "ze: failed to create $datafile" >&2; return 1; }
+            touch "$datafile" || { printf '%s\n' "ze: could not create $datafile" >&2; return 1; }
         fi
         if [[ -z ${_ZE_OWNER:-} && ! -O $datafile ]]; then
-            printf '%s\n' "ze: $datafile not owned by current user" >&2
+            printf '%s\n' "ze: $datafile not owned by current user (set _ZE_OWNER to override)" >&2
             return 1
         fi
         typeset -i dbsize dbmax=${_ZE_DBMAX:-640}
