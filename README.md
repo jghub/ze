@@ -127,19 +127,19 @@ the directory database, and directory tracking does not affect the file database
 ze [-cdefhlrt] [pattern|path|-]
 ```
 
-| Invocation                           | Behavior                                               |
-| ------------------------------------ | ------------------------------------------------------ |
-| `ze`                                 | cd to $HOME                                            |
-| `ze -`                               | cd to previous directory                               |
-| `ze path`                            | cd to path directly (real path wins)                   |
-| `ze pattern`                         | cd to highest scoring match for pattern                |
-| `ze -c pattern`                      | restrict matches to subdirs of $PWD                    |
-| `ze -d [-- fdopts] [pattern [path]]` | discover and jump via fd+fzf, register in database     |
-| `ze -e pattern`                      | print highest scoring match instead of cd              |
-| `ze -f pattern`                      | use fzf for interactive selection                      |
-| `ze -l pattern`                      | list matches sorted by current score                   |
-| `ze [-cefl] -r pattern`              | sort matches by visit count instead of score           |
-| `ze [-cefl] -t pattern`              | sort matches by recency of last visit instead of score |
+| Invocation                           | Behavior                                                     |
+| ------------------------------------ | ------------------------------------------------------------ |
+| `ze`                                 | cd to $HOME                                                  |
+| `ze -`                               | cd to previous directory                                     |
+| `ze path`                            | cd to path directly (real path wins)                         |
+| `ze pattern`                         | cd to highest scoring match for pattern                      |
+| `ze -c pattern`                      | restrict matches to subdirs of $PWD (bare `-c` implies `-l`) |
+| `ze -d [-- fdopts] [pattern [path]]` | discover and jump via fd+fzf, register in database           |
+| `ze -e pattern`                      | print highest scoring match instead of cd                    |
+| `ze -f pattern`                      | use fzf for interactive selection                            |
+| `ze -l pattern`                      | list matches sorted by current score                         |
+| `ze [-cefl] -r pattern`              | sort matches by visit count instead of score                 |
+| `ze [-cefl] -t pattern`              | sort matches by recency of last visit instead of score       |
 
 ## File tracking (`[-o|-p]`)
 
@@ -149,7 +149,9 @@ selection UI as directory tracking, but maintains a separate file database.
 
 In directory mode, selecting a directory changes to that directory. In file mode,
 selecting a file via `ze -o` opens it in the configured editor (this also applies to files
-selected via `ze -od`) while with `ze -p` the file is opened in the configured pager.
+selected via `ze -od`) while with `ze -p` the file is opened in the configured pager. Note
+that a bare `-` argument, which changes to the previous directory in directory tracking
+mode, is treated as an ordinary pattern in file tracking mode.
 
 The separate file-tracking mode was prompted by
 [lazy](https://github.com/elseawhy/lazy). Its implementation in ze.sh is
@@ -158,9 +160,10 @@ independent and shares the existing ze scoring and selection infrastructure.
 The two modes are independent: file tracking does not affect the directory
 database, and directory tracking does not affect the file database.
 
-The selection and ranking options `-f`, `-l`, `-r`, and `-t` have the same general
-meaning as in directory mode, but operate on the file database when combined with
-`[-o|-p]`.
+
+The selection/reporting and ranking options `-c`, `-e`, `-f`, `-l`, `-r`, and `-t`
+have the same general meaning as in directory mode, but operate on the file
+database when combined with `[-o|-p]`.
 
 ## Changes from z.sh
 

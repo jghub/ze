@@ -15,14 +15,15 @@ bash, zsh, ksh93, mksh, fish
 .
 .SH DESCRIPTION
 .P
-\fBze.sh\fP is a shell-native directory jumper and file tracker for \fBbash\fP, \fBzsh\fP,
-\fBksh93\fP, and \fBmksh\fP. A wrapper for use with the
+\fBze.sh\fP is a shell-native directory jumper and file tracker for \fBbash\fP,
+\fBzsh\fP, \fBksh93\fP, and \fBmksh\fP. A wrapper for use with the
 .B fish
-shell is also provided.
+shell is also provided. File tracking is described in more detail below, the
+following description focuses primarily on directory tracking mode.
 .LP
-Unlike its predecessor \fBz.sh\fP, \fBze.sh\fP uses an
-exponential moving sum (EMS) scoring model on an event-driven clock (a global
-monotonic event counter shared across all stored entries).
+Unlike its predecessor \fBz.sh\fP, \fBze.sh\fP uses an exponential moving sum
+(EMS) scoring model on an event-driven clock (a global monotonic event counter
+shared across all stored entries).
 .B ze.sh
 uses the
 .B ze
@@ -41,7 +42,8 @@ regular expressions (ERE),
 Version info.
 .TP
 .B \-c
-Restrict matches to subdirectories of the current directory.
+Restrict matches to subdirectories of the current directory. If specified without
+an argument, \fB\-l\fP is implied.
 .TP
 .BI \-d " [-- fdopts] [pattern [path]]
 Instead of querying the database, search the filesystem with
@@ -73,13 +75,12 @@ Show a brief help message.
 List all matching directories by score.
 .TP
 .B \-o
-Use the file database instead of the directory database, tracking 
-non-binary files rather than directories. The directory and file tracking modes
-use separate databases and do not affect each other. Selecting a file opens it in
-the editor.
+Switch to file tracking mode and open the selected file in the editor. File
+tracking uses a separate database and tracks non-binary files. See also \fB\-p\fP.
 .TP
 .B \-p
-Use the file database and open the selected file in a pager. See also \fB\-o\fP.
+Switch to file tracking mode and view the selected file in a pager. File
+tracking uses a separate database and tracks non-binary files. See also \fB\-o\fP.
 .TP
 .B \-r
 Sort matches by visit count.
@@ -88,6 +89,8 @@ Sort matches by visit count.
 Sort matches by recency of last visit.
 .
 .SH EXAMPLES
+.
+.SS Directory tracking mode
 .TP
 .B ze
 Change to \fI$HOME\fP.
@@ -99,14 +102,6 @@ Change to the previous directory.
 Change to (absolute or relative) pathname
 .I foo
 if it is an existing directory.
-.TP
-.B ze [\-o|\-p]
-Open the highest-scoring (non-binary) file in editor|pager.
-.TP
-.BI "ze [\-o|\-p] " foo
-Open pathname
-.I foo
-in editor|pager if it is an existing (non-binary) file.
 .P
 .B "If pathname interpretation does not succeed:
 .TP
@@ -123,9 +118,6 @@ Change to the highest-scoring subdirectory of \fI$PWD\fP matching \fIfoo\fP.
 .BI "ze \-l " foo
 List all directories matching \fIfoo\fP, sorted by score. Without
 argument, show full stack.
-.TP
-.BI "ze [\-o|\-p] " foo
-Open the highest-scoring (non-binary) file matching \fIfoo\fP in editor|pager.
 .TP
 .BI "ze \-r " foo
 Change to the most frequently visited directory matching
@@ -155,6 +147,29 @@ to constrain the search depth to 3 levels. To search for all directories
 in a path other than $PWD, use
 .BI "ze \-d" " . /path/to/root
 or \fBze \-d \fI'' /path/to/root\fR.
+.
+.SS File tracking mode
+.TP
+.BI "ze [\-o|\-p]
+Open the highest-scoring file in the editor (\fB\-o\fP) or pager (\fB\-p\fP).
+.TP
+.BI "ze [\-o|\-p] " foo
+Open pathname
+.I foo
+in the editor (\fB\-o\fP) or pager (\fB\-p\fP) if it is an existing (non-binary) file.
+.P
+.B "If pathname interpretation does not succeed:
+.TP
+.BI "ze [\-o|\-p] " foo
+Open highest-scoring file matching pattern \fBfoo\fP (including the special case
+\fBfoo="-"\fP, which is treated differently in directory tracking mode).
+.P
+In file tracking mode, options that select, restrict, or sort matches operate
+on files rather than directories. For example:
+.TP
+.BI "ze \-p \-c " foo
+View the highest-scoring file located in or below \fI$PWD\fP matching \fIfoo\fP in
+pager.
 .
 .SH INSTALLATION
 .P
@@ -213,11 +228,11 @@ time. The decay rate is controlled by \fB_ZE_LAMBDA\fP (default: \fB8e-3\fP).
 \fBze.sh\fP only tracks explicit \fBze\fP-based directory changes
 (or bare \fBcd\fP if aliased to \fB_ze_cd\fP). It does not use precommand hooks.
 .P
-With \fB\-o\fP, \fBze.sh\fP uses a separate database for file tracking. File
-selection opens the selected file in the editor rather than changing directory.
+With \fB[\-o|\-p]\fP, \fBze.sh\fP uses a separate database for file tracking.
+File tracking records non-binary files. File selection opens the selected file in
+the configured editor (\fB\-o\fP) or pager (\fB\-p\fP) rather than changing directory.
 The two modes are independent: file tracking does not affect the directory
-database, and directory tracking does not affect the file database. File
-tracking accepts non-binary files.
+database, and directory tracking does not affect the file database.
 .
 .SH DATABASE
 .P
@@ -239,7 +254,7 @@ Global cumulative event count at time of last visit.
 \fIscore\fP
 Exponentially decayed cumulative visit score as of the last visit.
 .P
-The file database used by \fB\-o\fP is stored separately from the directory
+The file database used by \fB[\-o|\-p]\fP is stored separately from the directory
 database. Its entries have the same general format, with \fIpath\fP denoting
 an absolute file path.
 .
@@ -265,7 +280,7 @@ Database directory (default: \fB~/.ze\fP).
 Decay constant in units of 1/cd-action (default: \fB8e-3\fP).
 .TP
 \fB_ZE_OPEN\fP
-Editor command used for opening a file selected with \fB ze \-o\fP. If unset, one of
+Editor command used for opening a file selected with \fBze \-o\fP. If unset, one of
 .BR $VISUAL ,
 .BR $EDITOR ,
 .BR nano ,
@@ -273,7 +288,7 @@ Editor command used for opening a file selected with \fB ze \-o\fP. If unset, on
 is used (in this order).
 .TP
 \fB_ZE_PAGER\fP
-Pager command used for opening a file selected with \fB ze \-p\fP. If unset, one of
+Pager command used for opening a file selected with \fBze \-p\fP. If unset, one of
 .BR $PAGER ,
 .BR "less -NRS" ,
 .B more
@@ -324,7 +339,7 @@ print $1, visits, ticks, score
 Default directory database file.
 .TP
 .B ~/.ze/zef.db
-Default file database (used by \fBze \-o\fP).
+Default file database (used by \fB[\-o|\-p]\fP).
 .
 .SH ENVIRONMENT
 .P
@@ -337,7 +352,7 @@ Main function, aliased to the command name specified by \fB_ZE_CMD\fP (default: 
 \fB_ze_cd\fP
 cd wrapper. Alias \fBcd\fP to this function to track ordinary cd commands.
 .TP
-\fB_ze_commit\fP, \fB_ze_complete\fP, \fB_ze_dig\fP, \fB_ze_ere_escape\fP, \fB_ze_fzf\fP, \fB_ze_open\fP, \fB_ze_read\fP, \fB_ze_record\fP
+\fB_ze_builtin_cd\fP, \fB_ze_commit\fP, \fB_ze_complete\fP, \fB_ze_dig\fP, \fB_ze_ere_escape\fP, \fB_ze_fzf\fP, \fB_ze_open\fP, \fB_ze_read\fP, \fB_ze_record\fP, \fB_ze_zsh_tab_completion\fP (only under \fBzsh\fP).
 Internal functions, not intended for direct use.
 .
 .SH SEE ALSO
