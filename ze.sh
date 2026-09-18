@@ -41,7 +41,7 @@ function _ze_init {
         ((margin = dbmax/dbfrac))
         ((nprune = dbsize - dbmax + margin))
         (   set -o pipefail  # sub-process avoids overriding user settings
-            awk -F'|' -v lambda="$lambda" '
+            LC_ALL=C awk -F'|' -v lambda="$lambda" '
                 BEGIN { OFS = FS; OFMT = "%.17g" }
                 {
                     lines[NR] = $0
@@ -224,7 +224,7 @@ function _ze_record { ## pathname [oldpwd] [dirs|files]
     typeset tempfile
     tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
 
-    pathname=$pathname awk -v lambda="$lambda" -F"|" '
+    pathname=$pathname LC_ALL=C awk -v lambda="$lambda" -F"|" '
         BEGIN { pathname = ENVIRON["pathname"]; OFS = FS; OFMT = "%.17g" }
         NF == 4 {  # remove invalid entries from db (injection of new invalid pathname is prevented in END block).
             if ($1 == pathname) {
@@ -259,7 +259,7 @@ function _ze {
                 p) opcode=2; mode=files;;
                 r) typ="visits";;
                 t) typ="recent";;
-                V) typeset ze_version="ze v3.3.3"; printf '%s\n' "$ze_version"; return;;
+                V) typeset ze_version="ze v3.3.4"; printf '%s\n' "$ze_version"; return;;
                 *) ;;   # silently ignore unrecognized options
             esac; opt=${opt:1}; done;;
          *) fnd+=${fnd:+ }$1; fdargs+=("$1");;
@@ -289,7 +289,7 @@ function _ze {
     fi
 
     typeset result
-    result=$(_ze_read "$mode" | fnd=$fnd awk -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
+    result=$(_ze_read "$mode" | fnd=$fnd LC_ALL='' LC_NUMERIC=C awk -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
         BEGIN {
             q = ENVIRON["fnd"]
             gsub(" ", ".*", q)

@@ -1,5 +1,19 @@
 # ze.sh: Changelog
 
+## v3.3.4 (2026-09-19)
+* **fix a locale-dependent database corruption bug**: under a decimal-comma locale
+(e.g. `de_DE.UTF-8`, `fr_FR.UTF-8`) using an awk implementation that honors
+`LC_NUMERIC` for number formatting (gawk, macOS's bundled awk), the score field
+was written with a comma decimal separator, while the `sort` calls used for db
+pruning are using `LC_ALL=C` for performance reasons (and thus expect a decimal
+point as a side effect). This silently truncated the sort key to its integer
+part, corrupting pruning order. All score read/write/sort paths now force
+decimal-point formatting regardless of the invoking shell's locale.
+*Affected users*: only those who ran ze.sh under a decimal-comma locale before
+this fix. If affected (if unsure, check format of last column in db), you need to
+fix your database (global replacement of comma by point usually is sufficient
+presuming absence of pathnames containing verbatim comma characters).
+
 ## v3.3.3 (2026-09-09)
 * **provide paging in file tracking mode**: a new `-p` option is provided as
 alternative to `-o` which opens the selected file in a pager (useful when the
