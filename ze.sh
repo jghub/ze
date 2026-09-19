@@ -55,7 +55,7 @@ function _ze_init {
                 }' "$datafile" | LC_ALL=C sort -t'|' -k5,5g -k1,1 | awk -F'|' -v nprune="$nprune" '
                         BEGIN { OFS = FS; OFMT = "%.17g" } NR > nprune { print $1, $2, $3, $4 }' >| "$tempfile"
         )
-        _ze_commit $? "$tempfile" "$mode"
+        _ze_commit $? "$tempfile" "$mode" || return
     done
 }
 
@@ -82,6 +82,7 @@ function _ze_commit {  ## rc tempfile mode(dirs|files)
 }
 
 if ! _ze_init; then
+    printf '%s\n' "ze: initialization failed, giving up" >&2
     unset -f _ze_commit _ze_init
     return 1
 fi
@@ -89,7 +90,7 @@ unset -f _ze_init
 
 # shellcheck disable=SC2015 # the A && B || C construct is not problematic here (function definition will never return error in B)
 # shellcheck disable=SC2164 # false positive in this context
-[[ ${ZSH_VERSION:-} ]] && function _ze_builtin_cd { builtin cd "$@"; } || function _ze_builtin_cd { command cd "$@"; }
+[[ ${ZSH_VERSION:-} ]] && function _ze_builtin_cd { CDPATH= builtin cd -- "$@"; } || function _ze_builtin_cd { CDPATH= command cd -- "$@"; }
 
 function _ze_ere_escape { printf '%s\n' "$1" | sed 's/[].^$*+?(){}|\]/\\&/g'; }
 
@@ -148,27 +149,29 @@ function _ze_open {  ## origname opcode
         *) opcmd=${_ZE_PAGER:-${PAGER:-less -NRS}}; lastchoice='more';;
     esac
     command -v "${opcmd%% *}" >/dev/null 2>&1 || opcmd=$lastchoice
-    $opcmd "$pathname"
+    eval "$opcmd"' "$pathname"'
 }
 
 function _ze_fzf { ## pattern typ [dirs|files]
     command -v fzf >/dev/null || { printf '%s\n' "'fzf' not found" >&2; return 1; }
-    typeset metric header opt='' mode=${3:-dirs} preview='pathname={2..}'
-    typeset -a fzfopts
+
+    typeset metric header mode=${3:-dirs} preview='pathname={2..}'
+    typeset -a fzfopts zopts; zopts=()
+    ((${4:-0})) && zopts+=(-c)                     # used by item 3
     case $2 in
-        visits) metric='visit count'; opt='-r';;
-        recent) metric='recency'; opt='-t';;
+        visits) metric='visit count'; zopts+=(-r);;
+        recent) metric='recency'; zopts+=(-t);;
         *)      metric='EMS score';;
     esac
     case $mode in
-        files) preview+='; head -256 -- "$pathname"'; opt+=' -o';;
+        files) preview+='; head -256 -- "$pathname"'; zopts+=(-o);;
         *)     preview+='; LC_ALL=C ls -AC --color=always "$pathname"';;
     esac
 
     header="${mode%s} stack (ranked by $metric)"
     fzfopts=( -0 -e --no-sort --preview-window='top,19%' --header="$header" --color='header:bright-red' --preview "$preview" )
     # shellcheck disable=SC2086 # word splitting of $opt intentional
-    (set -o pipefail; _ze -l $opt -- "$1" |
+    (set -o pipefail; _ze -l "${zopts[@]}" -- "$1" |
         awk -F'\t' '{ buf[NR] = $NF } END { offs = NR+1; while (NR) print offs-NR FS buf[NR--] }' |
             fzf "${fzfopts[@]}" | cut -f2)
 }
@@ -202,7 +205,7 @@ function _ze_dig { ## (dirs|files) fdopts_and_args
     typeset -a fzfopts
     fzfopts=( -0 -e --no-sort --preview-window='top,19%' --header="$fdex $argstring" --color='header:bright-red'
         --preview "$preview" )
-    (set -o pipefail; $fdex "${fdargs[@]}" | "${filter[@]}" | LC_ALL=C sort | nl | fzf "${fzfopts[@]}" | cut -f2)
+    (set -o pipefail; $fdex "${fdargs[@]}" | LC_ALL=C "${filter[@]}" | LC_ALL=C sort | nl | fzf "${fzfopts[@]}" | cut -f2)
     typeset -i rc=$?; ((rc)) && { printf 'no match\n' >&2; return $rc; }
 }
 
