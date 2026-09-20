@@ -1,5 +1,39 @@
 # ze.sh: Changelog
 
+## v3.3.5 (2026-09-20)
+* **fix file opening and file selection via fzf under zsh**: zsh does not
+word-split unquoted parameter expansions, so `-o`/`-p` failed with
+`command not found` for multi-word editor or pager commands (including the default
+`less -NRS`), and `-of`/`-pf` found no match unless combined with `-r` or `-t`.
+The command string is now correctly word-split under zsh, too, and the chosen
+options are passed as an array to the constructed `fzf` call.
+
+* **fix `-c` (restrict matches to subdirectories of the current directory)**:
+`-c` built a regular expression from `$PWD`. It included sibling directories
+sharing a name prefix (`proj` matched `project2`), failed for paths containing
+`[`, matched too loosely for paths containing spaces, made the query
+case-sensitive if `$PWD` contained upper-case letters and, with
+`_ZE_RESOLVE_SYMLINKS`, matched nothing below a symlinked directory. `-c` is now
+an exact path prefix test. Side effect: `ze -c name` takes the direct jump if
+`name` is a directory in `$PWD`.
+
+* **ignore `CDPATH` internally**: direct jumps (`ze <dir>`) and the path
+resolution used when opening files no longer consult `CDPATH`. Previously a
+`CDPATH` match could win over a directory in `$PWD` (bash, ksh93, mksh) or make
+opening a file given by a relative path fail. Directory names starting with `-`
+(given after `--`) are now accepted.
+
+* **don't drop non-UTF-8 file names in dig mode**: with `-d` in file mode the
+filter for binary file extensions ran in the user's locale. With GNU grep,
+names containing bytes invalid in that locale (e.g. latin-1 names under a UTF-8
+locale) were silently dropped from the candidate list. The filter now runs
+under `LC_ALL=C`.
+
+* **report failing database pruning at startup**: a failure while pruning the
+file database was ignored and a failure for the directory database prevented
+ze from loading without any message. Either now aborts initialization with an
+error message.
+
 ## v3.3.4 (2026-09-19)
 * **fix a locale-dependent database corruption bug**: under a decimal-comma locale
 (e.g. `de_DE.UTF-8`, `fr_FR.UTF-8`) using an awk implementation that honors

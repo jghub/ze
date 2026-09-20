@@ -90,9 +90,7 @@ unset -f _ze_init
 
 # shellcheck disable=SC2015 # the A && B || C construct is not problematic here (function definition will never return error in B)
 # shellcheck disable=SC2164 # false positive in this context
-[[ ${ZSH_VERSION:-} ]] && function _ze_builtin_cd { CDPATH= builtin cd -- "$@"; } || function _ze_builtin_cd { CDPATH= command cd -- "$@"; }
-
-function _ze_ere_escape { printf '%s\n' "$1" | sed 's/[].^$*+?(){}|\]/\\&/g'; }
+[[ ${ZSH_VERSION:-} ]] && function _ze_builtin_cd { CDPATH='' builtin cd -- "$@"; } || function _ze_builtin_cd { CDPATH='' command cd -- "$@"; }
 
 function _ze_read {  ## [dirs|files]
     typeset mode=${1:-dirs}
@@ -149,15 +147,16 @@ function _ze_open {  ## origname opcode
         *) opcmd=${_ZE_PAGER:-${PAGER:-less -NRS}}; lastchoice='more';;
     esac
     command -v "${opcmd%% *}" >/dev/null 2>&1 || opcmd=$lastchoice
-    eval "$opcmd"' "$pathname"'
+    [[ ${ZSH_VERSION:-} ]] && setopt local_options sh_word_split  # word splitting of $opcmd has to work in zsh, too
+    $opcmd "$pathname"
 }
 
-function _ze_fzf { ## pattern typ [dirs|files]
+function _ze_fzf { ## pattern typ [dirs|files] cflag
     command -v fzf >/dev/null || { printf '%s\n' "'fzf' not found" >&2; return 1; }
 
     typeset metric header mode=${3:-dirs} preview='pathname={2..}'
-    typeset -a fzfopts zopts; zopts=()
-    ((${4:-0})) && zopts+=(-c)                     # used by item 3
+    typeset -a fzfopts zopts; zopts=(-l)
+    ((${4:-0})) && zopts+=(-c)                     # pass -c on to the nested _ze call
     case $2 in
         visits) metric='visit count'; zopts+=(-r);;
         recent) metric='recency'; zopts+=(-t);;
@@ -170,8 +169,7 @@ function _ze_fzf { ## pattern typ [dirs|files]
 
     header="${mode%s} stack (ranked by $metric)"
     fzfopts=( -0 -e --no-sort --preview-window='top,19%' --header="$header" --color='header:bright-red' --preview "$preview" )
-    # shellcheck disable=SC2086 # word splitting of $opt intentional
-    (set -o pipefail; _ze -l "${zopts[@]}" -- "$1" |
+    (set -o pipefail; _ze "${zopts[@]}" -- "$1" |
         awk -F'\t' '{ buf[NR] = $NF } END { offs = NR+1; while (NR) print offs-NR FS buf[NR--] }' |
             fzf "${fzfopts[@]}" | cut -f2)
 }
@@ -245,14 +243,14 @@ function _ze_record { ## pathname [oldpwd] [dirs|files]
 function _ze {
     typeset lambda=${_ZE_LAMBDA:-8e-3}
 
-    typeset fnd='' opt='' typ='' mode=dirs escpwd=''
+    typeset fnd='' opt='' typ='' mode=dirs cwd=''
     typeset -i list=0 finder=0 digger=0 emit=0 opcode=0 cflag=0
     typeset -a fdargs; fdargs=()
     while (($#)); do case "$1" in
         --) shift; while (($#)); do fnd+=${fnd:+ }$1; fdargs+=("$1"); shift; done;;
          -) fnd='-';;
         -*) opt=${1:1}; while [[ $opt ]]; do case ${opt:0:1} in
-                c) escpwd=$(_ze_ere_escape "$PWD"); fnd="^$escpwd $fnd"; cflag=1;;
+                c) cflag=1;;
                 d) digger=1;;
                 e) emit=1;;
                 f) finder=1;;
@@ -262,7 +260,7 @@ function _ze {
                 p) opcode=2; mode=files;;
                 r) typ="visits";;
                 t) typ="recent";;
-                V) typeset ze_version="ze v3.3.4"; printf '%s\n' "$ze_version"; return;;
+                V) typeset ze_version="ze v3.3.5"; printf '%s\n' "$ze_version"; return;;
                 *) ;;   # silently ignore unrecognized options
             esac; opt=${opt:1}; done;;
          *) fnd+=${fnd:+ }$1; fdargs+=("$1");;
@@ -278,12 +276,15 @@ function _ze {
         # be passed to _ze_dig. This is only a non-issue because that arg will then be ignored in
         # the 'fd' call.
         ((digger)) && fnd=$(_ze_dig "$mode" "${fdargs[@]+"${fdargs[@]}"}")
-        ((finder)) && fnd=$(_ze_fzf "$fnd" "$typ" "$mode")
+        ((finder)) && fnd=$(_ze_fzf "$fnd" "$typ" "$mode" "$cflag")
         [[ $fnd ]] || return 1
         ((emit)) && { printf '%s\n' "$fnd"; return; }
     fi
 
-    ((cflag)) && [[ $fnd == "^$escpwd " ]] && list=1  # if bare -c with no args, just list
+    if ((cflag)); then  # restrict matches to the subtree below the current directory
+        [[ ${_ZE_RESOLVE_SYMLINKS:-} ]] && cwd=$(command pwd -P 2>/dev/null) || cwd=$PWD
+        [[ $fnd ]] || list=1  # if bare -c with no args, just list
+    fi
 
     if ((opcode)); then
         ((!(list || emit))) && [[ -n $fnd && -f $fnd ]] && { _ze_open "$fnd" $opcode; return; }
@@ -292,9 +293,10 @@ function _ze {
     fi
 
     typeset result
-    result=$(_ze_read "$mode" | fnd=$fnd LC_ALL='' LC_NUMERIC=C awk -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
+    result=$(_ze_read "$mode" | fnd=$fnd cwd=$cwd LC_ALL='' LC_NUMERIC=C awk -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
         BEGIN {
             q = ENVIRON["fnd"]
+            cwd = ENVIRON["cwd"]; if (cwd != "" && cwd != "/") cwd = cwd "/"
             gsub(" ", ".*", q)
             lq = tolower(q)
             case_sensitive = (q != lq)
@@ -308,6 +310,7 @@ function _ze {
         END {
             for (i = 1; i <= NR; i++) {
                 split(lines[i], f)
+                if (cwd != "" && index(f[1], cwd) != 1) continue
                 candidate = case_sensitive ? f[1] : tolower(f[1])
                 if (candidate ~ q) {
                     pathname = f[1]
