@@ -34,7 +34,7 @@ file database was ignored and a failure for the directory database prevented
 ze from loading without any message. Either now aborts initialization with an
 error message.
 
-## v3.3.4 (2026-09-19)
+## v3.3.4 (2026-09-18)
 * **fix a locale-dependent database corruption bug**: under a decimal-comma locale
 (e.g. `de_DE.UTF-8`, `fr_FR.UTF-8`) using an awk implementation that honors
 `LC_NUMERIC` for number formatting (gawk, macOS's bundled awk), the score field

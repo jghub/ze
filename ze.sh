@@ -75,7 +75,7 @@ function _ze_commit {  ## rc tempfile mode(dirs|files)
     [[ $tempfile == "$datafile."* ]] || return 1      # safeguard against manual misuse
     ((rc == 0)) || { \rm -f "$tempfile"; return 1; }
 
-    [[ ${_ZE_OWNER:-} ]] && chown "$_ZE_OWNER":"$(id -ng "$_ZE_OWNER")" "$tempfile"
+    [[ ${_ZE_OWNER:-} ]] && { chown "$_ZE_OWNER":"$(id -ng "$_ZE_OWNER")" "$tempfile" || { \rm -f "$tempfile"; return 1; }; }
     # atomic replacement prevents db corruption in case of a race condition (although "last writer
     # wins" implies loss of updates from any competing writers)
     \mv -f "$tempfile" "$datafile" || { \rm -f "$tempfile"; return 1; }
@@ -129,7 +129,7 @@ function _ze_open {  ## origname opcode
     typeset -i opcode=${2:-2}
 
     if [[ ${_ZE_RESOLVE_SYMLINKS:-} ]]; then
-        pathname=$(command realpath "$origname" 2>/dev/null)
+        pathname=$(command realpath -- "$origname" 2>/dev/null)
     else
         pathname=$(_ze_builtin_cd "$(dirname -- "$origname")" 2>/dev/null && printf '%s/%s' "$PWD" "$(basename -- "$origname")")
     fi
@@ -204,7 +204,6 @@ function _ze_dig { ## (dirs|files) fdopts_and_args
     fzfopts=( -0 -e --no-sort --preview-window='top,19%' --header="$fdex $argstring" --color='header:bright-red'
         --preview "$preview" )
     (set -o pipefail; $fdex "${fdargs[@]}" | LC_ALL=C "${filter[@]}" | LC_ALL=C sort | nl | fzf "${fzfopts[@]}" | cut -f2)
-    typeset -i rc=$?; ((rc)) && { printf 'no match\n' >&2; return $rc; }
 }
 
 function _ze_record { ## pathname [oldpwd] [dirs|files]
