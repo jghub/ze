@@ -136,9 +136,12 @@ function _ze_open {  ## origname opcode
     # shellcheck disable=SC2181 # irrelevant
     (($?)) && { printf '%s\n' "ze: could not resolve path: $origname" >&2; return 1; }
 
+    [[ -r $pathname ]] || { printf '%s\n' "ze: file not readable: $pathname" >&2; return 1; }
+
     if [[ -s $pathname ]]; then
         LC_ALL=C grep -Iq . -- "$pathname" || { printf '%s\n' "ze: refusing to open '$pathname': binary file" >&2; return 1; }
     fi
+
     (_ze_record "$pathname" "" files &) 2>/dev/null
 
     typeset opcmd lastchoice
