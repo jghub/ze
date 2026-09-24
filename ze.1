@@ -15,10 +15,10 @@ bash, zsh, ksh93, mksh, fish
 .
 .SH DESCRIPTION
 .P
-\fBze.sh\fP is a shell-native directory jumper and file tracker for \fBbash\fP,
+\fBze.sh\fP is a shell-native directory jumper and (non-binary) file tracker for \fBbash\fP,
 \fBzsh\fP, \fBksh93\fP, and \fBmksh\fP. A wrapper for use with the
 .B fish
-shell is also provided. File tracking is described in more detail below, the
+shell is also provided. File tracking is explained in more detail below, the
 following description focuses primarily on directory tracking mode.
 .LP
 Unlike its predecessor \fBz.sh\fP, \fBze.sh\fP uses an exponential moving sum
@@ -156,7 +156,7 @@ Open the highest-scoring file in the editor (\fB\-o\fP) or pager (\fB\-p\fP).
 .BI "ze [\-o|\-p] " foo
 Open pathname
 .I foo
-in the editor (\fB\-o\fP) or pager (\fB\-p\fP) if it is an existing (non-binary) file.
+in the editor (\fB\-o\fP) or pager (\fB\-p\fP) if it is a readable (non-binary) file.
 .P
 .B "If pathname interpretation does not succeed:
 .TP

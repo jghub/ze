@@ -1,6 +1,6 @@
 #!/usr/bin/env dash
 # ze.dash -- source from your .profile
-# ze.sh and zex.sh must be on $PATH.
+# the zex.sh executable must be on $PATH, ze.sh must reside alongside zex.sh.
 ze() {
    local _ze_res  # to make 100% POSIX compliant, remove 'local'
    [ "$1" = "-" ] && set -- "${OLDPWD:-$HOME}"
@@ -20,7 +20,7 @@ ze() {
            ;;
    esac
 }
-alias zd='ze -d --'
+alias zd='ze -d'
 alias zf='ze -f'
 alias zo='ze -o'
 alias zp='ze -p'

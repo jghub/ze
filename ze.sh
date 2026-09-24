@@ -59,7 +59,7 @@ function _ze_init {
     done
 }
 
-function _ze_commit {  ## rc tempfile mode(dirs|files)
+function _ze_commit {  ## rc tempfile dirs|files
     (($# == 3)) || return 1                          # safeguard against manual misuse
     typeset tempfile=$2 mode=$3
     case $1 in
@@ -154,7 +154,7 @@ function _ze_open {  ## origname opcode
     $opcmd "$pathname"
 }
 
-function _ze_fzf { ## pattern typ [dirs|files] cflag
+function _ze_fzf { ## pattern typ [dirs|files] [cflag]
     command -v fzf >/dev/null || { printf '%s\n' "'fzf' not found" >&2; return 1; }
 
     typeset metric header mode=${3:-dirs} preview='pathname={2..}'
@@ -177,7 +177,7 @@ function _ze_fzf { ## pattern typ [dirs|files] cflag
             fzf "${fzfopts[@]}" | cut -f2)
 }
 
-function _ze_dig { ## (dirs|files) fdopts_and_args
+function _ze_dig { ## dirs|files [fdopts_and_args]
     command -v fzf >/dev/null || { printf '%s\n' "'fzf' not found" >&2; return 1; }
     typeset mode=$1; shift
     if command -v fd >/dev/null; then
@@ -210,7 +210,7 @@ function _ze_dig { ## (dirs|files) fdopts_and_args
 }
 
 function _ze_record { ## pathname [oldpwd] [dirs|files]
-    # preserve the original two-arg (pathname, oldpwd) interface used by zex.sh
+    # preserve the original 1-2 arg (pathname, oldpwd) interface used by zex.sh
     typeset pathname=${1:-"/"} oldpwd=${2:-${OLDPWD:-}} mode=${3:-dirs}  # 'pathname default="/" safeguards against manual misuse
     typeset datafile lambda=${_ZE_LAMBDA:-8e-3}
 
