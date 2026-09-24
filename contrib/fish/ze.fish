@@ -40,25 +40,26 @@ function ze
         set -l lastchoice
         if set -q _flag_o
             if set -q _ZE_OPEN; and test -n "$_ZE_OPEN"
-                set opcmd (string split -n ' ' -- "$_ZE_OPEN")
+                set opcmd $_ZE_OPEN
             else if set -q VISUAL; and test -n "$VISUAL"
-                set opcmd (string split -n ' ' -- "$VISUAL")
+                set opcmd $VISUAL
             else if set -q EDITOR; and test -n "$EDITOR"
-                set opcmd (string split -n ' ' -- "$EDITOR")
+                set opcmd $EDITOR
             else
                 set opcmd nano
             end
             set lastchoice vi
         else
             if set -q _ZE_PAGER; and test -n "$_ZE_PAGER"
-                set opcmd (string split -n ' ' -- "$_ZE_PAGER")
+                set opcmd $_ZE_PAGER
             else if set -q PAGER; and test -n "$PAGER"
-                set opcmd (string split -n ' ' -- "$PAGER")
+                set opcmd $PAGER
             else
-                set opcmd less -NRS
+                set opcmd "less -NRS"
             end
             set lastchoice more
         end
+        set opcmd (string split -n ' ' -- $opcmd)
         command -q $opcmd[1]; or set opcmd $lastchoice
         $opcmd "$result"
         zex.sh --record-file "$result" &
