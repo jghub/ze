@@ -6,5 +6,5 @@ function _ze_cd
     builtin cd $argv
     or return $status
     zex.sh --record $PWD $prev &
-    set -g _ZE_OLDPWD $prev
+    set -gx _ZE_OLDPWD $prev
 end

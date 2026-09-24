@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# catch the pathname resolution cases in case the wrapper does not (or cannot) do this himself.
-# Handling of 'ze -' depends on the wrapper exporting _ZE_OLDPWD into the environment before the
-# zex.sh call.
+# fast-track a single literal pathname argument, bypassing the database lookup. '-' resolves to the
+# previous directory while an existing directory is returned as-is. handling of 'ze -' depends on the
+# wrapper exporting _ZE_OLDPWD into the environment before the zex.sh call.
 (($# == 0)) && set -- "$HOME"
 if (($# == 1)); then
     [[ $1 == "-" ]] && { printf '%s\n' "${_ZE_OLDPWD:-$HOME}"; exit; }
@@ -17,6 +17,9 @@ if [[ $1 == "--record" ]]; then
 elif [[ $1 == "--record-file" ]]; then
     shift
     _ze_record "$@" "" files
+elif [[ $1 == "--open" ]]; then
+    shift
+    _ze "$@"
 else
     _ze -e "$@"
 fi

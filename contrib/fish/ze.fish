@@ -1,73 +1,28 @@
 function ze
-    # ---------------------------------------------------------------------------
-    # ze -- fish wrapper for ze.sh / zex.sh
-    # the wrapper detects the 'report only, do not cd' options and acts
-    # accordingly:
-    #   -e   emit path to stdout
-    #   -h   help
-    #   -l   list matches with scores
-    #   -o   open file in editor
-    #   -p   open file in pager
-    # in order to use argparse we need to provide a list of +all+ ze options
-    # although we do only act on [-o|-p] in the wrapper (all other actions
-    # delegated to ze.sh).
-    # ---------------------------------------------------------------------------
-    if not set -q argv
+    if test (count $argv) -eq 0
         _ze_cd
         return
-    else if test (count $argv) -eq 1
-        if test "$argv[1]" = -
-            _ze_cd -
-            return
-        else if test -d "$argv[1]"
-            _ze_cd "$argv[1]"
-            return
-        end
     end
-    set -l result (zex.sh $argv)
-    test -n "$result"; or return
-    argparse --ignore-unknown c d e f h l o p r t V -- $argv
-    if set -q _flag_e; or set -q _flag_h; or set -q _flag_l
-        printf '%s\n' $result
-        return
-    end
+    set -l orig_argv $argv
+
+    # let zex.sh take care completely of all flags/calls that don't require
+    # parent shell 'cd' (either [-o|-p] or pure reporting [-e|-h|-l|-V]).
+    argparse --ignore-unknown e h l V o p -- $argv
     if set -q _flag_o; or set -q _flag_p
-        if test (count $result) -ne 1; or not test -f "$result"
-            printf '%s\n' $result
-            return
-        end
-        set -l opcmd
-        set -l lastchoice
-        if set -q _flag_o
-            if set -q _ZE_OPEN; and test -n "$_ZE_OPEN"
-                set opcmd $_ZE_OPEN
-            else if set -q VISUAL; and test -n "$VISUAL"
-                set opcmd $VISUAL
-            else if set -q EDITOR; and test -n "$EDITOR"
-                set opcmd $EDITOR
-            else
-                set opcmd nano
-            end
-            set lastchoice vi
-        else
-            if set -q _ZE_PAGER; and test -n "$_ZE_PAGER"
-                set opcmd $_ZE_PAGER
-            else if set -q PAGER; and test -n "$PAGER"
-                set opcmd $PAGER
-            else
-                set opcmd "less -NRS"
-            end
-            set lastchoice more
-        end
-        set opcmd (string split -n ' ' -- $opcmd)
-        command -q $opcmd[1]; or set opcmd $lastchoice
-        $opcmd "$result"
-        zex.sh --record-file "$result" &
+        zex.sh --open $orig_argv
+        return
+    else if set -q _flag_e; or set -q _flag_h; or set -q _flag_l; or set -q _flag_V
+        zex.sh $orig_argv
         return
     end
-    if test (count $result) -eq 1; and test -d "$result"
-        _ze_cd "$result"
+
+    # directory navigation requires parent shell builtin 'cd'
+    set -l res (zex.sh $orig_argv)
+    or return $status
+
+    if test (count $res) -eq 1; and test -d "$res"
+        _ze_cd "$res"
     else
-        printf '%s\n' $result
+        printf '%s\n' $res
     end
 end
