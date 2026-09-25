@@ -136,7 +136,7 @@ ze [-cdefhlrt] [pattern|path|-]
 | `ze -c pattern`                      | restrict matches to subdirs of $PWD (bare `-c` implies `-l`) |
 | `ze -d [-- fdopts] [pattern [path]]` | discover and jump via fd+fzf, register in database           |
 | `ze -e pattern`                      | print highest scoring match instead of cd                    |
-| `ze -f pattern`                      | use fzf for interactive selection                            |
+| `ze -f pattern`                      | use fzf or basic CLI fallback for interactive selection      |
 | `ze -l pattern`                      | list matches sorted by current score                         |
 | `ze [-cefl] -r pattern`              | sort matches by visit count instead of score                 |
 | `ze [-cefl] -t pattern`              | sort matches by recency of last visit instead of score       |
@@ -185,7 +185,7 @@ database when combined with `[-o|-p]`.
 | Symlinks         | resolved to physical paths by default                 | logical paths are honoured by default *(5)*                                          |
 | Unknown options  | not handled, lists database                           | silently stripped from option string before execution                                |
 | `-d` option      | not available                                         | discover and jump to directory via `fd`+`fzf`, registering it in the database (*6*)  |
-| `-f` option      | not available                                         | interactive fzf selector (if fzf installed)                                          |
+| `-f` option      | not available                                         | interactive selector (by default fzf, if installed)                                  |
 | `-o` option      | not available                                         | switch `ze` to file mode: track and open files via $EDITOR (or hardcoded fallback)   |
 | `-p` option      | not available                                         | switch `ze` to file mode: track and open files via $PAGER (or hardcoded fallback)    |
 
@@ -233,23 +233,25 @@ jumping.
 | `_ZE_DBMAX`            | `640`   | db size limit (pruning threshold)   |
 | `_ZE_DIR`              | `~/.ze` | database directory                  |
 | `_ZE_LAMBDA`           | `8e-3`  | decay constant (units: 1/cd-action) |
+| `_ZE_NO_FZF`           | unset   | force basic CLI instead of fzf      |
 | `_ZE_OPEN`             | unset   | editor command used by `ze -o`      |
 | `_ZE_OWNER`            | unset   | allow use on shared db              |
 | `_ZE_PAGER`            | unset   | pager command used by `ze -p`       |
 | `_ZE_RESOLVE_SYMLINKS` | unset   | resolve symlinks on cd              |
 
-*(1)*: Must be set before sourcing ze.sh so that tab completion is registered
-under the chosen name. For example, `_ZE_CMD=myze` makes `myze` the command name
-with working tab completion - `alias myze=ze` alone would not register completion.
-Setting `_ZE_CMD=cd` shadows the builtin `cd` with full `ze` behaviour including
-pattern navigation. Note that this changes `cd` semantics: unrecognized pathnames
-are tried as patterns against the database rather than producing an error.
+*(1)*: Setting `_ZE_CMD=cd` shadows the builtin `cd` with full `ze` behaviour
+including pattern navigation. Note that this changes `cd` semantics: unrecognized
+pathnames are tried as patterns against the database rather than producing an
+error.
 
-## fzf integration
+## Interactive selection and fzf integration
 
-If [fzf](https://github.com/junegunn/fzf) is installed, `ze -f [pattern]` opens
-an interactive selector showing all matching directories ranked by score,
-best match at top. With `[-o|-p]`, the selector operates on matching files instead.
+`ze -f [pattern]` opens an interactive selector showing all matching directories
+ranked by score, with the best match as the initial selection. With
+`[-o|-p]`, the selector operates on matching files instead. If
+[fzf](https://github.com/junegunn/fzf) is installed, it is used by default,
+otherwise `ze -f` falls back to a basic CLI. Set `_ZE_NO_FZF` to force the basic
+CLI.
 
 ```sh
 ze -f        # interactive selection from all tracked directories

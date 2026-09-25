@@ -52,7 +52,7 @@ to discover directories not yet recorded in
 .BR ze 's
 database. The directory to which to navigate is selected with
 .B fzf
-and recorded in the database. Note that
+(or a basic CLI fallback) and recorded in the database. Note that
 .BI ze " \-d
 uses
 .BR fd 's
@@ -66,7 +66,7 @@ characters.
 Print the best match, do not \fBcd\fP.
 .TP
 .B \-f
-Use \fBfzf\fP for interactive selection.
+Use \fBfzf\fP (or a basic CLI fallback) for interactive selection.
 .TP
 .B \-h
 Show a brief help message.
@@ -127,10 +127,9 @@ Change to the most frequently visited directory matching
 Change to the most recently visited directory matching
 \fIfoo\fP.
 .P
-.B "If fzf is available:
 .TP
 .BI "ze \-f " foo
-Interactively select a matching directory using \fBfzf\fP. Without
+Interactively select a matching directory using \fBfzf\fP or a basic CLI fallback. Without
 argument, use full stack.
 .P
 .B "If fd is available, too:
@@ -264,49 +263,43 @@ The following environment variables can be set before sourcing ze.sh (typically 
 your shell rc):
 .TP
 \fB_ZE_CMD\fP
-Command name (default: \fBze\fP). Must be set before sourcing ze.sh so that tab
-completion is registered under the chosen name. For example, \fB_ZE_CMD=myze\fP
-makes \fBmyze\fP the command name with working tab completion. Setting
-\fB_ZE_CMD=cd\fP shadows the builtin \fBcd\fP with full \fBze\fP behaviour
-including pattern navigation, changing \fBcd\fP semantics accordingly.
+Command name (default: \fBze\fP). Setting \fB_ZE_CMD=cd\fP shadows the builtin
+\fBcd\fP with full \fBze\fP behaviour including pattern navigation, changing
+\fBcd\fP semantics accordingly.
 .TP
-\fB_ZE_DBMAX\fP
-Database size limit (default: \fB640\fP).
+\fB_ZE_DBMAX\fP Database size limit (default: \fB640\fP).
 .TP
-\fB_ZE_DIR\fP
-Database directory (default: \fB~/.ze\fP).
+\fB_ZE_DIR\fP Database directory (default: \fB~/.ze\fP).
 .TP
-\fB_ZE_LAMBDA\fP
-Decay constant in units of 1/cd-action (default: \fB8e-3\fP).
+\fB_ZE_LAMBDA\fP Decay constant in units of 1/cd-action (default: \fB8e-3\fP).
 .TP
-\fB_ZE_OPEN\fP
-Editor command used for opening a file selected with \fBze \-o\fP. If unset, one of
+\fB_ZE_NO_FZF\fP If set, use the basic CLI selector instead of \fBfzf\fP.
+.TP
+\fB_ZE_OPEN\fP Editor command used for opening a file selected with \fBze \-o\fP.
+If unset, one of
 .BR $VISUAL ,
 .BR $EDITOR ,
 .BR nano ,
 .B vi
 is used (in this order).
 .TP
-\fB_ZE_PAGER\fP
-Pager command used for opening a file selected with \fBze \-p\fP. If unset, one of
+\fB_ZE_PAGER\fP Pager command used for opening a file selected with \fBze \-p\fP.
+If unset, one of
 .BR $PAGER ,
 .BR "less -NRS" ,
 .B more
 is used (in this order).
 .TP
-\fB_ZE_OWNER\fP
-Allow use on shared databases by specifying the owner username.
+\fB_ZE_OWNER\fP Allow use on shared databases by specifying the owner username.
 .TP
-\fB_ZE_RESOLVE_SYMLINKS\fP
-Set to any non-empty value to resolve symlinks to physical paths (default: logical
-paths are honoured).
+\fB_ZE_RESOLVE_SYMLINKS\fP Set to any non-empty value to resolve symlinks to
+physical paths (default: logical paths are honoured).
 .
 .SH FZF INTEGRATION
 .P
-If \fBfzf\fP is installed,
 .BI "ze \-f " [pattern]
-opens an interactive selector showing all matching directories ranked by score,
-with the best match at the top of the \fBfzf\fP display.
+opens an interactive selector (\fBfzf\fP by default, if available) showing all matching directories ranked by score.
+If \fBfzf\fP is unavailable or \fB_ZE_NO_FZF\fP is set, a basic CLI selector is used instead.
 .
 .SH MIGRATING FROM Z.SH
 .P
@@ -352,7 +345,7 @@ Main function, aliased to the command name specified by \fB_ZE_CMD\fP (default: 
 \fB_ze_cd\fP
 cd wrapper. Alias \fBcd\fP to this function to track ordinary cd commands.
 .TP
-\fB_ze_builtin_cd\fP, \fB_ze_commit\fP, \fB_ze_complete\fP, \fB_ze_dig\fP, \fB_ze_fzf\fP, \fB_ze_open\fP, \fB_ze_read\fP, \fB_ze_record\fP, \fB_ze_zsh_tab_completion\fP (only under \fBzsh\fP).
+\fB_ze_builtin_cd\fP, \fB_ze_commit\fP, \fB_ze_dig\fP, \fB_ze_fzf\fP, \fB_ze_open\fP, \fB_ze_pick\fP, \fB_ze_read\fP, \fB_ze_record\fP. 
 Internal functions, not intended for direct use.
 .
 .SH SEE ALSO

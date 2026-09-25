@@ -154,9 +154,22 @@ function _ze_open {  ## origname opcode
     $opcmd "$pathname"
 }
 
-function _ze_fzf { ## pattern typ [dirs|files] [cflag]
-    command -v fzf >/dev/null || { printf '%s\n' "'fzf' not found" >&2; return 1; }
+function _ze_pick {
+    awk -F'\t' '
+        { buf[NR] = $NF }
+        END {
+            if (NR == 0) exit 1
+            for (nr = NR; nr >= 1; nr--) printf "%3d)  %s\n", nr, buf[1 + NR - nr] > "/dev/stderr"
+            printf "select [1-%d]: ", NR > "/dev/stderr"
+            if ((getline n < "/dev/tty") <= 0) { print ""; exit 130 }
+            if (n == "") n = 1
+            if (n ~ /^[1-9][0-9]*$/ && n <= NR)
+                print buf[1 + NR - n]
+            else exit 1
+        }'
+}
 
+function _ze_fzf { ## pattern typ [dirs|files] [cflag]
     typeset metric header mode=${3:-dirs} preview='pathname={2..}'
     typeset -a fzfopts zopts; zopts=(-l)
     ((${4:-0})) && zopts+=(-c)                     # pass -c on to the nested _ze call
@@ -170,15 +183,18 @@ function _ze_fzf { ## pattern typ [dirs|files] [cflag]
         *)     preview+='; LC_ALL=C ls -AC --color=always "$pathname"';;
     esac
 
-    header="${mode%s} stack (ranked by $metric)"
-    fzfopts=( -0 -e --no-sort --preview-window='top,19%' --header="$header" --color='header:bright-red' --preview "$preview" )
-    (set -o pipefail; _ze "${zopts[@]}" -- "$1" |
-        awk -F'\t' '{ buf[NR] = $NF } END { offs = NR+1; while (NR) print offs-NR FS buf[NR--] }' |
-            fzf "${fzfopts[@]}" | cut -f2)
+    if [[ -z ${_ZE_NO_FZF+x} ]] && command -v fzf > /dev/null; then
+        header="${mode%s} stack (ranked by $metric)"
+        fzfopts=( -0 -e --no-sort --preview-window='top,19%' --header="$header" --color='header:bright-red' --preview "$preview" )
+        (set -o pipefail; _ze "${zopts[@]}" -- "$1" |
+            awk -F'\t' '{ buf[NR] = $NF } END { offs = NR+1; while (NR) print offs-NR FS buf[NR--] }' |
+                fzf "${fzfopts[@]}" | cut -f2)
+    else
+        (set -o pipefail; _ze "${zopts[@]}" -- "$1" | _ze_pick)
+    fi
 }
 
 function _ze_dig { ## dirs|files [fdopts_and_args]
-    command -v fzf >/dev/null || { printf '%s\n' "'fzf' not found" >&2; return 1; }
     typeset mode=$1; shift
     if command -v fd >/dev/null; then
         typeset fdex=fd
@@ -203,10 +219,13 @@ function _ze_dig { ## dirs|files [fdopts_and_args]
     fdargs+=(-t"$fdtype" "$@")
     # shellcheck disable=SC2124 # this scalar assignment ensures join by single space independent of IFS
     typeset argstring="${fdargs[@]}"
-    typeset -a fzfopts
-    fzfopts=( -0 -e --no-sort --preview-window='top,19%' --header="$fdex $argstring" --color='header:bright-red'
-        --preview "$preview" )
-    (set -o pipefail; $fdex "${fdargs[@]}" | LC_ALL=C "${filter[@]}" | LC_ALL=C sort | nl | fzf "${fzfopts[@]}" | cut -f2)
+    if [[ -z ${_ZE_NO_FZF+x} ]] && command -v fzf > /dev/null; then
+        typeset -a fzfopts
+        fzfopts=( -0 -e --no-sort --preview-window='top,19%' --header="$fdex $argstring" --color='header:bright-red' --preview "$preview" )
+        (set -o pipefail; $fdex "${fdargs[@]}" | LC_ALL=C "${filter[@]}" | LC_ALL=C sort | nl | fzf "${fzfopts[@]}" | cut -f2)
+    else
+        (set -o pipefail; $fdex "${fdargs[@]}" | LC_ALL=C "${filter[@]}" | LC_ALL=C sort | _ze_pick)
+    fi
 }
 
 function _ze_record { ## pathname [oldpwd] [dirs|files]
@@ -343,44 +362,6 @@ function _ze {
         _ze_cd "$result"
     fi
 }
-
-function _ze_complete {  ## candidate
-    # NOTE: dirs-only
-    typeset datafile="${_ZE_DIR:-$HOME/.ze}/ze.db"
-
-    [[ -s $datafile ]] || return
-
-    _ze_read | candidate=$1 awk -F"|" '
-        BEGIN {
-            q = ENVIRON["candidate"]
-            sub(/^[^ ]+[ ]+/, "", q)   # replace previous fixed-offset substring to account for possibility of non-default ZE_CMD value
-            lq = tolower(q)
-            case_sensitive = (q != lq)
-            if (!case_sensitive) q = lq
-            gsub(/ /, ".*", q)
-        }
-        {
-            candidate = case_sensitive ? $1 : tolower($1)
-            if (candidate ~ q) print $1
-        }
-    ' 2>/dev/null
-}
-
-if type compctl >/dev/null 2>&1; then
-    # zsh completion
-    function _ze_zsh_tab_completion {
-        typeset compl
-        # shellcheck disable=SC2162 # false alarm
-        read -l compl
-        # shellcheck disable=SC2034,SC2206,SC2296 # false alarm
-        reply=(${(f)"$(_ze_complete "$compl")"})
-    }
-    compctl -U -K _ze_zsh_tab_completion "${_ZE_CMD:-ze}"
-elif type complete >/dev/null 2>&1; then
-    # bash completion
-    # shellcheck disable=SC2016 # false alarm
-    complete -o filenames -C '_ze_complete "$COMP_LINE"' "${_ZE_CMD:-ze}"
-fi
 
 # shellcheck disable=SC2086,SC2139 # false alarm
 alias ${_ZE_CMD:-ze}='_ze'
