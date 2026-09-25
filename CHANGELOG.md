@@ -1,5 +1,17 @@
 # ze.sh: Changelog
 
+## v3.3.6 (2026-09-25)
+* **fish wrapper simplification**: the wrapper has been overhauled and drastically
+simplified. It now cleanly delegates all actions not involving directory
+navigation (i.e. reporting and file tracking mode) completely to zex.sh/ze.sh.
+This required a modification of zex.sh which thus needs to be updated in the
+user's setup, too. Moreover, a bug in the _ze_cd.fish helper preventing correct
+'ze -' behaviour has been fixed.
+
+* **add a test whether selected file is readable in file tracking mode**:
+previously unreadable files where recorded/updated in the db, which is not
+desirable.
+
 ## v3.3.5 (2026-09-20)
 * **fix file opening and file selection via fzf under zsh**: zsh does not
 word-split unquoted parameter expansions, so `-o`/`-p` failed with
