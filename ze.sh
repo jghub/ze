@@ -159,17 +159,15 @@ function _ze_pick {
         { buf[NR] = $NF }
         END {
             if (NR == 0) exit 1
-            for (nr = NR; nr >= 1; nr--) printf "%3d)  %s\n", nr, buf[1 + NR - nr] > "/dev/stderr"
+            for (nr = NR; nr >= 1; nr--) printf "%3d)  %s\n", nr, buf[nr] > "/dev/stderr"
             printf "select [1-%d]: ", NR > "/dev/stderr"
             if ((getline n < "/dev/tty") <= 0) { print ""; exit 130 }
             if (n == "") n = 1
-            if (n ~ /^[1-9][0-9]*$/ && n <= NR)
-                print buf[1 + NR - n]
-            else exit 1
+            if (n ~ /^[1-9][0-9]*$/ && n <= NR) print buf[n]; else exit 1
         }'
 }
 
-function _ze_fzf { ## pattern typ [dirs|files] [cflag]
+function _ze_find { ## pattern typ [dirs|files] [cflag]
     typeset metric header mode=${3:-dirs} preview='pathname={2..}'
     typeset -a fzfopts zopts; zopts=(-l)
     ((${4:-0})) && zopts+=(-c)                     # pass -c on to the nested _ze call
@@ -183,14 +181,15 @@ function _ze_fzf { ## pattern typ [dirs|files] [cflag]
         *)     preview+='; LC_ALL=C ls -AC --color=always "$pathname"';;
     esac
 
-    if [[ -z ${_ZE_NO_FZF+x} ]] && command -v fzf > /dev/null; then
+    if [[ ${_ZE_NO_FZF:-} ]] || ! command -v fzf > /dev/null; then
+        (set -o pipefail; _ze "${zopts[@]}" -- "$1" |
+            awk -F'\t' '{ buf[NR] = $NF } END { offs = NR+1; while (NR) print offs-NR FS buf[NR--] }' | _ze_pick)
+    else
         header="${mode%s} stack (ranked by $metric)"
         fzfopts=( -0 -e --no-sort --preview-window='top,19%' --header="$header" --color='header:bright-red' --preview "$preview" )
         (set -o pipefail; _ze "${zopts[@]}" -- "$1" |
             awk -F'\t' '{ buf[NR] = $NF } END { offs = NR+1; while (NR) print offs-NR FS buf[NR--] }' |
                 fzf "${fzfopts[@]}" | cut -f2)
-    else
-        (set -o pipefail; _ze "${zopts[@]}" -- "$1" | _ze_pick)
     fi
 }
 
@@ -219,12 +218,12 @@ function _ze_dig { ## dirs|files [fdopts_and_args]
     fdargs+=(-t"$fdtype" "$@")
     # shellcheck disable=SC2124 # this scalar assignment ensures join by single space independent of IFS
     typeset argstring="${fdargs[@]}"
-    if [[ -z ${_ZE_NO_FZF+x} ]] && command -v fzf > /dev/null; then
+    if [[ ${_ZE_NO_FZF:-} ]] || ! command -v fzf > /dev/null; then
+        (set -o pipefail; $fdex "${fdargs[@]}" | LC_ALL=C "${filter[@]}" | LC_ALL=C sort | _ze_pick)
+    else
         typeset -a fzfopts
         fzfopts=( -0 -e --no-sort --preview-window='top,19%' --header="$fdex $argstring" --color='header:bright-red' --preview "$preview" )
         (set -o pipefail; $fdex "${fdargs[@]}" | LC_ALL=C "${filter[@]}" | LC_ALL=C sort | nl | fzf "${fzfopts[@]}" | cut -f2)
-    else
-        (set -o pipefail; $fdex "${fdargs[@]}" | LC_ALL=C "${filter[@]}" | LC_ALL=C sort | _ze_pick)
     fi
 }
 
@@ -281,7 +280,7 @@ function _ze {
                 p) opcode=2; mode=files;;
                 r) typ="visits";;
                 t) typ="recent";;
-                V) typeset ze_version="ze v3.3.6"; printf '%s\n' "$ze_version"; return;;
+                V) typeset ze_version="ze v3.4.0"; printf '%s\n' "$ze_version"; return;;
                 *) ;;   # silently ignore unrecognized options
             esac; opt=${opt:1}; done;;
          *) fnd+=${fnd:+ }$1; fdargs+=("$1");;
@@ -297,7 +296,7 @@ function _ze {
         # be passed to _ze_dig. This is only a non-issue because that arg will then be ignored in
         # the 'fd' call.
         ((digger)) && fnd=$(_ze_dig "$mode" "${fdargs[@]+"${fdargs[@]}"}")
-        ((finder)) && fnd=$(_ze_fzf "$fnd" "$typ" "$mode" "$cflag")
+        ((finder)) && fnd=$(_ze_find "$fnd" "$typ" "$mode" "$cflag")
         [[ $fnd ]] || return 1
         ((emit)) && { printf '%s\n' "$fnd"; return; }
     fi
