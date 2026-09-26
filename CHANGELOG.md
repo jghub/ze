@@ -1,5 +1,13 @@
 # ze.sh: Changelog
 
+## v3.4.0 (2025-09-26)
+* **interactive selection**: provide a basic CLI selector for interactive
+selection when fzf is unavailable. Set `_ZE_NO_FZF` to non-empty value to force
+the CLI selector even when fzf is installed.
+
+* **remove bash/zsh tab completion**: this z.sh legacy seems not worth keeping
+any longer in view of interactive selection capability.
+
 ## v3.3.6 (2026-09-25)
 * **fish wrapper simplification**: the wrapper has been overhauled and drastically
 simplified. It now cleanly delegates all actions not involving directory
