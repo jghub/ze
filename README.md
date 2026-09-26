@@ -250,8 +250,8 @@ error.
 ranked by score, with the best match as the initial selection. With
 `[-o|-p]`, the selector operates on matching files instead. If
 [fzf](https://github.com/junegunn/fzf) is installed, it is used by default,
-otherwise `ze -f` falls back to a basic CLI. Set `_ZE_NO_FZF` to force the basic
-CLI.
+otherwise `ze -f` falls back to a basic CLI. Set `_ZE_NO_FZF` to a non-empty value
+to force the basic CLI.
 
 ```sh
 ze -f        # interactive selection from all tracked directories
