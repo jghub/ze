@@ -43,12 +43,12 @@ function _ze_init {
         (   set -o pipefail  # sub-process avoids overriding user settings
             LC_ALL=C awk -F'|' -v lambda="$lambda" '
                 BEGIN { OFS = FS; OFMT = "%.17g" }
-                {
-                    lines[NR] = $0
+                NF == 4 {  # remove/ignore invalid entries
+                    lines[++nr] = $0
                     if ($3 > tmax) tmax = $3
                 }
                 END {
-                    for (i = 1; i <= NR; i++) {
+                    for (i = 1; i <= nr; i++) {
                         split(lines[i], f)
                         print f[1], f[2], f[3], f[4], f[4] * exp(-lambda * (tmax - f[3]))
                     }
@@ -155,11 +155,11 @@ function _ze_open {  ## origname opcode
 }
 
 function _ze_pick {
-    awk -F'\t' '
-        { buf[NR] = $NF }
+    awk '
+        { buf[NR] = $0 }
         END {
-            if (NR == 0) exit 1
-            for (nr = NR; nr >= 1; nr--) printf "%3d)  %s\n", nr, buf[nr] > "/dev/stderr"
+            if (NR > 0) fmt = "%" length(NR) "d"; else exit 1
+            for (nr = NR; nr >= 1; nr--) printf fmt")  %s\n", nr, buf[nr] > "/dev/stderr"
             printf "select [1-%d]: ", NR > "/dev/stderr"
             if ((getline n < "/dev/tty") <= 0) { print ""; exit 130 }
             if (n == "") n = 1
@@ -170,7 +170,7 @@ function _ze_pick {
 function _ze_find { ## pattern typ [dirs|files] [cflag]
     typeset metric header mode=${3:-dirs} preview='pathname={2..}'
     typeset -a fzfopts zopts; zopts=(-l)
-    ((${4:-0})) && zopts+=(-c)                     # pass -c on to the nested _ze call
+    ((${4:-0})) && zopts+=(-c)                     # pass -c on to the nested _ze -l call
     case $2 in
         visits) metric='visit count'; zopts+=(-r);;
         recent) metric='recency'; zopts+=(-t);;
@@ -182,14 +182,13 @@ function _ze_find { ## pattern typ [dirs|files] [cflag]
     esac
 
     if [[ ${_ZE_NO_FZF:-} ]] || ! command -v fzf > /dev/null; then
-        (set -o pipefail; _ze "${zopts[@]}" -- "$1" |
-            awk -F'\t' '{ buf[NR] = $NF } END { offs = NR+1; while (NR) print offs-NR FS buf[NR--] }' | _ze_pick)
+        (set -o pipefail; _ze "${zopts[@]}" -- "$1" | cut -f2- |
+            awk '{ buf[NR] = $0 } END { while (NR) print buf[NR--] }' | _ze_pick)
     else
         header="${mode%s} stack (ranked by $metric)"
         fzfopts=( -0 -e --no-sort --preview-window='top,19%' --header="$header" --color='header:bright-red' --preview "$preview" )
-        (set -o pipefail; _ze "${zopts[@]}" -- "$1" |
-            awk -F'\t' '{ buf[NR] = $NF } END { offs = NR+1; while (NR) print offs-NR FS buf[NR--] }' |
-                fzf "${fzfopts[@]}" | cut -f2)
+        (set -o pipefail; _ze "${zopts[@]}" -- "$1" | cut -f2- |
+            awk '{ buf[NR] = $0 } END { offs = NR+1; while (NR) print offs-NR "\t" buf[NR--] }' | fzf "${fzfopts[@]}" | cut -f2-)
     fi
 }
 
@@ -223,7 +222,7 @@ function _ze_dig { ## dirs|files [fdopts_and_args]
     else
         typeset -a fzfopts
         fzfopts=( -0 -e --no-sort --preview-window='top,19%' --header="$fdex $argstring" --color='header:bright-red' --preview "$preview" )
-        (set -o pipefail; $fdex "${fdargs[@]}" | LC_ALL=C "${filter[@]}" | LC_ALL=C sort | nl | fzf "${fzfopts[@]}" | cut -f2)
+        (set -o pipefail; $fdex "${fdargs[@]}" | LC_ALL=C "${filter[@]}" | LC_ALL=C sort | nl | fzf "${fzfopts[@]}" | cut -f2-)
     fi
 }
 
