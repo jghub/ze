@@ -240,13 +240,14 @@ function _ze_record { ## pathname [oldpwd] [dirs|files]
         # navigation to $HOME, $oldpwd, or "/" aren't worth recording
         [[ $pathname == "$HOME" || $pathname == "$oldpwd" || $pathname == "/" ]] && return
     fi
+    [[ $pathname == *\|* ]] && { printf '\nze: "|" in pathname: "%s" will not be tracked\n' "$pathname"; return; }
 
     typeset tempfile
     tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
 
     pathname=$pathname LC_ALL=C awk -v lambda="$lambda" -F"|" '
         BEGIN { pathname = ENVIRON["pathname"]; OFS = FS; OFMT = "%.17g" }
-        NF == 4 {  # remove invalid entries from db (injection of new invalid pathname is prevented in END block).
+        NF == 4 {  # remove invalid entries from db (injection of new invalid pathname is prevented by independent test above).
             if ($1 == pathname) {
                 visits = $2
                 ticks = $3
@@ -254,7 +255,7 @@ function _ze_record { ## pathname [oldpwd] [dirs|files]
             } else print
             if ($3 > tmax) tmax = $3
         }
-        END { if (pathname !~ /\|/) print pathname, visits + 1, tmax + 1, score * exp(-lambda * (tmax + 1 - ticks)) + 1 }
+        END { print pathname, visits + 1, tmax + 1, score * exp(-lambda * (tmax + 1 - ticks)) + 1 }
     ' "$datafile" 2>/dev/null >| "$tempfile"
     _ze_commit $? "$tempfile" "$mode"
 }
