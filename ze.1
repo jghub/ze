@@ -132,7 +132,7 @@ Change to the most recently visited directory matching
 Interactively select a matching directory using \fBfzf\fP or a basic CLI selector. Without
 argument, use full stack.
 .P
-.B "If fd is available, too:
+.B "If fd is available:
 .TP
 .BI "ze \-d" " foo
 Search file tree rooted in $PWD with
@@ -254,8 +254,8 @@ Global cumulative event count at time of last visit.
 Exponentially decayed cumulative visit score as of the last visit.
 .P
 The file database used by \fB[\-o|\-p]\fP is stored separately from the directory
-database. Its entries have the same general format, with \fIpath\fP denoting
-an absolute file path.
+database and resides in \fB~/.ze/zef.db\fP. Its entries have the same general
+format, with \fIpath\fP denoting an absolute file path.
 .
 .SH CONFIGURATION
 .P
