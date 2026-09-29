@@ -154,13 +154,14 @@ function _ze_open {  ## origname opcode
     $opcmd "$pathname"
 }
 
-function _ze_pick {
-    awk '
+function _ze_pick {  ## mode
+    awk -v mode="${1%s}" '
         { buf[NR] = $0 }
         END {
             if (NR > 0) fmt = "%" length(NR) "d"; else exit 1
-            for (nr = NR; nr >= 1; nr--) printf fmt")  %s\n", nr, buf[nr] > "/dev/stderr"
-            printf "select [1-%d]: ", NR > "/dev/stderr"
+            brightred = "\033[91m"; off = "\033[0m"; if (mode == "") mode = "index"
+            for (nr = NR; nr >= 1; nr--) printf fmt"\t%s\n", nr, buf[nr] > "/dev/stderr"
+            printf "%sselect %s [1-%d]: %s", brightred, mode, NR, off > "/dev/stderr"
             if ((getline n < "/dev/tty") <= 0) { print ""; exit 130 }
             if (n == "") n = 1
             if (n ~ /^[1-9][0-9]*$/ && n <= NR) print buf[n]; else exit 1
@@ -183,9 +184,9 @@ function _ze_find { ## pattern typ [dirs|files] [cflag]
 
     if [[ ${_ZE_NO_FZF:-} ]] || ! command -v fzf > /dev/null; then
         (set -o pipefail; _ze "${zopts[@]}" -- "$1" | cut -f2- |
-            awk '{ buf[NR] = $0 } END { while (NR) print buf[NR--] }' | _ze_pick)
+            awk '{ buf[NR] = $0 } END { while (NR) print buf[NR--] }' | _ze_pick "$mode")
     else
-        header="${mode%s} stack (ranked by $metric)"
+        header="${mode%s} stack ranked by $metric"
         fzfopts=( -0 -e --no-sort --preview-window='top,19%' --header="$header" --color='header:bright-red' --preview "$preview" )
         (set -o pipefail; _ze "${zopts[@]}" -- "$1" | cut -f2- |
             awk '{ buf[NR] = $0 } END { offs = NR+1; while (NR) print offs-NR "\t" buf[NR--] }' | fzf "${fzfopts[@]}" | cut -f2-)
@@ -218,7 +219,7 @@ function _ze_dig { ## dirs|files [fdopts_and_args]
     # shellcheck disable=SC2124 # this scalar assignment ensures join by single space independent of IFS
     typeset argstring="${fdargs[@]}"
     if [[ ${_ZE_NO_FZF:-} ]] || ! command -v fzf > /dev/null; then
-        (set -o pipefail; $fdex "${fdargs[@]}" | LC_ALL=C "${filter[@]}" | LC_ALL=C sort | _ze_pick)
+        (set -o pipefail; $fdex "${fdargs[@]}" | LC_ALL=C "${filter[@]}" | LC_ALL=C sort | _ze_pick "$mode")
     else
         typeset -a fzfopts
         fzfopts=( -0 -e --no-sort --preview-window='top,19%' --header="$fdex $argstring" --color='header:bright-red' --preview "$preview" )
