@@ -169,7 +169,7 @@ function _ze_pick {  ## mode
 }
 
 function _ze_find { ## pattern typ [dirs|files] [cflag]
-    typeset metric header mode=${3:-dirs}
+    typeset metric header mode=${3:-dirs} preview
     typeset -a fzfopts zopts; zopts=(-l)
     ((${4:-0})) && zopts+=(-c)                     # pass -c on to the nested _ze -l call
     case $2 in
