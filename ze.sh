@@ -169,7 +169,7 @@ function _ze_pick {  ## mode
 }
 
 function _ze_find { ## pattern typ [dirs|files] [cflag]
-    typeset metric header mode=${3:-dirs} preview='pathname={2..}'
+    typeset metric header mode=${3:-dirs} preview
     typeset -a fzfopts zopts; zopts=(-l)
     ((${4:-0})) && zopts+=(-c)                     # pass -c on to the nested _ze -l call
     case $2 in
@@ -178,8 +178,8 @@ function _ze_find { ## pattern typ [dirs|files] [cflag]
         *)      metric='EMS score';;
     esac
     case $mode in
-        files) preview+='; head -256 -- "$pathname"'; zopts+=(-o);;
-        *)     preview+='; LC_ALL=C ls -AC --color=always "$pathname"';;
+        files) preview='head -256 -- {2..}'; zopts+=(-o);;
+        *)     preview='LC_ALL=C ls -AC --color=always {2..}';;
     esac
 
     if [[ ${_ZE_NO_FZF:-} ]] || ! command -v fzf > /dev/null; then
@@ -189,7 +189,7 @@ function _ze_find { ## pattern typ [dirs|files] [cflag]
         header="${mode%s} stack ranked by $metric"
         fzfopts=( -0 -e --no-sort --preview-window='top,19%' --header="$header" --color='header:bright-red' --preview "$preview" )
         (set -o pipefail; _ze "${zopts[@]}" -- "$1" | cut -f2- |
-            awk '{ buf[NR] = $0 } END { offs = NR+1; while (NR) print offs-NR "\t" buf[NR--] }' | fzf "${fzfopts[@]}" | cut -f2-)
+            awk '{ buf[NR] = $0 } END { offs = NR+1; while (NR) print offs-NR "\t" buf[NR--] }' | SHELL=/bin/sh fzf "${fzfopts[@]}" | cut -f2-)
     fi
 }
 
@@ -202,7 +202,7 @@ function _ze_dig { ## dirs|files [fdopts_and_args]
     else
         printf '%s\n' "'fd' not found" >&2; return 1
     fi
-    typeset fdtype=d preview='pathname={2..}'
+    typeset fdtype=d preview
     typeset -a fdargs; fdargs=(-Ipa)
     typeset -a filter; filter=(cat)
     case $mode in
@@ -212,8 +212,8 @@ function _ze_dig { ## dirs|files [fdopts_and_args]
                block+='|wav|flac|woff|woff2|ttf|otf|eot|so|o|a|dylib|dll|exe|class|pyc|pyo|jar|war'
                block+=')$'
                filter=(grep -viE "$block")
-               preview+='; head -256 -- "$pathname"';;
-        *) preview+='; LC_ALL=C ls -AC --color=always "$pathname"';;
+               preview='head -256 -- {2..}';;
+        *) preview='LC_ALL=C ls -AC --color=always {2..}';;
     esac
     fdargs+=(-t"$fdtype" "$@")
     # shellcheck disable=SC2124 # this scalar assignment ensures join by single space independent of IFS
@@ -223,7 +223,7 @@ function _ze_dig { ## dirs|files [fdopts_and_args]
     else
         typeset -a fzfopts
         fzfopts=( -0 -e --no-sort --preview-window='top,19%' --header="$fdex $argstring" --color='header:bright-red' --preview "$preview" )
-        (set -o pipefail; $fdex "${fdargs[@]}" | LC_ALL=C "${filter[@]}" | LC_ALL=C sort | nl | fzf "${fzfopts[@]}" | cut -f2-)
+        (set -o pipefail; $fdex "${fdargs[@]}" | LC_ALL=C "${filter[@]}" | LC_ALL=C sort | nl | SHELL=/bin/sh fzf "${fzfopts[@]}" | cut -f2-)
     fi
 }
 
