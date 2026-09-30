@@ -1,5 +1,39 @@
 # ze.sh: Changelog
 
+## v3.4.1 (2026-09-30)
+* **fix fzf preview crashing under non-POSIX login shells (e.g. fish)**: the
+  `--preview` command built by `ze -f`/`ze -d` used POSIX assignment syntax
+  (`pathname={2..}; ...`), which fish's parser rejects. The path placeholder
+  is now interpolated directly, and both `fzf` calls pin `SHELL=/bin/sh` so
+  the preview always runs under a POSIX shell regardless of the user's login
+  shell — this also stops the login shell's own aliases/functions (e.g. a
+  fish `ls` wrapping `eza`) from leaking into the preview.
+
+* **fix truncation of TAB-containing filenames in interactive selection**:
+  the CLI selector and both fzf-based finders extracted the displayed
+  path by field position (`$NF`, `cut -f2`), which silently truncated any
+  path containing a literal tab. Extraction is now anchored to the known
+  rank/index prefix instead, so embedded tabs survive intact.
+
+* **warn instead of silently dropping `|`-containing pathnames**: the
+  on-disk database still uses `|` as its field separator, so a path
+  containing a literal `|` still can't be recorded. `cd`/`open` to such a
+  path now prints a notice rather than failing silently and leaving no
+  trace of why the path is unreachable by later pattern search.
+
+* **harden database pruning against legacy corrupt entries**: the
+  size-triggered pruning pass in `_ze_init` now discards any line that
+  doesn't split into exactly 4 fields, matching the sanitation already
+  applied on every `cd`/`open`. Closes a narrow gap where an already
+  corrupt legacy entry could survive a prune instead of being purged.
+
+* **interactive selector polish**: the CLI selector's prompt now names the
+  current mode ("select dir/file [1-N]"), is colorized, and right-aligns
+  the index column to the number of candidates shown.
+
+* **docs**: manpage now states `zef.db`'s location explicitly and fixes a
+  minor wording issue in the `-d`/fd section.
+
 ## v3.4.0 (2025-09-26)
 * **interactive selection**: provide a basic CLI selector for interactive
 selection when fzf is unavailable. Set `_ZE_NO_FZF` to non-empty value to force
