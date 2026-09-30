@@ -202,7 +202,7 @@ function _ze_dig { ## dirs|files [fdopts_and_args]
     else
         printf '%s\n' "'fd' not found" >&2; return 1
     fi
-    typeset fdtype=d
+    typeset fdtype=d preview
     typeset -a fdargs; fdargs=(-Ipa)
     typeset -a filter; filter=(cat)
     case $mode in
