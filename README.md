@@ -277,43 +277,61 @@ alias cd   _ze_cd      # track cd, retain native cd semantics
 alias cd   ze          # track cd, enable pattern navigation on every cd
 ```
 
-## Migrating from z.sh
+## Migrating from zoxide or z.sh
 
-If you have an existing `~/.z` database, you can convert it for use with ze.sh
-by issuing:
+You might convert an existing database built by zoxide or z.sh for use with ze.sh.
+The conversion cannot be perfect: the information stored in the respective
+database is incomplete for the purposes of ze.sh. But a "plausible" conversion
+that preserves the known pathnames and the current ranking order of the respective
+database is possible. If you want to convert your database, you might use the
+following filter:
 
 ```sh
-mkdir -p ~/.ze
-# Only run the following if ~/.ze/ze.db does not already exist:
-sort -t'|' -k3,3n ~/.z | awk -F'|' '
-    BEGIN { OFS = FS; lambda = 8e-3 }
+# NOTE: ONLY RUN IF ~/.ze/ze.db DOES NOT ALREADY EXIST:
+awk '
+    BEGIN { OFS = "|"; target = 1/(1 - exp(-8e-3)) }
     {
-        visits = $2
-        ticks += visits
-        if (visits == 1) {
-            score = 1
-        } else {
-            step = ticks/visits
-            decay_step = exp(-lambda * step)
-            decay_full = exp(-lambda * ticks)
-            score = (1 - decay_full)/(1 - decay_step)
-        }
-        print $1, visits, ticks, score
-    }' > ~/.ze/ze.db
+        score = $1
+        sub(/^[^\/]+/, "", $0)
+        path[++tick] = $0
+        s[tick] = score
+        total += score
+    }
+    END {
+        if (tick == 0) exit
+        scale = (total > 0) ? target/total : 1
+        for (i = 1; i <= tick; i++) print path[i], 1, tick, s[i] * scale
+    }
+' > ~/.ze/ze.db
 ```
 
-This maps z.sh's three-column format to ze.sh's four-column format. Entries are
-sorted by their original timestamp and assigned global cumulative visit counts as
-tick values accordingly. The score approximation assumes all visits were
-uniformly distributed over time. Most initial scores after migration will be low,
-frequently well below 1, with only frequently visited recent directories
-exhibiting distinctly higher scores. This means the stack might initially exhibit
-abrupt reordering similar to z.sh when any directory is visited, since a single
-new visit adds a score increment of 1 which dominates most existing scores. Note
-that this is an artifact of the migration approximation, not a property of ze.sh's
-algorithm. After a few days of normal use, scores will adjust to levels where the
-exponential model's smooth ranking behavior becomes apparent and the stack
-stabilizes meaningfully.
+If you save this in an executable file `dbconv`, database conversion is achieved
+by issuing `mkdir -p ~/.ze` followed by
+
+```sh
+zoxide query --list --score --all | dbconv
+``` 
+
+if you are coming from `zoxide` or 
+
+```sh
+z -l | dbconv
+``` 
+
+if you are coming from `z.sh`.
+
+The resulting output preserves the scoring ranks of the input data, so `ze -l`
+immediately after conversion will reproduce the expected given sort order. The
+visits and ticks columns, however, both are set to constant values across all
+entries, which makes the output of `ze -lr` and `ze -lt` meaningless immediately
+after conversion. Since the initial scoring as shown by `ze -l` immediately after
+conversion is only a rough estimate of the scores at which ze would have arrived
+if the full history of cd actions could be replayed (which it can not since the
+z/zoxide databases do not preserve that information), overall behaviour of the
+tool regarding agility of stack reordering might initially deviate from the
+behaviour ze.sh will exhibit in the long run. If at all, this is only a transient
+issue: the database will "self-heal" in due time. But avoiding database conversion
+altogether and starting from scratch is of course also an option.
 
 ## Related tools
 
