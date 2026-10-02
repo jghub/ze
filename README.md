@@ -288,25 +288,26 @@ following filter:
 
 ```sh
 # NOTE: ONLY RUN IF ~/.ze/ze.db DOES NOT ALREADY EXIST:
-awk '
-    BEGIN { OFS = "|"; target = 1/(1 - exp(-8e-3)) }
+awk -v lambda=${_ZE_LAMBDA:-8e-3} '
     {
-        score = $1
+        sc = $1
         sub(/^[^\/]+/, "", $0)
         path[++tick] = $0
-        s[tick] = score
-        total += score
+        score[tick] = sc
+        total += sc
     }
     END {
         if (tick == 0) exit
+        target = 1/(1 - exp(-lambda))
         scale = (total > 0) ? target/total : 1
-        for (i = 1; i <= tick; i++) print path[i], 1, tick, s[i] * scale
+        OFS = "|"
+        for (i = 1; i <= tick; i++) print path[i], 1, tick, score[i] * scale
     }
 ' > ~/.ze/ze.db
 ```
 
-If you save this in an executable file `dbconv`, database conversion is achieved
-by issuing `mkdir -p ~/.ze` followed by
+If you save this script to an executable file `dbconv`, database conversion is
+achieved by issuing `mkdir -p ~/.ze` followed by
 
 ```sh
 zoxide query --list --score --all | dbconv
