@@ -303,26 +303,46 @@ If \fBfzf\fP is unavailable or \fB_ZE_NO_FZF\fP is set to a non-empty value, a b
 .
 .SH MIGRATING FROM Z.SH
 .P
-If you have an existing \fB~/.z\fP database from \fBz.sh\fP, you can convert it
-for use with \fBze.sh\fP:
+You might convert an existing database built by \fBzoxide\fP or \fBz.sh\fP for use with
+.BR ze.sh .
+.P
+First, create the target directory:
 .P
 .EX
-mkdir -p ~/.ze
-sort -t'|' -k3,3n ~/.z | awk -F'|' '
-BEGIN { OFS = FS; lambda = 8e-3 }
-{
-visits = $2
-ticks += visits
-if (visits == 1) {
-score = 1
-} else {
-step = ticks/visits
-decay_step = exp(-lambda * step)
-decay_full = exp(-lambda * ticks)
-score = (1 - decay_full)/(1 - decay_step)
-}
-print $1, visits, ticks, score
-}' > ~/.ze/ze.db
+    mkdir -p ~/.ze
+.P
+.EE
+Then pipe the output of
+.EX
+.P
+    zoxide query --list --score --all
+.EE
+.P
+or
+.P
+.EX
+    z -l
+.EE
+.P
+through the following filter to convert to a \fBze\fP database:
+.P
+.EX
+    awk -v lambda=${_ZE_LAMBDA:-8e-3} '
+        {
+            sc = $1
+            sub(/^[^\/]+/, "", $0)
+            path[++tick] = $0
+            score[tick] = sc
+            total += sc
+        }
+        END {
+            if (tick == 0) exit
+            target = 1/(1 - exp(-lambda))
+            scale = (total > 0) ? target/total : 1
+            OFS = "|"
+            for (i = 1; i <= tick; i++) print path[i], 1, tick, score[i] * scale
+        }
+    ' > ~/.ze/ze.db
 .EE
 .P
 .
