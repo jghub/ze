@@ -20,7 +20,10 @@ function ze
     set -l res (zex.sh $orig_argv)
     or return $status
 
-    if test (count $res) -eq 1; and test -d "$res"
+    # first check orig_argv for -e in case it was trailing-embedded in compound flag (e.g. -fe)
+    if string match -qr -- '-[a-zA-Z0-9]*e' $orig_argv
+        printf '%s\n' $res
+    else if test (count $res) -eq 1; and test -d "$res"
         _ze_cd "$res"
     else
         printf '%s\n' $res
