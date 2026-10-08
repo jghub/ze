@@ -1,5 +1,12 @@
 # ze.sh: Changelog
 
+## v3.4.2 (2026-10-08)
+* **fish wrapper**: fix `-e` flag not recognized when embedded in compound flag
+(e.g. `-fe`).
+
+* **migration**: database conversion now also covers zoxide; converter script
+generalized to accept both z.sh and zoxide output formats.
+
 ## v3.4.1 (2026-09-30)
 * **fix fzf preview crashing under non-POSIX login shells (e.g. fish)**: the
   `--preview` command built by `ze -f`/`ze -d` used POSIX assignment syntax
