@@ -159,9 +159,9 @@ function _ze_pick {  ## mode
         { buf[NR] = $0 }
         END {
             if (NR > 0) fmt = "%" length(NR) "d"; else exit 1
-            brightred = "\033[91m"; off = "\033[0m"; if (mode == "") mode = "index"
+            brightred = "\033[91m"; off = "\033[0m"
             for (nr = NR; nr >= 1; nr--) printf fmt"\t%s\n", nr, buf[nr] > "/dev/stderr"
-            printf "%sselect %s [1-%d]: %s", brightred, mode, NR, off > "/dev/stderr"
+            printf "%sselect %s index [1-%d]: %s", brightred, mode, NR, off > "/dev/stderr"
             if ((getline n < "/dev/tty") <= 0) { print ""; exit 130 }
             if (n == "") n = 1
             if (n ~ /^[1-9][0-9]*$/ && n <= NR) print buf[n]; else exit 1
@@ -307,10 +307,13 @@ function _ze {
         [[ $fnd ]] || list=1  # if bare -c with no args, just list
     fi
 
-    if ((opcode)); then
-        ((!(list || emit))) && [[ -n $fnd && -f $fnd ]] && { _ze_open "$fnd" $opcode; return; }
-    else
-        ((!(list || emit))) && [[ -d ${fnd:-$HOME} || $fnd == "-" ]] && { _ze_cd "${fnd:-$HOME}"; return; }
+    if ((!list && !emit)); then
+        if ((opcode)); then
+            [[ -f $fnd ]] && { _ze_open "$fnd" $opcode; return; }
+        else
+            typeset target=${fnd:-$HOME} 
+            [[ -d $target || $target == "-" ]] && { _ze_cd "$target"; return; }
+        fi
     fi
 
     typeset result
@@ -325,8 +328,8 @@ function _ze {
             hi_score = -1e300
         }
         {
-           lines[NR] = $0
-           if ($3 > tmax) tmax = $3
+            lines[NR] = $0
+            if ($3 > tmax) tmax = $3
         }
         END {
             for (i = 1; i <= NR; i++) {
