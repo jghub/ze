@@ -36,7 +36,13 @@ to
 .BR _ze_cd .
 After a short learning phase, \fBze\fP will take you to the highest-scoring
 directory that matches the given pattern. Patterns are interpreted as extended
-regular expressions (ERE),
+regular expressions (ERE) and are matched against the full pathname, not only its
+last component. Blanks in a pattern match arbitrary intervening characters:
+\fBfoo bar\fP means \fBfoo.*bar\fP. Matching is case-insensitive unless the
+pattern contains an uppercase character. Quote patterns that contain shell
+metacharacters such as \fB$\fP, \fB|\fP, \fB^\fP or \fB*\fP.
+.
+.SH OPTIONS
 .TP
 .B \-V
 Version info.
@@ -109,8 +115,8 @@ if it is an existing directory.
 Change to the highest-scoring directory matching \fIfoo\fP.
 .TP
 .BI ze " foo bar"
-Change to the highest-scoring directory matching both \fIfoo\fP
-and \fIbar\fP.
+Change to the highest-scoring directory matching \fIfoo\fP followed later by
+\fIbar\fP (equivalent to the pattern \fBfoo.*bar\fP).
 .TP
 .BI "ze \-c " foo
 Change to the highest-scoring subdirectory of \fI$PWD\fP matching \fIfoo\fP.
