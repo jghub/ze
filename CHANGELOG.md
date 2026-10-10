@@ -1,5 +1,9 @@
 # ze.sh: Changelog
 
+## v3.5.0 (2026-10-10)
+* **behaviour change**: unknown options are now treated as error (exit status 2)
+instead of being silently ignored.
+
 ## v3.4.2 (2026-10-08)
 * **fish wrapper**: fix `-e` flag not recognized when embedded in compound flag
 (e.g. `-fe`).
