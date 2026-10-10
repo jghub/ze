@@ -264,7 +264,7 @@ function _ze_record { ## pathname [oldpwd] [dirs|files]
 function _ze {
     typeset lambda=${_ZE_LAMBDA:-8e-3}
 
-    typeset fnd='' opt='' typ='' mode=dirs cwd=''
+    typeset fnd='' opt='' typ='' mode=dirs cwd='' ufo=''
     typeset -i list=0 finder=0 digger=0 emit=0 opcode=0 cflag=0
     typeset -a fdargs; fdargs=()
     while (($#)); do case "$1" in
@@ -281,11 +281,12 @@ function _ze {
                 p) opcode=2; mode=files;;
                 r) typ="visits";;
                 t) typ="recent";;
-                V) typeset ze_version="ze v3.4.2"; printf '%s\n' "$ze_version"; return;;
-                *) ;;   # silently ignore unrecognized options
+                V) typeset ze_version="ze v3.5.0"; printf '%s\n' "$ze_version"; return;;
+                *) ufo+=" -${opt:0:1}";;
             esac; opt=${opt:1}; done;;
          *) fnd+=${fnd:+ }$1; fdargs+=("$1");;
     esac; (($#)) && shift; done
+    [[ $ufo ]] && { printf 'ze: unknown options:%s\n' "$ufo" >&2; return 2; }
 
     if ((digger || finder)); then
         # NOTE TO SELF: the "${fdargs[@]+"${fdargs[@]}"}" construct below is required for 'set -u'

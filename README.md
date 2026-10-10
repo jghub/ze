@@ -183,7 +183,7 @@ database when combined with `[-o|-p]`.
 | Concurrency      | tempfile-name collisions may cause db corruption      | `mktemp(1)` eliminates name collisions, concurrent updates remain "last writer wins" |
 | Pattern matching | case-sensitive with case-insensitive fallback         | smartcase: case-insensitive except when pattern contains uppercase                   |
 | Symlinks         | resolved to physical paths by default                 | logical paths are honoured by default *(5)*                                          |
-| Unknown options  | not handled, lists database                           | silently stripped from option string before execution                                |
+| Unknown options  | not handled, lists database                           | unknown options are treated as an error (exit status 2)                              |
 | `-d` option      | not available                                         | discover and jump to directory via `fd`+`fzf`, registering it in the database (*6*)  |
 | `-f` option      | not available                                         | interactive selector (by default fzf, if installed)                                  |
 | `-o` option      | not available                                         | switch `ze` to file mode: track and open files via $EDITOR (or hardcoded fallback)   |
