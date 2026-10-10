@@ -88,6 +88,27 @@ if ! _ze_init; then
 fi
 unset -f _ze_init
 
+function _ze_cyc_step {
+    # cycle state:
+    #   _ZE__CYCKEY  pattern determining the list of matches
+    #   _ZE__CYCQ    list of matches, one per line. the directory jumped to last is the final line
+    #   _ZE__CYCPOS  "i/n" string: current/total match number
+    typeset head
+    typeset -i idx=${_ZE__CYCPOS%/*} n=${_ZE__CYCPOS#*/} tries=0
+    while ((tries++ < n)); do
+        head=${_ZE__CYCQ%%$'\n'*}
+        [[ $_ZE__CYCQ == *$'\n'* ]] && _ZE__CYCQ=${_ZE__CYCQ#*$'\n'}$'\n'$head
+        ((idx = idx % n + 1))
+        if _ze_cd "$head"; then
+            _ZE__CYCPOS=$idx/$n
+            ((n > 1)) && printf 'ze: %d/%d\n' "$idx" "$n" >&2
+            return 0
+        fi
+    done
+    _ZE__CYCKEY=''   # the next call starts a new cycle
+    return 1
+}
+
 # shellcheck disable=SC2015 # the A && B || C construct is not problematic here (function definition will never return error in B)
 # shellcheck disable=SC2164 # false positive in this context
 [[ ${ZSH_VERSION:-} ]] && function _ze_builtin_cd { CDPATH='' builtin cd -- "$@"; } || function _ze_builtin_cd { CDPATH='' command cd -- "$@"; }
@@ -264,8 +285,8 @@ function _ze_record { ## pathname [oldpwd] [dirs|files]
 function _ze {
     typeset lambda=${_ZE_LAMBDA:-8e-3}
 
-    typeset fnd='' opt='' typ='' mode=dirs cwd=''
-    typeset -i list=0 finder=0 digger=0 emit=0 opcode=0 cflag=0
+    typeset fnd='' opt='' typ='' mode=dirs cwd='' q=''
+    typeset -i list=0 finder=0 digger=0 emit=0 opcode=0 cflag=0 cyc=0 arm=0
     typeset -a fdargs; fdargs=()
     while (($#)); do case "$1" in
         --) shift; while (($#)); do fnd+=${fnd:+ }$1; fdargs+=("$1"); shift; done;;
@@ -307,7 +328,17 @@ function _ze {
         [[ $fnd ]] || list=1  # if bare -c with no args, just list
     fi
 
-    if ((!list && !emit)); then
+    if ((!list && !emit && !opcode && !digger && !finder && !cflag)) && [[ $fnd && $fnd != - ]]; then
+        q=${_ZE__CYCQ:-}
+        if [[ ${_ZE__CYCKEY:-} == "$fnd" && ${q##*$'\n'} == "$PWD" ]]; then
+            # same pattern again: cycle
+            if [[ ${_ZE__CYCPOS:-} ]]; then _ze_cyc_step; return; fi    # list already built
+            cyc=1                                                       # second call: build it now
+        else
+            arm=1    # a first jump, remember it so that on pattern repeat we can start a cycle
+        fi
+    fi
+    if ((!list && !emit && !cyc)); then
         if ((opcode)); then
             [[ -f $fnd ]] && { _ze_open "$fnd" $opcode; return; }
         else
@@ -317,7 +348,7 @@ function _ze {
     fi
 
     typeset result
-    result=$(_ze_read "$mode" | fnd=$fnd cwd=$cwd LC_ALL='' LC_NUMERIC=C awk -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
+    result=$(_ze_read "$mode" | fnd=$fnd cwd=$cwd LC_ALL='' LC_NUMERIC=C awk -v list="$((list || cyc))" -v typ="$typ" -v lambda="$lambda" -F"|" '
         BEGIN {
             q = ENVIRON["fnd"]
             cwd = ENVIRON["cwd"]; if (cwd != "" && cwd != "/") cwd = cwd "/"
@@ -357,12 +388,24 @@ function _ze {
     ')
     typeset -i rc=$?; ((rc)) && { printf 'no match\n' >&2; return $rc; }
 
+    if ((cyc)); then
+        # strip scores, current directory removed and re-appended last, count goes first
+        result=$(printf '%s\n' "$result" | LC_ALL=C awk -v cur="$PWD" '
+            { sub(/^[^\t]*\t/, ""); if ($0 != cur) p[++n] = $0 }
+            END { print n + 1; while (n) print p[n--]; print cur }')
+        _ZE__CYCPOS=1/${result%%$'\n'*}
+        _ZE__CYCQ=${result#*$'\n'}
+        _ze_cyc_step
+        return
+    fi
     if ((list || emit)); then
         printf '%s\n' "$result"
     elif ((opcode)); then
         _ze_open "$result" $opcode
     else
-        _ze_cd "$result"
+        if _ze_cd "$result" && ((arm)); then
+            _ZE__CYCKEY=$fnd; _ZE__CYCQ=$PWD; _ZE__CYCPOS=''
+        fi
     fi
 }
 
