@@ -34,13 +34,15 @@ commands, alias
 .B cd
 to
 .BR _ze_cd .
-After a short learning phase, \fBze\fP will take you to the highest-scoring
-directory that matches the given pattern. Patterns are interpreted as extended
-regular expressions (ERE) and are matched against the full pathname, not only its
-last component. Blanks in a pattern match arbitrary intervening characters:
-\fBfoo bar\fP means \fBfoo.*bar\fP. Matching is case-insensitive unless the
-pattern contains an uppercase character. Quote patterns that contain shell
-metacharacters such as \fB$\fP, \fB|\fP, \fB^\fP or \fB*\fP.
+Patterns are first tried verbatim as pathnames. If pathname interpretation fails
+(no such directory), patterns are interpreted as extended regular expressions
+(ERE) and are matched against the full pathnames stored in the database, not only
+their last components. After a short learning phase, \fBze\fP will take you to
+the highest-scoring directory that matches the given pattern. Blanks in a pattern
+match arbitrary intervening characters: \fBfoo bar\fP means \fB'foo.*bar'\fP.
+Matching is case-insensitive unless the pattern contains an uppercase character.
+Quote patterns that contain shell metacharacters such as \fB$\fP, \fB|\fP, \fB^\fP
+or \fB*\fP.
 .
 .SH OPTIONS
 .TP
@@ -109,21 +111,38 @@ Change to (absolute or relative) pathname
 .I foo
 if it is an existing directory.
 .P
-.B "If pathname interpretation does not succeed:
+.B "If pathname interpretation does not succeed, use best match:
 .TP
 .BI ze " foo"
-Change to the highest-scoring directory matching \fIfoo\fP.
+Path contains substring \fIfoo\fP anywhere in the pathname (i.e. either in dirname or basename).
+.TP
+.BI ze " foo$"
+Basename ends in \fIfoo\fP.
+.TP
+.BI ze " /foo$"
+Basename equals \fIfoo\fP.
 .TP
 .BI ze " foo bar"
-Change to the highest-scoring directory matching \fIfoo\fP followed later by
-\fIbar\fP (equivalent to the pattern \fBfoo.*bar\fP).
+Path contains \fIfoo\fP, then \fIbar\fP somewhere later in the path (for \fBz\fP
+compatibility and convenience, equivalent to (quoted) pattern \fI'foo.*bar'\fP).
+.TP
+.BI ze " foo\e|bar"
+Path contains \fIfoo\fP or \fIbar\fP (need to quote regex characters that are
+special to the shell).
+.TP
+.BI ze " 'file\e.c'"
+\fI\e.\fP matches a literal dot (note the need to quote the \fI\e\fP in the call
+to protect it from shell interpretation), a bare \fI.\fP matches any character.
+.TP
+.BI ze " Foo"
+Smartcase: an uppercase letter makes the whole match case-sensitive.
 .TP
 .BI "ze \-c " foo
 Change to the highest-scoring subdirectory of \fI$PWD\fP matching \fIfoo\fP.
 .TP
 .BI "ze \-l " foo
-List all directories matching \fIfoo\fP, sorted by score. Without
-argument, show full stack.
+List all directories matching \fIfoo\fP, sorted by score (or frequency/ticks, if
+combined with \fB\-r\fP/\fB\-t\fP). Without argument, show full stack.
 .TP
 .BI "ze \-r " foo
 Change to the most frequently visited directory matching
@@ -163,7 +182,7 @@ Open pathname
 .I foo
 in the editor (\fB\-o\fP) or pager (\fB\-p\fP) if it is a readable (non-binary) file.
 .P
-.B "If pathname interpretation does not succeed:
+.B "If pathname interpretation does not succeed, use best match:
 .TP
 .BI "ze [\-o|\-p] " foo
 Open highest-scoring file matching pattern \fBfoo\fP (including the special case
