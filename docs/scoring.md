@@ -15,7 +15,7 @@ file tracking mode, a file).
 The query-time score of item $i$ is defined as
 
 $$
-S_i := S_i(t_{\max}) = \sum_{n \in E_i} e^{-\lambda (t_{\max}-n)}, 
+S_i := S_i(t_{\max}) = \sum_{n \in E_i} e^{-\lambda (t_{\max}-n)}, \qquad (1)
 $$
 
 where $E_i\subseteq\{1,\dots,t_{\max}\}$ is the set of $I_i$ ticks at which an
@@ -40,7 +40,7 @@ factored out of the sum in Eq. (1):
 $$
 S_i = e^{-\lambda (t_{\max}-t_i)} \sum_{n \in E_i} e^{-\lambda (t_i-n)} =
 s_i\, e^{-\lambda (t_{\max}-t_i)}, \qquad
-s_i = \sum_{n \in E_i} e^{-\lambda (t_i-n)}. \tag{2}
+s_i = \sum_{n \in E_i} e^{-\lambda (t_i-n)}. \qquad (2)
 $$
 
 Here $s_i$ is the score of $i$ as computed at its own last event tick $t_i$. This
@@ -56,7 +56,7 @@ last-visit timestamp and corresponding stored score of entry $k$ has to be updat
 in the database:
 
 $$
-t_k' = t_{\max}' = t_{\max}+1,\qquad s_k' = e^{-\lambda (t_k'-t_k)}\, s_k+1 \tag{3}
+t_k' = t_{\max}' = t_{\max}+1,\qquad s_k' = e^{-\lambda (t_k'-t_k)}\, s_k+1 \qquad (3)
 $$
 
 where the decay factor accounts for the score decay since $k$'s most recent
@@ -76,7 +76,7 @@ $S_k'=s_k'=s_k\,e^{-\lambda(t_{\max}+1-t_k)}+1=e^{-\lambda}S_k+1$. Both cases ar
 summarized by
 
 $$
-S_i' = e^{-\lambda} S_i + \delta_{ik}, \tag{4}
+S_i' = e^{-\lambda} S_i + \delta_{ik}, \qquad (4)
 $$
 
 where $\delta_{ik}=1$ if $i=k$, and $0$ otherwise. Eq. (4) states that all
@@ -105,14 +105,14 @@ one item. Substituting $j=t_{\max}-n$ and recognizing the sum as a finite
 geometric series one arrives at
 
 $$
-S = \sum_{j=0}^{t_{\max}-1} e^{-\lambda j} = \frac{1 - e^{-\lambda t_{\max}}}{1 - e^{-\lambda}}. \tag{5}
+S = \sum_{j=0}^{t_{\max}-1} e^{-\lambda j} = \frac{1 - e^{-\lambda t_{\max}}}{1 - e^{-\lambda}}. \qquad (5)
 $$
 
 For a sufficiently long history (where $\lambda t_{\max} \gg 1$ is fulfilled) the
 sum approaches a maximum limit of
 
 $$
-S_\infty = \frac{1}{1 - e^{-\lambda}} \approx \frac{1}{\lambda}+\frac{1}{2} \qquad (\lambda \ll 1). \tag{6}
+S_\infty = \frac{1}{1 - e^{-\lambda}} \approx \frac{1}{\lambda}+\frac{1}{2} \qquad (\lambda \ll 1). \qquad (6)
 $$
 
 E.g., for $\lambda=0.008$, $S_\infty\approx125.50$. (the sum over the scores
