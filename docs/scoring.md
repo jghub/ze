@@ -15,7 +15,7 @@ file tracking mode, a file).
 The query-time score of item $i$ is defined as
 
 $$
-S_i := S_i(t_{\max}) = \sum_{n \in E_i} e^{-\lambda (t_{\max}-n)}, \tag{1}
+S_i := S_i(t_{\max}) = \sum_{n \in E_i} e^{-\lambda (t_{\max}-n)}, 
 $$
 
 where $E_i\subseteq\{1,\dots,t_{\max}\}$ is the set of $I_i$ ticks at which an
@@ -185,7 +185,7 @@ will start again at score $1$.
 With the default parameters, pruned entries typically will have not been visited
 for several thousand events (which translates into many months of real time for
 typical usage patterns) and will carry extremely small scores. Only for
-non-nonsensical choices of the relevant parameters (extremely small or zero $\lambda$
+nonsensical choices of the relevant parameters (extremely small or zero $\lambda$
 which drives the scoring towards pure frequency scoring) or a too small pruning
 limit $L$ one can construe a situation where a newly created entry (first-time
 visit) incidentally triggers the pruning threshold and is immediately
