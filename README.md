@@ -73,7 +73,8 @@ decayed unit impulses at each visit time, representing an exponential moving
 sum (mathematically equivalent to the Unix load-average computation, but applied
 to a binary directory-visit event stream). The decay rate is controlled by
 `_ZE_LAMBDA` (default `8e-3`/cd-action, half-life `ln(2)/lambda` ≈ 87 cd actions
-(about 2 days at 40 cd/day)).
+(about 2 days at 40 cd/day)). A comprehensive description of the scoring algorithm
+and its properties is given [here](./docs/scoring.md).
 
 **Tracking**: z.sh requires shell precommand hooks (`PROMPT_COMMAND` in bash,
 `precmd` in zsh) that fire on every command, updating the score of whichever
