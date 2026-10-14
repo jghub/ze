@@ -56,27 +56,27 @@ last-visit timestamp and corresponding stored score of entry $k$ has to be updat
 in the database:
 
 $$
-t_k' = t_{\max}' = t_{\max}+1,\qquad s_k' = e^{-\lambda (t_k'-t_k)}\thinspace s_k+1 \qquad (3)
+t_{k'} = t_{\max}' = t_{\max}+1,\qquad s_{k'} = e^{-\lambda (t_{k'}-t_k)}\thinspace s_k+1 \qquad (3)
 $$
 
 where the decay factor accounts for the score decay since $k$'s most recent
-previous event. A new item enters the database with $s_k'=1$ (since formally its
+previous event. A new item enters the database with $s_{k'}=1$ (since formally its
 previous score is $s_k=0$). For all $i\ne k$, the stored values are unchanged.
 
 ### Effect on the query-time scores
 
-Let $S_i'$ denote the resulting query-time score after the new event, i.e.
+Let $S_{i'}$ denote the resulting query-time score after the new event, i.e.
 evaluated at $t_{\max}'=t_{\max}+1$.
 
 For $i\ne k$, according to Eq. (2), the unchanged stored values $(t_i, s_i)$ lead
-to $S_i'=s_i\thinspace e^{-\lambda(t_{\max}+1-t_i)}=e^{-\lambda}S_i$.
-For the just updated item $k$, $t_k'=t_{\max}'$, so the query time score equals the stored
+to $S_{i'}=s_i\thinspace e^{-\lambda(t_{\max}+1-t_i)}=e^{-\lambda}S_i$.
+For the just updated item $k$, $t_{k'}=t_{\max}'$, so the query time score equals the stored
 score:
-$S_k'=s_k'=s_k\thinspace e^{-\lambda(t_{\max}+1-t_k)}+1=e^{-\lambda}S_k+1$. Both cases are
+$S_{k'}=s_{k'}=s_k\thinspace e^{-\lambda(t_{\max}+1-t_k)}+1=e^{-\lambda}S_k+1$. Both cases are
 summarized by
 
 $$
-S_i' = e^{-\lambda} S_i + \delta_{ik}, \qquad (4)
+S_{i'} = e^{-\lambda} S_i + \delta_{ik}, \qquad (4)
 $$
 
 where $\delta_{ik}=1$ if $i=k$, and $0$ otherwise. Eq. (4) states that all
@@ -84,7 +84,7 @@ query-time scores decay by a factor $e^{-\lambda}$ per event, while the item
 receiving the event additionally gains $+1$.
 
 For an item $i\ne k$ the fractional loss per event is
-$(S_i-S_i')/S_i=1-e^{-\lambda}\approx\lambda$ for $\lambda\ll1$. An item that
+$(S_i-S_{i'})/S_i=1-e^{-\lambda}\approx\lambda$ for $\lambda\ll1$. An item that
 receives no further events has its score halved after $N_{1/2}=\ln 2/\lambda$
 events. For the default $\lambda=0.008$ this gives $N_{1/2}\approx 87$, which
 allows estimating the equivalent wall-clock period (e.g. 30--40 events/day
@@ -118,7 +118,7 @@ $$
 E.g., for $\lambda=0.008$, $S_\infty\approx125.50$. (the sum over the scores
 reported by `ze -l` may be somewhat smaller because the report excludes entries
 whose paths do presently no longer exist). Summing the recurrence
-$S_i'=e^{-\lambda}S_i+\delta_{ik}$ over all items gives $S'=e^{-\lambda}S+1$,
+$S_{i'}=e^{-\lambda}S_i+\delta_{ik}$ over all items gives $S'=e^{-\lambda}S+1$,
 whose fixed point is $S_\infty=1/(1-e^{-\lambda})$. Therefore, asymptotically the
 combined decay loss of all items, $(1-e^{-\lambda})S_\infty=1$, exactly
 compensates the $+1$ increment of the item receiving the event: in the asymptotic
