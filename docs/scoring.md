@@ -39,7 +39,7 @@ factored out of the sum in Eq. (1):
 
 $$
 S_i = e^{-\lambda (t_{\max}-t_i)} \sum_{n \in E_i} e^{-\lambda (t_i-n)} =
-s_i\, e^{-\lambda (t_{\max}-t_i)}, \qquad
+s_i\thinspace e^{-\lambda (t_{\max}-t_i)}, \qquad
 s_i = \sum_{n \in E_i} e^{-\lambda (t_i-n)}. \qquad (2)
 $$
 
@@ -56,7 +56,7 @@ last-visit timestamp and corresponding stored score of entry $k$ has to be updat
 in the database:
 
 $$
-t_k' = t_{\max}' = t_{\max}+1,\qquad s_k' = e^{-\lambda (t_k'-t_k)}\, s_k+1 \qquad (3)
+t_k' = t_{\max}' = t_{\max}+1,\qquad s_k' = e^{-\lambda (t_k'-t_k)}\thinspace s_k+1 \qquad (3)
 $$
 
 where the decay factor accounts for the score decay since $k$'s most recent
@@ -69,10 +69,10 @@ Let $S_i'$ denote the resulting query-time score after the new event, i.e.
 evaluated at $t_{\max}'=t_{\max}+1$.
 
 For $i\ne k$, according to Eq. (2), the unchanged stored values $(t_i, s_i)$ lead
-to $S_i'=s_i\,e^{-\lambda(t_{\max}+1-t_i)}=e^{-\lambda}S_i$.
+to $S_i'=s_i\thinspace e^{-\lambda(t_{\max}+1-t_i)}=e^{-\lambda}S_i$.
 For the just updated item $k$, $t_k'=t_{\max}'$, so the query time score equals the stored
 score:
-$S_k'=s_k'=s_k\,e^{-\lambda(t_{\max}+1-t_k)}+1=e^{-\lambda}S_k+1$. Both cases are
+$S_k'=s_k'=s_k\thinspace e^{-\lambda(t_{\max}+1-t_k)}+1=e^{-\lambda}S_k+1$. Both cases are
 summarized by
 
 $$
@@ -95,7 +95,7 @@ correspond to a half-life of about 2--3 days).
 The EMS scores have another interesting property. Summing over all items gives
 
 $$
-S = \sum_i S_i = \sum_i s_i\, e^{-\lambda (t_{\max}-t_i)} =
+S = \sum_i S_i = \sum_i s_i\thinspace e^{-\lambda (t_{\max}-t_i)} =
 \sum_{n=1}^{t_{\max}} e^{-\lambda (t_{\max}-n)},
 $$
 
