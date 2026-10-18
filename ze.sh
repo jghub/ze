@@ -168,10 +168,11 @@ function _ze_pick {  ## mode
         }'
 }
 
-function _ze_find { ## pattern typ [dirs|files] [cflag]
+function _ze_find { ## pattern typ [dirs|files] [bflag] [cflag]
     typeset metric header mode=${3:-dirs} preview
     typeset -a fzfopts zopts; zopts=(-l)
-    ((${4:-0})) && zopts+=(-c)                     # pass -c on to the nested _ze -l call
+    ((${4:-0})) && zopts+=(-b)   # pass on to the nested _ze -l call
+    ((${5:-0})) && zopts+=(-c)   # pass on to the nested _ze -l call
     case $2 in
         visits) metric='visit count'; zopts+=(-r);;
         recent) metric='recency'; zopts+=(-t);;
@@ -265,12 +266,13 @@ function _ze {
     typeset lambda=${_ZE_LAMBDA:-8e-3}
 
     typeset fnd='' opt='' typ='' mode=dirs cwd='' ufo=''
-    typeset -i list=0 finder=0 digger=0 emit=0 opcode=0 cflag=0
+    typeset -i list=0 finder=0 digger=0 emit=0 opcode=0 cflag=0 bflag=0
     typeset -a fdargs; fdargs=()
     while (($#)); do case "$1" in
         --) shift; while (($#)); do fnd+=${fnd:+ }$1; fdargs+=("$1"); shift; done;;
          -) fnd='-';;
         -*) opt=${1:1}; while [[ $opt ]]; do case ${opt:0:1} in
+                b) bflag=1;;
                 c) cflag=1;;
                 d) digger=1;;
                 e) emit=1;;
@@ -298,7 +300,7 @@ function _ze {
         # be passed to _ze_dig. This is only a non-issue because that arg will then be ignored in
         # the 'fd' call.
         ((digger)) && fnd=$(_ze_dig "$mode" "${fdargs[@]+"${fdargs[@]}"}")
-        ((finder)) && fnd=$(_ze_find "$fnd" "$typ" "$mode" "$cflag")
+        ((finder)) && fnd=$(_ze_find "$fnd" "$typ" "$mode" "$bflag" "$cflag")
         [[ $fnd ]] || return 1
         ((emit)) && { printf '%s\n' "$fnd"; return; }
     fi
@@ -317,6 +319,7 @@ function _ze {
         fi
     fi
 
+    ((bflag)) && [[ $fnd && $fnd != *"$"* ]] && fnd="($fnd)[^/]*$"
     typeset result
     result=$(_ze_read "$mode" | fnd=$fnd cwd=$cwd LC_ALL='' LC_NUMERIC=C awk -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
         BEGIN {
