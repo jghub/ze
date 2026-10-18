@@ -1,4 +1,4 @@
-.TH ZE 1 "September 2026" ze.sh "User Commands"
+.TH ZE 1 "October 2026" ze.sh "User Commands"
 .
 .SH NAME
 .
@@ -7,7 +7,7 @@ ze - pattern-based directory jumper and file tracker with dynamically ranked dir
 .SH SYNOPSIS
 .SY ze
 .OP \-o|\-p
-.OP \-Vcefhlrt
+.OP \-Vcdefhlrt
 .RI [ pattern | pathname | \- ]
 .
 .SH AVAILABILITY
@@ -35,14 +35,53 @@ commands, alias
 to
 .BR _ze_cd .
 Patterns are first tried verbatim as pathnames. If pathname interpretation fails
-(no such directory), patterns are interpreted as extended regular expressions
-(ERE) and are matched against the full pathnames stored in the database, not only
-their last components. After a short learning phase, \fBze\fP will take you to
-the highest-scoring directory that matches the given pattern. Blanks in a pattern
-match arbitrary intervening characters: \fBfoo bar\fP means \fB'foo.*bar'\fP.
-Matching is case-insensitive unless the pattern contains an uppercase character.
-Quote patterns that contain shell metacharacters such as \fB$\fP, \fB|\fP, \fB^\fP
-or \fB*\fP.
+(no such directory), the pattern is matched against the directories stored in
+the database (see PATTERNS) and, after a short learning phase, \fBze\fP will take
+you to the highest-scoring directory that matches.
+.
+.SH PATTERNS
+.P
+A pattern is an extended regular expression (ERE) as understood by
+.BR awk (1),
+see
+.BR re_format(7) .
+It is matched against the complete absolute pathname recorded in the database.
+Such a pathname starts with \fB/\fP and has no trailing slash (e.g.
+\fB/path/to/project\fP). Its \fIbasename\fP is the text after the last \fB/\fP.
+.P
+Patterns are first tried as pathnames. If directory \fIfoo\fP, \fI/foo\fP or
+\fIfoo/\fP exists, \fBze\fP changes into it. Pattern matching only takes place if
+pathname interpretation fails. Matching is case-insensitive unless the pattern
+contains an uppercase character (smartcase).
+.P
+Anchoring is expressed with the following constructs:
+.TP
+.B /
+Component boundary. A fragment starting with \fB/\fP begins at the start of a
+path component.
+.TP
+.B $
+End of the pathname, i.e. end of the basename.
+.TP
+.B [^/]*
+Any remaining characters of the current component. It stops a match from
+extending into later components.
+.P
+\fB^\fP matches the start of the pathname. As every pathname starts with \fB/\fP,
+this is only useful for top-level directories, e.g. \fB^/usr\fP.
+.P
+Each blank in a pattern is replaced by \fB.*\fP before matching. To match a
+single blank, you might use \fB.\fP as in \fBfoo.bar\fP, but this also matches,
+e.g., \fIfoo-bar\fP. For an exact blank use \fB[[:blank:]]\fP.
+.P
+Shell quoting: trailing \fB/\fP or \fB.\fP never need quoting. A trailing
+\fB$\fP needs no quoting in \fBbash\fP, \fBzsh\fP, \fBksh93\fP and \fBmksh\fP, but
+\fBfish\fP requires to quote every pattern containing \fB$\fP, e.g.
+.B ze
+.IR 'foo$' .
+In all shells, quote patterns containing \fB*\fP, \fB?\fP, \fB[\fP,
+\fB(\fP, \fB)\fP, \fB|\fP or \fB\\\fP. Unquoted glob characters are expanded
+if they match file names in the current directory.
 .
 .SH OPTIONS
 .TP
@@ -67,8 +106,7 @@ uses
 native query language. In particular, quoted blanks remain literal, unlike
 ordinary
 .BI ze " pattern
-matching where blanks are translated to '.*' and match arbitrary intervening
-characters.
+matching (see PATTERNS).
 .TP
 .B \-e
 Print the best match, do not \fBcd\fP.
@@ -116,23 +154,43 @@ if it is an existing directory.
 .BI ze " foo"
 Path contains substring \fIfoo\fP anywhere in the pathname (i.e. either in dirname or basename).
 .TP
+.BI ze " /foo"
+Some path component starts with \fIfoo\fP.
+.TP
+.BI ze " foo/"
+Some directory component (not the basename) ends in \fIfoo\fP.
+.TP
+.BI ze " /foo/"
+Some directory component equals \fIfoo\fP, i.e. the match lies below a directory
+named \fIfoo\fP.
+.TP
 .BI ze " foo$"
 Basename ends in \fIfoo\fP.
 .TP
 .BI ze " /foo$"
 Basename equals \fIfoo\fP.
 .TP
+.BI ze " '/foo[^/]*$'"
+Basename starts with \fIfoo\fP.
+.TP
+.BI ze " 'foo[^/]*$'"
+Basename contains \fIfoo\fP.
+.TP
+.BI ze " '/foo(/|$)'"
+Some component equals \fIfoo\fP (the directory itself or anything below it).
+.TP
 .BI ze " foo bar"
 Path contains \fIfoo\fP, then \fIbar\fP somewhere later in the path (for \fBz\fP
 compatibility and convenience, equivalent to (quoted) pattern \fI'foo.*bar'\fP).
 .TP
-.BI ze " foo\e|bar"
-Path contains \fIfoo\fP or \fIbar\fP (need to quote regex characters that are
-special to the shell).
+.BI ze " src /test$"
+Basename equals \fItest\fP and the pathname contains \fIsrc\fP earlier.
 .TP
-.BI ze " 'file\e.c'"
-\fI\e.\fP matches a literal dot (note the need to quote the \fI\e\fP in the call
-to protect it from shell interpretation), a bare \fI.\fP matches any character.
+.BI ze " foo\e|bar"
+Path contains \fIfoo\fP or \fIbar\fP.
+.TP
+.BI ze " 'foo\e.1'"
+\fI\e.\fP matches a literal dot, a bare \fI.\fP matches any character.
 .TP
 .BI ze " Foo"
 Smartcase: an uppercase letter makes the whole match case-sensitive.
@@ -390,7 +448,7 @@ Main function, aliased to the command name specified by \fB_ZE_CMD\fP (default: 
 \fB_ze_cd\fP
 cd wrapper. Alias \fBcd\fP to this function to track ordinary cd commands.
 .TP
-\fB_ze_builtin_cd\fP, \fB_ze_commit\fP, \fB_ze_dig\fP, \fB_ze_find\fP, \fB_ze_open\fP, \fB_ze_pick\fP, \fB_ze_read\fP, \fB_ze_record\fP. 
+\fB_ze_builtin_cd\fP, \fB_ze_commit\fP, \fB_ze_dig\fP, \fB_ze_find\fP, \fB_ze_open\fP, \fB_ze_pick\fP, \fB_ze_read\fP, \fB_ze_record\fP.
 Internal functions, not intended for direct use.
 .
 .SH SEE ALSO
@@ -400,10 +458,6 @@ re_format(7), awk(1), grep(1), fd(1), fzf(1)
 Project repository: https://github.com/jghub/ze
 .
 .SH NOTES
-.TP
-.B "Smartcase matching
-Pattern matching is case-insensitive unless the pattern contains uppercase
-characters.
 .TP
 .B "Stale entries
 Entries for directories that no longer exist are retained in the database and
