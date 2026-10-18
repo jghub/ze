@@ -180,7 +180,7 @@ function _ze_find { ## pattern typ [dirs|files] [bflag] [cflag]
     esac
     case $mode in
         files) preview='head -256 -- {2..}'; zopts+=(-o);;
-        *)     preview='LC_ALL=C ls -AC --color=always {2..}';;
+        *)     preview='pathname={2..}; LC_ALL=C ls -AC --color=always "${pathname/#~/$HOME}"';;
     esac
 
     if [[ ${_ZE_NO_FZF:-} ]] || ! command -v fzf > /dev/null; then
@@ -301,7 +301,7 @@ function _ze {
         # the 'fd' call.
         ((digger)) && fnd=$(_ze_dig "$mode" "${fdargs[@]+"${fdargs[@]}"}")
         ((finder)) && fnd=$(_ze_find "$fnd" "$typ" "$mode" "$bflag" "$cflag")
-        [[ $fnd ]] || return 1
+        [[ $fnd ]] && fnd=${fnd/#\~/$HOME} || return 1
         ((emit)) && { printf '%s\n' "$fnd"; return; }
     fi
 
@@ -355,7 +355,7 @@ function _ze {
             }
             if (!best_match) exit(1)
             if (list)
-                for (x in score) printf "%-12s\t%s\n", score[x], x | "LC_ALL=C sort -k1,1g -k2,2"
+                for (x in score) { pathname = x; sub(ENVIRON["HOME"], "~", pathname); printf "%-12s\t%s\n", score[x], pathname | "LC_ALL=C sort -k1,1g -k2,2"; }
             else print best_match
         }
     ')
