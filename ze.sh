@@ -179,8 +179,9 @@ function _ze_find { ## pattern typ [dirs|files] [bflag] [cflag]
         *)      metric='EMS score';;
     esac
     case $mode in
-        files) preview='head -256 -- {2..}'; zopts+=(-o);;
-        *)     preview='pathname={2..}; LC_ALL=C ls -AC --color=always "${pathname/#~/$HOME}"';;
+        # preview commands need to be /bin/sh compliant (the case ... esac is the safest solution here)
+        files) preview='p={2..}; case $p in "~/"*) p=$HOME${p#"~"};; esac; head -256 -- "$p"'; zopts+=(-o);;
+        *)     preview='p={2..}; case $p in "~/"*) p=$HOME${p#"~"};; esac; LC_ALL=C ls -AC --color=always -- "$p"';;
     esac
 
     if [[ ${_ZE_NO_FZF:-} ]] || ! command -v fzf > /dev/null; then
@@ -277,7 +278,7 @@ function _ze {
                 d) digger=1;;
                 e) emit=1;;
                 f) finder=1;;
-                h) printf '%s\n' "${_ZE_CMD:-ze} [-Vcdefhloprt] args" >&2; return;;
+                h) printf '%s\n' "${_ZE_CMD:-ze} [-Vbcdefhloprt] args" >&2; return;;
                 l) list=1;;
                 o) opcode=1; mode=files;;
                 p) opcode=2; mode=files;;
@@ -319,12 +320,16 @@ function _ze {
         fi
     fi
 
-    ((bflag)) && [[ $fnd && $fnd != *"$"* ]] && fnd="($fnd)[^/]*$"
+    ((bflag)) && [[ $fnd && $fnd != *"$" ]] && fnd="($fnd)[^/]*$"
     typeset result
     result=$(_ze_read "$mode" | fnd=$fnd cwd=$cwd LC_ALL='' LC_NUMERIC=C awk -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
+        function shortpath(p) { return (home != "" && index(p, home) == 1) ? "~/" substr(p, hlen + 1) : p }
         BEGIN {
+            cwd  = ENVIRON["cwd"]; if (cwd != "" && cwd != "/") cwd = cwd "/"
+            home = ENVIRON["HOME"]; sub(/\/+$/, "", home)  # empty if HOME=/ (this should be the root user)
+            if (home != "") home = home "/"
+            hlen = length(home)
             q = ENVIRON["fnd"]
-            cwd = ENVIRON["cwd"]; if (cwd != "" && cwd != "/") cwd = cwd "/"
             gsub(" ", ".*", q)
             lq = tolower(q)
             case_sensitive = (q != lq)
@@ -355,7 +360,7 @@ function _ze {
             }
             if (!best_match) exit(1)
             if (list)
-                for (x in score) { pathname = x; sub(ENVIRON["HOME"], "~", pathname); printf "%-12s\t%s\n", score[x], pathname | "LC_ALL=C sort -k1,1g -k2,2"; }
+                for (x in score) printf "%-12s\t%s\n", score[x], shortpath(x) | "LC_ALL=C sort -k1,1g -k2,2"
             else print best_match
         }
     ')
