@@ -1,5 +1,19 @@
 # ze.sh: Changelog
 
+## v4.0.0 (2026-10-20)
+* **breaking change**: `ze -l` and the `ze -f` listing now abbreviate pathnames
+below `$HOME` as `~/...`. The database format, pattern matching, `-c`, scoring
+and `ze -e` (which prints absolute pathnames) are unchanged. Scripts that parse
+`ze -l` for absolute pathnames need to use `ze -e` instead or expand a leading
+`~/` themselves. The abbreviation is not applied if `$HOME` is a symlink and
+`_ZE_RESOLVE_SYMLINKS` is set.
+
+* **new option** `-b`: basename matching. The end of the match must lie within
+the final path component, i.e. the last pattern term matches inside the basename
+(analogous to zoxide's last-component rule, applied to regular expressions): `ze
+-b foo` is equivalent to `ze '(foo)[^/]*$'`. Has no effect on patterns ending in
+`$`.
+
 ## v3.5.0 (2026-10-10)
 * **behaviour change**: unknown options are now treated as error (exit status 2)
 instead of being silently ignored.
