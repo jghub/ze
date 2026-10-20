@@ -125,7 +125,7 @@ the directory database, and directory tracking does not affect the file database
 ### Usage
 
 ```
-ze [-cdefhlrt] [pattern|path|-]
+ze [-bcdefhlrt] [pattern|path|-]
 ```
 
 | Invocation                           | Behavior                                                     |
@@ -135,12 +135,24 @@ ze [-cdefhlrt] [pattern|path|-]
 | `ze path`                            | cd to path directly (real path wins)                         |
 | `ze pattern`                         | cd to highest scoring match for pattern                      |
 | `ze -c pattern`                      | restrict matches to subdirs of $PWD (bare `-c` implies `-l`) |
+| `ze -b pattern`                      | basename match: last term must end within final path component|
 | `ze -d [-- fdopts] [pattern [path]]` | discover and jump via fd+fzf, register in database           |
 | `ze -e pattern`                      | print highest scoring match instead of cd                    |
 | `ze -f pattern`                      | use fzf or basic CLI fallback for interactive selection      |
 | `ze -l pattern`                      | list matches sorted by current score                         |
 | `ze [-cefl] -r pattern`              | sort matches by visit count instead of score                 |
 | `ze [-cefl] -t pattern`              | sort matches by recency of last visit instead of score       |
+
+`-b` restricts the end of the match to the final path component, analogous to
+zoxide's last-component rule but applied to ze's regular-expression patterns: the
+last term has to match inside the basename, so `ze -b foo bar` is equivalent to
+`ze '(foo.*bar)[^/]*$'`. It has no effect on a pattern that already ends in `$`.
+
+`ze -l` and `ze -f` abbreviate pathnames below `$HOME` as `~/...` to reduce clutter. This
+affects display only: the database holds absolute paths, patterns are matched against
+absolute paths, and `ze -e` prints absolute pathnames (use it in scripts). The
+abbreviation is not applied if `$HOME` is a symlink and `_ZE_RESOLVE_SYMLINKS` is set.
+
 
 ## File tracking (`[-o|-p]`)
 
@@ -178,6 +190,8 @@ database when combined with `[-o|-p]`.
 | Stale db entries | pruned on next cd action                              | retained in db, filtered at match time *(3)*                                         |
 | `-x` option      | deletes current dir from database                     | removed *(4)*                                                                        |
 | `-l` option      | output to stderr, not pipeable                        | output to stdout, pipeable to pager etc.                                             |
+| `-b` option      | not available                                         | basename matching: last term must end within the final path component                |
+| Listing display  | absolute pathnames                                    | pathnames below `$HOME` shown as `~/...` in `-l` and `-f`                            |
 | Database         | single flat file `~/.z`                               | directory `~/.ze/`, database `~/.ze/ze.db`                                           |
 | Shell compat     | bash/zsh only                                         | bash/zsh/ksh93/mksh (native), fish (wrapper)                                         |
 | Init             | minimal, no safety checks                             | validates db path, ownership, file type                                              |
@@ -258,6 +272,9 @@ to force the basic CLI.
 ze -f        # interactive selection from all tracked directories
 ze -f foo    # interactive selection from directories matching foo
 ```
+
+The selector displays pathnames below `$HOME` in abbreviated form (`~/...`), so
+fzf filters that text, e.g. a query of `!~` hides all entries below `$HOME`.
 
 ## fish users
 

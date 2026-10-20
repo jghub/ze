@@ -7,7 +7,7 @@ ze - pattern-based directory jumper and file tracker with dynamically ranked dir
 .SH SYNOPSIS
 .SY ze
 .OP \-o|\-p
-.OP \-Vcdefhlrt
+.OP \-Vbcdefhlrt
 .RI [ pattern | pathname | \- ]
 .
 .SH AVAILABILITY
@@ -49,6 +49,11 @@ It is matched against the complete absolute pathname recorded in the database.
 Such a pathname starts with \fB/\fP and has no trailing slash (e.g.
 \fB/path/to/project\fP). Its \fIbasename\fP is the text after the last \fB/\fP.
 .P
+Matching always uses the absolute pathname, never the abbreviated form
+(\fB~/\fP...) shown by \fB\-l\fP and \fB\-f\fP. A \fB~\fP in a pattern is an
+ordinary character. An unquoted leading \fB~/\fP is expanded by the shell to
+\fB$HOME/\fP before \fBze\fP sees it.
+.P
 Patterns are first tried as pathnames. If directory \fIfoo\fP, \fI/foo\fP or
 \fIfoo/\fP exists, \fBze\fP changes into it. Pattern matching only takes place if
 pathname interpretation fails. Matching is case-insensitive unless the pattern
@@ -88,6 +93,14 @@ if they match file names in the current directory.
 .B \-V
 Version info.
 .TP
+.B \-b
+Basename match: the end of the match must lie within the basename, i.e. a pattern
+\fIpat\fP is matched as \fI(pat)[^/]*$\fP. In the usual case of a last term that
+contains no \fB/\fP, this means that the last term matches inside the basename.
+With several blank-separated terms, the earlier ones may match anywhere. Has no
+effect on a pattern that already ends in \fB$\fP or if the argument is interpreted
+as a pathname. Also applies in file tracking mode.
+.TP
 .B \-c
 Constrain matches to subdirectories of the current directory. If specified without
 an argument, \fB\-l\fP is implied.
@@ -109,16 +122,18 @@ ordinary
 matching (see PATTERNS).
 .TP
 .B \-e
-Print the best match, do not \fBcd\fP.
+Print the best match as absolute pathname, do not \fBcd\fP.
 .TP
 .B \-f
-Use \fBfzf\fP (or a basic CLI selector) for interactive selection.
+Use \fBfzf\fP (or a basic CLI selector) for interactive selection. Pathnames
+below \fI$HOME\fP are shown as \fB~/\fP... (see NOTES).
 .TP
 .B \-h
 Show a brief help message.
 .TP
 .B \-l
-List all matching directories by score.
+List all matching directories by score. Pathnames below \fI$HOME\fP are shown as
+\fB~/\fP... (see NOTES).
 .TP
 .B \-o
 Switch to file tracking mode and open the selected file in the editor. File
@@ -172,6 +187,13 @@ Basename equals \fIfoo\fP.
 .TP
 .BI ze " '/foo[^/]*$'"
 Basename starts with \fIfoo\fP.
+.TP
+.BI ze " 'foo[^/]*$'"
+Basename contains \fIfoo\fP (same as \fBze \-b\fP \fIfoo\fP).
+.TP
+.BI "ze \-b " "foo bar"
+\fIfoo\fP anywhere in the pathname and \fIbar\fP within the basename
+(same as \fI'(foo.*bar)[^/]*$'\fP).
 .TP
 .BI ze " 'foo[^/]*$'"
 Basename contains \fIfoo\fP.
@@ -381,8 +403,14 @@ physical paths (default: logical paths are honoured).
 .SH FZF INTEGRATION
 .P
 .BI "ze \-f " [pattern]
-opens an interactive selector (\fBfzf\fP by default, if available) showing all matching directories ranked by score.
-If \fBfzf\fP is unavailable or \fB_ZE_NO_FZF\fP is set to a non-empty value, a basic CLI selector is used instead.
+opens an interactive selector (\fBfzf\fP by default, if available) showing all
+matching directories ranked by score. If \fBfzf\fP is unavailable or
+\fB_ZE_NO_FZF\fP is set to a non-empty value, a basic CLI selector is used
+instead.
+.P
+The selector displays pathnames below \fI$HOME\fP in an abbreviated form
+\fB~/\fP... \fBfzf\fP filtering operates on the displayed text. For example, a
+\fBfzf\fP query \fB!~\fP will hide all entries below \fI$HOME\fP.
 .
 .SH MIGRATING FROM Z.SH
 .P
@@ -467,3 +495,12 @@ limit.
 .B Symlinks
 By default, logical paths are honoured. Set \fB_ZE_RESOLVE_SYMLINKS\fP to resolve
 symlinks to physical paths.
+.TP
+.B Abbreviated display
+\fBze \-l\fP and \fBze \-f\fP show pathnames below \fI$HOME\fP as \fB~/\fP... .
+This affects display only: the databases hold absolute pathnames, patterns are
+matched against absolute pathnames, and \fBze \-e\fP prints absolute pathnames.
+The abbreviation is applied only if the stored pathname starts with the literal
+\fI$HOME/\fP (which is not the case if \fI$HOME\fP is a symbolic link and
+\fB_ZE_RESOLVE_SYMLINKS\fP is set). Scripts that need absolute pathnames should
+use \fBze \-e\fP.
