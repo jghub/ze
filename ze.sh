@@ -13,7 +13,7 @@
 function _ze_init {
     typeset datadir=${_ZE_DIR:-$HOME/.ze}
     if [[ -e $datadir && ! -d $datadir ]]; then
-        printf '%s\n' "ze: $datadir exists and is not a directory (remove it or set _ZE_DIR suitably)" >&2
+        printf '%s\n' "ze: $datadir exists but is not a directory (remove it or set _ZE_DIR to another location)" >&2
         return 1
     elif [[ ! -d $datadir ]]; then
         mkdir -p "$datadir" || { printf '%s\n' "ze: could not create $datadir" >&2; return 1; }
@@ -111,7 +111,7 @@ function _ze_read {  ## [dirs|files]
 function _ze_cd {
     if _ze_builtin_cd "$@"; then
         # ksh93 may emit job-control notifications for the backgrounded helper despite wrapping it in
-        # a subshell (this happens not in all terminal emulators, but in most). this makes
+        # a subshell (this does not happen in all terminal emulators, but in most). this makes
         # redirection of stderr to /dev/null necessary.
         if [[ ${_ZE_RESOLVE_SYMLINKS:-} ]]; then
             (_ze_record "$(command pwd -P 2>/dev/null)" &) 2>/dev/null
@@ -124,14 +124,14 @@ function _ze_cd {
 }
 
 function _ze_open {  ## origname opcode
-    typeset origname=${1:?"_ze_open: pathname required"} pathname 
+    typeset origname=${1:?"_ze_open: pathname required"} pathname
     [[ -f $origname ]] || { printf '%s\n' "ze: not a regular file: $origname" >&2; return 1; }
     typeset -i opcode=${2:-2}
 
     if [[ ${_ZE_RESOLVE_SYMLINKS:-} ]]; then
         pathname=$(command realpath -- "$origname" 2>/dev/null)
     else
-        pathname=$(_ze_builtin_cd "$(dirname -- "$origname")" 2>/dev/null && printf '%s/%s' "$PWD" "$(basename -- "$origname")")
+        pathname=$(_ze_builtin_cd "$(dirname -- "$origname")" 2>/dev/null && printf '%s/%s' "${PWD%/}" "$(basename -- "$origname")")
     fi
     # shellcheck disable=SC2181 # irrelevant
     (($?)) && { printf '%s\n' "ze: could not resolve path: $origname" >&2; return 1; }
@@ -139,13 +139,13 @@ function _ze_open {  ## origname opcode
     [[ -r $pathname ]] || { printf '%s\n' "ze: file not readable: $pathname" >&2; return 1; }
 
     if [[ -s $pathname ]]; then
-        LC_ALL=C grep -Iq . -- "$pathname" || { printf '%s\n' "ze: refusing to open '$pathname': binary file" >&2; return 1; }
+        LC_ALL=C grep -Iq '' -- "$pathname" || { printf '%s\n' "ze: refusing to open binary file: $pathname" >&2; return 1; }
     fi
 
     (_ze_record "$pathname" "" files &) 2>/dev/null
 
     typeset opcmd lastchoice
-    case $opcode in 
+    case $opcode in
         1) opcmd=${_ZE_OPEN:-${VISUAL:-${EDITOR:-nano}}}; lastchoice='vi';;
         *) opcmd=${_ZE_PAGER:-${PAGER:-less -NRS}}; lastchoice='more';;
     esac
@@ -202,7 +202,7 @@ function _ze_dig { ## dirs|files [fdopts_and_args]
     elif command -v fdfind >/dev/null; then
         typeset fdex=fdfind
     else
-        printf '%s\n' "'fd' not found" >&2; return 1
+        printf '%s\n' "ze: neither 'fd' nor 'fdfind' found in PATH (required for -d)" >&2; return 1
     fi
     typeset fdtype=d preview
     typeset -a fdargs; fdargs=(-Ipa)
@@ -231,7 +231,7 @@ function _ze_dig { ## dirs|files [fdopts_and_args]
 
 function _ze_record { ## pathname [oldpwd] [dirs|files]
     # preserve the original 1-2 arg (pathname, oldpwd) interface used by zex.sh
-    typeset pathname=${1:-"/"} oldpwd=${2:-${OLDPWD:-}} mode=${3:-dirs}  # 'pathname default="/" safeguards against manual misuse
+    typeset pathname=${1:-"/"} oldpwd=${2:-${OLDPWD:-}} mode=${3:-dirs}  # pathname default="/" safeguards against manual misuse
     typeset datafile lambda=${_ZE_LAMBDA:-8e-3}
 
     if [[ $mode == files ]]; then
@@ -240,7 +240,7 @@ function _ze_record { ## pathname [oldpwd] [dirs|files]
     else
         [[ -d $pathname ]] || return 1
         datafile="${_ZE_DIR:-$HOME/.ze}/ze.db"
-        # navigation to $HOME, $oldpwd, or "/" aren't worth recording
+        # navigation to $HOME, $oldpwd, or "/" isn't worth recording
         [[ $pathname == "$HOME" || $pathname == "$oldpwd" || $pathname == "/" ]] && return
     fi
     [[ $pathname == *\|* ]] && { printf '\nze: "|" in pathname: "%s" will not be tracked\n' "$pathname"; return; }
@@ -278,13 +278,13 @@ function _ze {
                 d) digger=1;;
                 e) emit=1;;
                 f) finder=1;;
-                h) printf '%s\n' "${_ZE_CMD:-ze} [-Vbcdefhloprt] args" >&2; return;;
+                h) printf '%s\n' "usage: ${_ZE_CMD:-ze} [-o|-p] [-Vbcdefhlrt] [pattern|pathname|-]" >&2; return;;
                 l) list=1;;
                 o) opcode=1; mode=files;;
                 p) opcode=2; mode=files;;
                 r) typ="visits";;
                 t) typ="recent";;
-                V) typeset ze_version="ze v4.0.0"; printf '%s\n' "$ze_version"; return;;
+                V) typeset ze_version="ze v4.0.0"; printf '%s\n' "$ze_version" >&2; return;;
                 *) ufo+=" -${opt:0:1}";;
             esac; opt=${opt:1}; done;;
          *) fnd+=${fnd:+ }$1; fdargs+=("$1");;
@@ -315,7 +315,7 @@ function _ze {
         if ((opcode)); then
             [[ -f $fnd ]] && { _ze_open "$fnd" $opcode; return; }
         else
-            typeset target=${fnd:-$HOME} 
+            typeset target=${fnd:-$HOME}
             [[ -d $target || $target == "-" ]] && { _ze_cd "$target"; return; }
         fi
     fi
@@ -323,7 +323,7 @@ function _ze {
     ((bflag)) && [[ $fnd && $fnd != *"$" ]] && fnd="($fnd)[^/]*$"
     typeset result
     result=$(_ze_read "$mode" | fnd=$fnd cwd=$cwd LC_ALL='' LC_NUMERIC=C awk -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
-        function shortpath(p) { return (home != "" && index(p, home) == 1) ? "~/" substr(p, hlen + 1) : p }
+        function shortpath(p) { return (home != "" && index(p, home) == 1) ? "~" substr(p, hlen) : p }
         BEGIN {
             cwd  = ENVIRON["cwd"]; if (cwd != "" && cwd != "/") cwd = cwd "/"
             home = ENVIRON["HOME"]; sub(/\/+$/, "", home)  # empty if HOME=/ (this should be the root user)
