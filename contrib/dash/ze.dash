@@ -5,6 +5,7 @@ ze() {
    local _ze_res  # to make 100% POSIX compliant, remove 'local'
    [ "$1" = "-" ] && set -- "${OLDPWD:-$HOME}"
    _ze_res=$(zex.sh "$@") || return
+   [ -n "$_ze_res" ] || return
    case " $* " in
        *" -o "*)
            ${_ZE_OPEN:-${VISUAL:-${EDITOR:-vi}}} "$_ze_res"
