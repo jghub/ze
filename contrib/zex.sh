@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# fast-track a single literal pathname argument, bypassing the database lookup. '-' resolves to the
-# previous directory while an existing directory is returned as-is. handling of 'ze -' depends on the
-# wrapper exporting _ZE_OLDPWD into the environment before the zex.sh call.
+# fast-track a single literal pathname argument, bypassing the database lookup.
+# '-' resolves to the previous directory. wrappers must either export _ZE_OLDPWD
+# or resolve '-' themselves."
 (($# == 0)) && set -- "$HOME"
 if (($# == 1)); then
     [[ $1 == "-" ]] && { printf '%s\n' "${_ZE_OLDPWD:-$HOME}"; exit; }
     [[ -d $1 ]] && { printf '%s\n' "$1"; exit; }
 fi
 zexpath=$(command -v "$0") || exit 1
-zexdir=${zexpath%/*}  # safe since 'command -v' returns '/' containing pathname in the supported shells
-# shellcheck source=/dev/null  ## silence shellcheck instead of running it twice on ze.sh
-. "$zexdir/ze.sh"
+zexdir=${zexpath%/*}            # 'command -v' on a script file always yields a pathname containing '/'
+# shellcheck source=/dev/null   ## silence shellcheck instead of running it twice on ze.sh 
+. "$zexdir/ze.sh" || exit
 if [[ $1 == "--record" ]]; then
     shift
     _ze_record "$@"
