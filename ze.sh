@@ -278,13 +278,13 @@ function _ze {
                 d) digger=1;;
                 e) emit=1;;
                 f) finder=1;;
-                h) printf '%s\n' "usage: ${_ZE_CMD:-ze} [-o|-p] [-Vbcdefhlrt] [pattern|pathname|-]" >&2; return;;
+                h) printf '%s\n' "usage: ${_ZE_CMD:-ze} [-o|-p] [-Vbcdefhlrt] [pattern|pathname|-]"; return;;
                 l) list=1;;
                 o) opcode=1; mode=files;;
                 p) opcode=2; mode=files;;
                 r) typ="visits";;
                 t) typ="recent";;
-                V) typeset ze_version="ze v4.0.0"; printf '%s\n' "$ze_version" >&2; return;;
+                V) typeset ze_version="ze v4.0.0"; printf '%s\n' "$ze_version"; return;;
                 *) ufo+=" -${opt:0:1}";;
             esac; opt=${opt:1}; done;;
          *) fnd+=${fnd:+ }$1; fdargs+=("$1");;
