@@ -3,29 +3,36 @@ function ze
         _ze_cd
         return
     end
-    set -l orig_argv $argv
 
-    # let zex.sh take care completely of all flags/calls that don't require
-    # parent shell 'cd' (either [-o|-p] or pure reporting [-e|-h|-l|-V]).
-    argparse --ignore-unknown e h l V o p -- $argv
-    if set -q _flag_o; or set -q _flag_p
-        zex.sh --open $orig_argv
+    # classify short options (including bundles) up to '--'; patterns/paths never start with '-'
+    set -l open 0
+    set -l report 0
+    for a in $argv
+        switch $a
+            case --
+                break
+            case '--*'
+                continue
+            case '-?*'
+                string match -qr -- '^-[^[:space:]]*[op]' "$a"; and set open 1
+                string match -qr -- '^-[^[:space:]]*[ehlV]' "$a"; and set report 1
+        end
+    end
+    if test $report -eq 1
+        zex.sh $argv
         return
-    else if set -q _flag_e; or set -q _flag_h; or set -q _flag_l; or set -q _flag_V
-        zex.sh $orig_argv
+    else if test $open -eq 1
+        zex.sh --open $argv
         return
     end
 
     # directory navigation requires parent shell builtin 'cd'
-    set -l res (zex.sh $orig_argv)
+    set -l res (zex.sh $argv)
     or return $status
-
-    # first check orig_argv for -e in case it was trailing-embedded in compound flag (e.g. -fe)
-    if string match -qr -- '-[a-zA-Z0-9]*e' $orig_argv
-        printf '%s\n' $res
-    else if test (count $res) -eq 1; and test -d "$res"
+    test (count $res) -gt 0; or return
+    if test (count $res) -eq 1; and test -d "$res"
         _ze_cd "$res"
     else
-        printf '%s\n' $res
+        printf '%s\n' $res    # e.g. bare -c yields a list
     end
 end

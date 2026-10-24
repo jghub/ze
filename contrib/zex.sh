@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # fast-track a single literal pathname argument, bypassing the database lookup.
 # '-' resolves to the previous directory. wrappers must either export _ZE_OLDPWD
-# or resolve '-' themselves."
+# or resolve '-' themselves.
 (($# == 0)) && set -- "$HOME"
 if (($# == 1)); then
     [[ $1 == "-" ]] && { printf '%s\n' "${_ZE_OLDPWD:-$HOME}"; exit; }
