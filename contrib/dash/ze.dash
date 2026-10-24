@@ -1,29 +1,47 @@
 #!/usr/bin/env dash
-# ze.dash -- source from your .profile
-# the zex.sh executable must be on $PATH, ze.sh must reside alongside zex.sh.
+# ze.dash -- source from your .profile.
+# zex.sh must be on PATH and ze.sh must reside alongside zex.sh.
+# any _ZE_xxx configuration variables need to be exported from the
+# parent shell in order to take effect.
+
 ze() {
-   local _ze_res  # to make 100% POSIX compliant, remove 'local'
-   [ "$1" = "-" ] && set -- "${OLDPWD:-$HOME}"
-   _ze_res=$(zex.sh "$@") || return
-   [ -n "$_ze_res" ] || return
-   case " $* " in
-       *" -o "*)
-           ${_ZE_OPEN:-${VISUAL:-${EDITOR:-vi}}} "$_ze_res"
-           (zex.sh --record-file "$_ze_res" &)
-           ;;
-       *" -p "*)
-           ${_ZE_PAGER:-${PAGER:-more}} "$_ze_res"
-           (zex.sh --record-file "$_ze_res" &)
-           ;;
-       *)
-           cd "$_ze_res" || return
-           (zex.sh --record "$PWD" "$OLDPWD" &)
-           ;;
-   esac
+    [ "$#" -eq 0 ] && { _ze_cd; return; }
+    local _ze__arg _ze__opts _ze__char _ze__open= _ze__report= _ze__res
+
+    # Classify short options (including bundles)
+    for _ze__arg do
+        case $_ze__arg in
+            --)  break;;
+            --*) continue;;
+            -?*) _ze__opts=${_ze__arg#-}
+                while [ -n "$_ze__opts" ]; do
+                    _ze__char=${_ze__opts%"${_ze__opts#?}"}  # equiv. to ${x:0:1} (which dash does not support)
+                    _ze__opts=${_ze__opts#?}
+                    case $_ze__char in
+                        o|p) _ze__open=1;;
+                        e|h|l|V) _ze__report=1;;
+                    esac
+                done;;
+        esac
+    done
+
+    if [ -n "$_ze__report" ]; then
+        zex.sh "$@"
+    elif [ -n "$_ze__open" ]; then
+        zex.sh --open "$@"
+    else
+        _ze__res=$(zex.sh "$@") || return $?
+        [ -n "$_ze__res" ] || return
+        [ -d "$_ze__res" ] || { printf '%s\n' "$_ze__res"; return; }   # e.g. bare -c yields a list
+        _ze_cd "$_ze__res"
+    fi
 }
-alias zd='ze -d'
-alias zf='ze -f'
-alias zo='ze -o'
-alias zp='ze -p'
-alias zl='zex.sh -l'
-alias cd=ze
+
+_ze_cd() {
+    [ "$1" = "-" ] && set -- "${_ZE_OLDPWD:-$HOME}"
+    local _ze__prev=$PWD
+    command cd "$@" || return $?
+    ( zex.sh --record "$PWD" "$_ze__prev" & )
+    _ZE_OLDPWD=$_ze__prev
+    export _ZE_OLDPWD
+}
