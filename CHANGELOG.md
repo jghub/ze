@@ -1,5 +1,30 @@
 # ze.sh: Changelog
 
+## v4.1.0 (2026-10-25)
+* **fish wrapper**: fix `ze my-service` printing the path instead of changing into
+the directory (an argument with an `e` in the word after a hyphen, e.g.
+`dot-files`, was taken for `-e`). Fix `-o` and `-p` not being recognized after
+another option letter in a bundle (e.g. `-bo`).
+
+* **dash wrapper**: now supports the complete `ze` option set like the fish
+wrapper (`-e`, `-h`, `-l`, `-V` and bare `-c` print instead of changing directory,
+`-o`/`-p` open files, bundled options are recognized). `_ZE_xxx` variables must
+be exported from the parent shell. **Incompatible change**: the aliases defined
+by `ze.dash` (`cd=ze`, `zd`, `zf`, `zo`, `zp`, `zl`) are gone (you might add
+`alias cd=ze` yourself).
+
+* **tcsh wrapper**: the current directory is no longer recorded as a visit after
+failed or reporting calls. **Incompatible change**: aliases renamed (`zl` ->
+`ze-l`, `zo` -> `ze-o`, `zp` -> `ze-p`, `zol`/`zpl` -> `ze-lo`), `zd`, `zf`,
+`zod`, `zof`, `zpd` and `zpf` removed (use `ze -d` and `ze -f`), `ze-e`, `ze-h`
+and `ze-V` added.
+
+* **minor behaviour change**: `ze -h` prints a usage line to stdout (was stderr).
+
+* **corner case fix**: `ze -o`/`-p` no longer treat text files consisting only of
+blank lines as binary. Files directly below `/` are recorded as `/name` (was
+`//name`).
+
 ## v4.0.0 (2026-10-20)
 * **breaking change**: `ze -l` and the `ze -f` listing now abbreviate pathnames
 below `$HOME` as `~/...`. The database format, pattern matching, `-c`, scoring
