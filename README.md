@@ -7,12 +7,14 @@ interface and the cd-driven directory-tracking model remain z.sh-like while the
 scoring model, internal structure, and shell compatibility approach are
 independent reimplementations. ze.sh replaces z.sh's frecency heuristic with an
 exponential moving sum (EMS) scoring model and includes numerous behavioral
-improvements (see [list of changes](#changes-from-zsh)). `fish` is supported via
-a lightweight wrapper around the native implementation.
+improvements (see [list of changes](#changes-from-zsh)). `fish` and `dash` are
+supported via lightweight wrappers around the native implementation (`tcsh` is
+provisionally supported via aliases (navigation-only for `ze` alias)).
 
 ## Installation
 
-For native use with `bash`, `zsh`, `ksh`, and `mksh`, source from your shell rc file:
+For native use with `bash`, `zsh`, `ksh`, and `mksh`, source from your shell rc
+file:
 
 ```sh
 source /path/to/ze.sh
@@ -33,23 +35,28 @@ on every `cd` invocation, use `_ZE_CMD=cd` (see Configuration).
 For `fish`, install ze.sh, zex.sh, and the wrapper functions:
 
 ```
-cp ze.sh zex.sh ~/bin   # or any directory on $PATH. 
+cp ze.sh contrib/zex.sh ~/bin   # or any directory on $PATH. 
 chmod +x ~/bin/zex.sh
 cp contrib/fish/ze.fish contrib/fish/_ze_cd.fish ~/.config/fish/functions/
 ```
+
+`ze.sh` and `zex.sh` must reside in the same directory, which has to be on your
+`$PATH`. This holds for all wrappers (fish, dash, tcsh).
 
 `zex.sh` is the generic backend driver used by all wrappers, defaulting to `bash`
 for execution. Changing the shebang to `ksh` (`#!/usr/bin/env ksh`) reduces
 latency by about 40% if available, though latency remains imperceptible in
 interactive use either way.
 
-`tcsh` users may include the alias definitions in `contrib/tcsh/ze.csh` in their
-.cshrc file to use `ze.sh` from `tcsh`.
+For `dash` and similar minimal shells, install `ze.sh` and `zex.sh` as above and
+source `contrib/dash/ze.dash` from your `.profile` (login shells) or from the file
+named by `$ENV` (interactive shells). The wrapper uses the `local` keyword
+(supported by `dash` as an extension) which may be removed for strict POSIX
+compliance. See [Wrappers for other shells](#wrappers-for-other-shells).
 
-A POSIX-compatible wrapper for `dash` and similar minimal shells is provided in
-`contrib/dash/ze.dash`. Source it from your `.profile`. It uses the `local`
-keyword (supported by `dash` as an extension) which may be removed for strict
-POSIX compliance.
+`tcsh` users may include the alias definitions in `contrib/tcsh/ze.csh` in their
+`.cshrc` file (see [Wrappers for other shells](#wrappers-for-other-shells) for the
+limitations).
 
 ## Design
 
@@ -125,23 +132,25 @@ the directory database, and directory tracking does not affect the file database
 ### Usage
 
 ```
-ze [-bcdefhlrt] [pattern|path|-]
+ze [-Vbcdefhlrt] [pattern|path|-]
 ```
 
-| Invocation                           | Behavior                                                     |
-| ------------------------------------ | ------------------------------------------------------------ |
-| `ze`                                 | cd to $HOME                                                  |
-| `ze -`                               | cd to previous directory                                     |
-| `ze path`                            | cd to path directly (real path wins)                         |
-| `ze pattern`                         | cd to highest scoring match for pattern                      |
-| `ze -c pattern`                      | restrict matches to subdirs of $PWD (bare `-c` implies `-l`) |
-| `ze -b pattern`                      | basename match: last term must end within final path component|
-| `ze -d [-- fdopts] [pattern [path]]` | discover and jump via fd+fzf, register in database           |
-| `ze -e pattern`                      | print highest scoring match instead of cd                    |
-| `ze -f pattern`                      | use fzf or basic CLI fallback for interactive selection      |
-| `ze -l pattern`                      | list matches sorted by current score                         |
-| `ze [-cefl] -r pattern`              | sort matches by visit count instead of score                 |
-| `ze [-cefl] -t pattern`              | sort matches by recency of last visit instead of score       |
+| Invocation                           | Behavior                                                       |
+| ------------------------------------ | -------------------------------------------------------------- |
+| `ze`                                 | cd to $HOME                                                    |
+| `ze -`                               | cd to previous directory                                       |
+| `ze path`                            | cd to path directly (real path wins)                           |
+| `ze pattern`                         | cd to highest scoring match for pattern                        |
+| `ze -c pattern`                      | restrict matches to subdirs of $PWD (bare `-c` implies `-l`)   |
+| `ze -b pattern`                      | basename match: last term must end within final path component |
+| `ze -d [-- fdopts] [pattern [path]]` | discover and jump via fd+fzf, register in database             |
+| `ze -e pattern`                      | print highest scoring match instead of cd                      |
+| `ze -f pattern`                      | use fzf or basic CLI fallback for interactive selection        |
+| `ze -l pattern`                      | list matches sorted by current score                           |
+| `ze [-cefl] -r pattern`              | sort matches by visit count instead of score                   |
+| `ze [-cefl] -t pattern`              | sort matches by recency of last visit instead of score         |
+| `ze -h`                              | print a usage line                                             |
+| `ze -V`                              | print the version                                              |
 
 `-b` restricts the end of the match to the final path component, analogous to
 zoxide's last-component rule but applied to ze's regular-expression patterns: the
@@ -193,7 +202,7 @@ database when combined with `[-o|-p]`.
 | `-b` option      | not available                                         | basename matching: last term must end within the final path component                |
 | Listing display  | absolute pathnames                                    | pathnames below `$HOME` shown as `~/...` in `-l` and `-f`                            |
 | Database         | single flat file `~/.z`                               | directory `~/.ze/`, database `~/.ze/ze.db`                                           |
-| Shell compat     | bash/zsh only                                         | bash/zsh/ksh93/mksh (native), fish (wrapper)                                         |
+| Shell compat     | bash/zsh only                                         | bash/zsh/ksh93/mksh (native), fish and dash (wrappers), tcsh (provisional)           |
 | Init             | minimal, no safety checks                             | validates db path, ownership, file type                                              |
 | Concurrency      | tempfile-name collisions may cause db corruption      | `mktemp(1)` eliminates name collisions, concurrent updates remain "last writer wins" |
 | Pattern matching | case-sensitive with case-insensitive fallback         | smartcase: case-insensitive except when pattern contains uppercase                   |
@@ -254,10 +263,17 @@ jumping.
 | `_ZE_PAGER`            | unset   | pager command used by `ze -p`       |
 | `_ZE_RESOLVE_SYMLINKS` | unset   | resolve symlinks on cd              |
 
+
 *(1)*: Setting `_ZE_CMD=cd` shadows the builtin `cd` with full `ze` behaviour
 including pattern navigation. Note that this changes `cd` semantics: unrecognized
 pathnames are tried as patterns against the database rather than producing an
-error.
+error. `_ZE_CMD` is only used by the native shells, the wrappers define the command
+themselves (see [Wrappers for other shells](#wrappers-for-other-shells)).
+
+The variables above are read by `ze.sh`. With the `fish`, `dash` and `tcsh`
+wrappers they are read by the `zex.sh` process, so they must be exported from the
+respective interactive shell (`set -gx` in fish, `export` in dash, `setenv` in tcsh).
+`_ZE_CMD` has no effect there (apart from the command name shown by `ze -h`).
 
 ## Interactive selection and fzf integration
 
@@ -294,6 +310,43 @@ alias myze ze          # rename ze to arbitrary different command name
 alias cd   _ze_cd      # track cd, retain native cd semantics
 alias cd   ze          # track cd, enable pattern navigation on every cd
 ```
+
+Configuration variables need to be exported from your shell in order to take
+effect. E.g. add
+
+```sh
+set -gx _ZE_NO_FZF 1
+```
+
+to `~/.config/fish/config.fish` to enforce basic CLI selection instead of `fzf`.
+
+## Wrappers for other shells
+
+### dash
+
+The `dash` wrapper (`contrib/dash/ze.dash`) follows the same dispatch logic as the
+fish wrapper and provides the complete `ze` interface. As with fish,
+configuration variables must be exported (e.g. `export _ZE_NO_FZF=1`) and
+`_ZE_CMD` is not used.
+
+The wrapper defines the functions `ze` and `_ze_cd` but no aliases. The `cd`
+cases of the native shells map to:
+
+```sh
+alias cd=_ze_cd   # track cd, retain native cd semantics (including options such as -P)
+alias cd=ze       # track cd, enable pattern navigation on every cd (cd options are not supported)
+```
+
+### tcsh
+
+The `tcsh` wrapper has to be considered provisional. Due to the absence of
+functions in `tcsh`, the wrapper (`contrib/tcsh/ze.csh`) has to rely on aliases.
+This necessitates compromises: the `ze` alias must only be used for cd-related
+actions, including the options that influence them (`-[bcdf]`). Everything else
+is available through separate aliases named after the option: `ze-l`, `ze-e`,
+`ze-h`, `ze-V` (reporting), `ze-o` and `ze-p` (open or page a file), and `ze-lo`
+(list files). Using `ze -l` and the like through the `ze` alias is not supported.
+Variables have to be exported with `setenv`.
 
 ## Migrating from zoxide or z.sh
 
@@ -369,7 +422,7 @@ high rank on first revisit if its historical visit count is large.
 
 ze.sh occupies a specific niche: a small, single-file, shell-native directory
 jumper and file tracker for bash/zsh/ksh93/mksh, with optional wrappers for fish,
-tcsh, and dash in contrib/. The exponential moving sum scoring on an event clock
+dash, and tcsh in contrib/. The exponential moving sum scoring on an event clock
 is comparable to SD's approach for a fixed decay parameter. However, only SD
 provides the ability to modify the decay parameter at any time and to fully
 reconstruct the corresponding scores from scratch.

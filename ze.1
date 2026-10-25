@@ -11,15 +11,18 @@ ze - pattern-based directory jumper and file tracker with dynamically ranked dir
 .RI [ pattern | pathname | \- ]
 .
 .SH AVAILABILITY
-bash, zsh, ksh93, mksh, fish
+bash, zsh, ksh93, mksh, fish, dash, tcsh (provisional)
 .
 .SH DESCRIPTION
 .P
-\fBze.sh\fP is a shell-native directory jumper and (non-binary) file tracker for \fBbash\fP,
-\fBzsh\fP, \fBksh93\fP, and \fBmksh\fP. A wrapper for use with the
+\fBze.sh\fP is a shell-native directory jumper and (non-binary) file tracker for
+\fBbash\fP, \fBzsh\fP, \fBksh93\fP, and \fBmksh\fP. Wrappers for use with the
 .B fish
-shell is also provided. File tracking is explained in more detail below, the
-following description focuses primarily on directory tracking mode.
+and
+.B dash
+shells are also provided (\fBtcsh\fP is provisionally supported via aliases). File
+tracking is explained in more detail below, the following description focuses
+primarily on directory tracking mode.
 .LP
 Unlike its predecessor \fBz.sh\fP, \fBze.sh\fP uses an exponential moving sum
 (EMS) scoring model on an event-driven clock (a global monotonic event counter
@@ -196,9 +199,6 @@ Basename contains \fIfoo\fP (same as \fBze \-b\fP \fIfoo\fP).
 \fIfoo\fP anywhere in the pathname and \fIbar\fP within the basename
 (same as \fI'(foo.*bar)[^/]*$'\fP).
 .TP
-.BI ze " 'foo[^/]*$'"
-Basename contains \fIfoo\fP.
-.TP
 .BI ze " '/foo(/|$)'"
 Some component equals \fIfoo\fP (the directory itself or anything below it).
 .TP
@@ -309,6 +309,20 @@ of the following to \fI~/.config/fish/config.fish\fP:
 alias cd _ze_cd
 .IP
 alias cd ze
+.P
+For
+.BR dash ,
+install ze.sh and zex.sh as described for fish and source
+.I contrib/dash/ze.dash
+from your \fI.profile\fP (login shells) or from the file named by \fI$ENV\fP
+(interactive shells). The wrapper defines the functions \fBze\fP and \fB_ze_cd\fP but
+no aliases: use \fBalias cd=_ze_cd\fP or \fBalias cd=ze\fP to track \fBcd\fP.
+.P
+\fBtcsh\fP users may include the aliases in \fIcontrib/tcsh/ze.csh\fP in their
+\fI.cshrc\fP (ze.sh and zex.sh installed as above). This wrapper is provisional: the
+\fBze\fP alias covers directory navigation only (options \fB\-[bcdf]\fP). All other
+options (file tracking, reporting) are available via separate aliases named after the
+option, e.g. \fBze-l\fP for \fBze \-l\fP.
 .LP
 Use \fBze\fP and aliased \fBcd\fP with pathname-based navigation for some time to
 build up the database. Afterwards use
@@ -400,6 +414,12 @@ is used (in this order).
 .TP
 \fB_ZE_RESOLVE_SYMLINKS\fP Set to any non-empty value to resolve symlinks to
 physical paths (default: logical paths are honoured).
+.P
+The variables are read by \fBze.sh\fP. With the \fBfish\fP, \fBdash\fP and \fBtcsh\fP
+wrappers they are read by the \fBzex.sh\fP process and must therefore be exported from
+the interactive shell (\fBset -gx\fP in fish, \fBexport\fP in dash, \fBsetenv\fP in
+tcsh). \fB_ZE_CMD\fP is not used by the wrappers (apart from the command name shown by
+\fBze \-h\fP).
 .
 .SH FZF INTEGRATION
 .P

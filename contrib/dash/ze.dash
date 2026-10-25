@@ -1,8 +1,4 @@
 #!/usr/bin/env dash
-# ze.dash -- source from your .profile.
-# zex.sh must be on PATH and ze.sh must reside alongside zex.sh.
-# any _ZE_xxx configuration variables need to be exported from the
-# parent shell in order to take effect.
 ze() {
     [ "$#" -eq 0 ] && { _ze_cd; return; }
 
