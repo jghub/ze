@@ -3,7 +3,7 @@ ze() {
     [ "$#" -eq 0 ] && { _ze_cd; return; }
 
     # classify short options (including bundles) up to '--'
-    local _ze__arg _ze__opts _ze__char _ze__open= _ze__report= _ze__res
+    local _ze__arg _ze__opts _ze__char _ze__open='' _ze__report='' _ze__res
     for _ze__arg do
         case $_ze__arg in
             --)  break;;
