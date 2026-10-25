@@ -78,7 +78,7 @@ this is only useful for top-level directories, e.g. \fB^/usr\fP.
 Each blank in a pattern is replaced by \fB.*\fP before matching. To match a
 single blank, you might use \fB.\fP as in \fBfoo.bar\fP, but this also matches,
 e.g., \fIfoo-bar\fP. For an exact blank use the explicit ASCII code as in
-\fBfoo\e\e040bar\fP,
+\fB'foo\e040bar'\fP.
 .P
 Shell quoting: trailing \fB/\fP or \fB.\fP never need quoting. A trailing
 \fB$\fP needs no quoting in \fBbash\fP, \fBzsh\fP, \fBksh93\fP and \fBmksh\fP, but

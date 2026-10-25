@@ -9,7 +9,7 @@ if (($# == 1)); then
 fi
 zexpath=$(command -v "$0") || exit 1
 zexdir=${zexpath%/*}            # 'command -v' on a script file always yields a pathname containing '/'
-# shellcheck source=/dev/null   ## silence shellcheck instead of running it twice on ze.sh 
+# shellcheck source=/dev/null   ## silence shellcheck instead of running it twice on ze.sh
 . "$zexdir/ze.sh" || exit
 if [[ $1 == "--record" ]]; then
     shift

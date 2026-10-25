@@ -3,12 +3,11 @@
 # zex.sh must be on PATH and ze.sh must reside alongside zex.sh.
 # any _ZE_xxx configuration variables need to be exported from the
 # parent shell in order to take effect.
-
 ze() {
     [ "$#" -eq 0 ] && { _ze_cd; return; }
-    local _ze__arg _ze__opts _ze__char _ze__open= _ze__report= _ze__res
 
-    # Classify short options (including bundles)
+    # classify short options (including bundles) up to '--'
+    local _ze__arg _ze__opts _ze__char _ze__open= _ze__report= _ze__res
     for _ze__arg do
         case $_ze__arg in
             --)  break;;
@@ -24,17 +23,19 @@ ze() {
                 done;;
         esac
     done
-
     if [ -n "$_ze__report" ]; then
         zex.sh "$@"
+        return $?
     elif [ -n "$_ze__open" ]; then
         zex.sh --open "$@"
-    else
-        _ze__res=$(zex.sh "$@") || return $?
-        [ -n "$_ze__res" ] || return
-        [ -d "$_ze__res" ] || { printf '%s\n' "$_ze__res"; return; }   # e.g. bare -c yields a list
-        _ze_cd "$_ze__res"
+        return $?
     fi
+
+    # directory navigation requires parent shell builtin 'cd'
+    _ze__res=$(zex.sh "$@") || return $?
+    [ -n "$_ze__res" ] || return
+    [ -d "$_ze__res" ] || { printf '%s\n' "$_ze__res"; return; }   # e.g. bare -c yields a list
+    _ze_cd "$_ze__res"
 }
 
 _ze_cd() {

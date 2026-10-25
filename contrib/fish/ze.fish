@@ -4,7 +4,7 @@ function ze
         return
     end
 
-    # classify short options (including bundles) up to '--'; patterns/paths never start with '-'
+    # classify short options (including bundles) up to '--'
     set -l open 0
     set -l report 0
     for a in $argv
@@ -13,9 +13,18 @@ function ze
                 break
             case '--*'
                 continue
-            case '-?*'
-                string match -qr -- '^-[^[:space:]]*[op]' "$a"; and set open 1
-                string match -qr -- '^-[^[:space:]]*[ehlV]' "$a"; and set report 1
+            case -
+                continue
+            case '-*'
+                set -l opts (string sub -s 2 -- "$a")
+                for char in (string split '' "$opts")
+                    switch $char
+                        case o p
+                            set open 1
+                        case e h l V
+                            set report 1
+                    end
+                end
         end
     end
     if test $report -eq 1
@@ -27,8 +36,7 @@ function ze
     end
 
     # directory navigation requires parent shell builtin 'cd'
-    set -l res (zex.sh $argv)
-    or return $status
+    set -l res (zex.sh $argv); or return $status
     test (count $res) -gt 0; or return
     if test (count $res) -eq 1; and test -d "$res"
         _ze_cd "$res"
