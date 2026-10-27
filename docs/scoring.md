@@ -60,7 +60,7 @@ t_k^{+} = t_{\max}^{+} = t_{\max}+1,\qquad s_k^{+} = e^{-\lambda (t_k^{+}-t_k)}\
 $$
 
 where the decay factor accounts for the score decay since $k$'s most recent
-previous event. A new item enters the database with $_k^{+}=1$ (since formally its
+previous event. A new item enters the database with $s_k^{+}=1$ (since formally its
 previous score is $s_k=0$). For all $i\ne k$, the stored values are unchanged.
 
 ### Effect on the query-time scores
