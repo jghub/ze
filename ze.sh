@@ -7,6 +7,8 @@
 #
 # ze.sh is a substantially modified fork of z.sh. Original z.sh was distributed
 # under the WTFPL v2. ze.sh is distributed under the MIT License.
+#
+# Requires bash, zsh, ksh93 or mksh (incompatible with POSIX sh).
 # -----------------------------------------------------------------------------
 # shellcheck shell=ksh
 # shellcheck disable=SC2016  # awk/fzf scripts in single quotes must not expand
@@ -73,12 +75,12 @@ function _ze_commit {  ## rc tempfile dirs|files
         *) return 1;;    # this function overwrites a datafile, so an unrecognized mode is treated as error
     esac
     [[ $tempfile == "$datafile."* ]] || return 1      # safeguard against manual misuse
-    ((rc == 0)) || { \rm -f "$tempfile"; return 1; }
+    ((rc == 0)) || { command rm -f "$tempfile"; return 1; }
 
-    [[ ${_ZE_OWNER:-} ]] && { chown "$_ZE_OWNER":"$(id -ng "$_ZE_OWNER")" "$tempfile" || { \rm -f "$tempfile"; return 1; }; }
+    [[ ${_ZE_OWNER:-} ]] && { chown "$_ZE_OWNER":"$(id -gn "$_ZE_OWNER")" "$tempfile" || { command rm -f "$tempfile"; return 1; }; }
     # atomic replacement prevents db corruption in case of a race condition (although "last writer
     # wins" implies loss of updates from any competing writers)
-    \mv -f "$tempfile" "$datafile" || { \rm -f "$tempfile"; return 1; }
+    command mv -f "$tempfile" "$datafile" || { command rm -f "$tempfile"; return 1; }
 }
 
 if ! _ze_init; then
@@ -110,13 +112,15 @@ function _ze_read {  ## [dirs|files]
 
 function _ze_cd {
     if _ze_builtin_cd "$@"; then
-        # ksh93 may emit job-control notifications for the backgrounded helper despite wrapping it in
-        # a subshell (this does not happen in all terminal emulators, but in most). this makes
-        # redirection of stderr to /dev/null necessary.
+        # legacy ksh93u+ (e.g. macOS /bin/ksh) prints job-control notices for the backgrounded
+        # helper even inside a subshell. The subshell's stderr is therefore silenced, while the
+        # helper's stderr is passed through on fd 3 so that errors remain visible (assuming fd 2 is
+        # open which is generally true for interactive shells (under closed fd 2 recording would be
+        # skipped and rc 1 would be returned).
         if [[ ${_ZE_RESOLVE_SYMLINKS:-} ]]; then
-            (_ze_record "$(command pwd -P 2>/dev/null)" &) 2>/dev/null
+            (_ze_record "$(command pwd -P 2>/dev/null)" 2>&3 3>&- &) 3>&2 2>/dev/null
         else
-            (_ze_record "$PWD" &) 2>/dev/null
+            (_ze_record "$PWD" 2>&3 3>&- &) 3>&2 2>/dev/null
         fi
     else
         return $?
@@ -142,7 +146,8 @@ function _ze_open {  ## origname opcode
         LC_ALL=C grep -Iq '' -- "$pathname" || { printf '%s\n' "ze: refusing to open binary file: $pathname" >&2; return 1; }
     fi
 
-    (_ze_record "$pathname" "" files &) 2>/dev/null
+    # see comment in _ze_cd:
+    (_ze_record "$pathname" "" files 2>&3 3>&- &) 3>&2 2>/dev/null
 
     typeset opcmd lastchoice
     case $opcode in
@@ -239,9 +244,9 @@ function _ze_record { ## pathname [oldpwd] [dirs|files]
         datafile="${_ZE_DIR:-$HOME/.ze}/zef.db"
     else
         [[ -d $pathname ]] || return 1
-        datafile="${_ZE_DIR:-$HOME/.ze}/ze.db"
         # navigation to $HOME, $oldpwd, or "/" isn't worth recording
         [[ $pathname == "$HOME" || $pathname == "$oldpwd" || $pathname == "/" ]] && return
+        datafile="${_ZE_DIR:-$HOME/.ze}/ze.db"
     fi
     [[ $pathname == *\|* ]] && { printf '\nze: "|" in pathname: "%s" will not be tracked\n' "$pathname"; return; }
 
@@ -375,5 +380,5 @@ function _ze {
     fi
 }
 
-# shellcheck disable=SC2086,SC2139 # false alarm
-alias ${_ZE_CMD:-ze}='_ze'
+# shellcheck disable=SC2139 # false alarm
+alias "${_ZE_CMD:-ze}"='_ze'
