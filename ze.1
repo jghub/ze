@@ -1,4 +1,5 @@
-.TH ZE 1 "October 2026" ze.sh "User Commands"
+ema
+TH ZE 1 "October 2026" ze.sh "User Commands"
 .
 .SH NAME
 .
@@ -516,6 +517,13 @@ limit.
 .B Symlinks
 By default, logical paths are honoured. Set \fB_ZE_RESOLVE_SYMLINKS\fP to resolve
 symlinks to physical paths.
+.TP
+.B CDPATH
+.B ze
+intentionally ignores \fBCDPATH\fP to avoid potentially confusing pathname
+resolution. The contract is categorical: if \fIfoo\fP is an absolute or relative
+pathname of an existing directory, that directory is used, otherwise, pattern
+matching against the database is attempted.
 .TP
 .B Abbreviated display
 \fBze \-l\fP and \fBze \-f\fP show pathnames below \fI$HOME\fP as \fB~/\fP... .

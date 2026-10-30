@@ -37,8 +37,10 @@ ze() {
 _ze_cd() {
     [ "$1" = "-" ] && set -- "${_ZE_OLDPWD:-$HOME}"
     local _ze__prev=$PWD
-    command cd "$@" || return $?
-    ( zex.sh --record "$PWD" "$_ze__prev" & )
+    CDPATH='' command cd "$@" || return $?
+    local _ze__cur=$PWD
+    [ -n "${_ZE_RESOLVE_SYMLINKS:-}" ] && _ze__cur=$(command pwd -P)
+    ( zex.sh --record "$_ze__cur" "$_ze__prev" & )
     _ZE_OLDPWD=$_ze__prev
     export _ZE_OLDPWD
 }
