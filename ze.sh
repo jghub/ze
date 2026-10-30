@@ -112,11 +112,9 @@ function _ze_read {  ## [dirs|files]
 
 function _ze_cd {
     if _ze_builtin_cd "$@"; then
-        # legacy ksh93u+ (e.g. macOS /bin/ksh) prints job-control notices for the backgrounded
-        # helper even inside a subshell. The subshell's stderr is therefore silenced, while the
-        # helper's stderr is passed through on fd 3 so that errors remain visible (assuming fd 2 is
-        # open which is generally true for interactive shells (under closed fd 2 recording would be
-        # skipped and rc 1 would be returned).
+        # Legacy ksh93u+ prints job-control notices for the backgrounded helper even inside a
+        # subshell. Silence the subshell's stderr, but forward the helper's diagnostics to the
+        # original stderr via fd 3.
         if [[ ${_ZE_RESOLVE_SYMLINKS:-} ]]; then
             (_ze_record "$(command pwd -P 2>/dev/null)" 2>&3 3>&- &) 3>&2 2>/dev/null
         else
@@ -248,7 +246,7 @@ function _ze_record { ## pathname [oldpwd] [dirs|files]
         [[ $pathname == "$HOME" || $pathname == "$oldpwd" || $pathname == "/" ]] && return
         datafile="${_ZE_DIR:-$HOME/.ze}/ze.db"
     fi
-    [[ $pathname == *\|* ]] && { printf '\nze: "|" in pathname: "%s" will not be tracked\n' "$pathname"; return; }
+    [[ $pathname == *\|* ]] && { printf '\nze: "|" in pathname: "%s" will not be tracked\n' "$pathname" >&2 ; return; }
 
     typeset tempfile
     tempfile=$(mktemp "${datafile}.XXXXXX") || return 1
@@ -264,7 +262,7 @@ function _ze_record { ## pathname [oldpwd] [dirs|files]
             if ($3 > tmax) tmax = $3
         }
         END { print pathname, visits + 1, tmax + 1, score * exp(-lambda * (tmax + 1 - ticks)) + 1 }
-    ' "$datafile" 2>/dev/null >| "$tempfile"
+    ' "$datafile" >| "$tempfile"
     _ze_commit $? "$tempfile" "$mode"
 }
 
