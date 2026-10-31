@@ -3,7 +3,7 @@
 # a leading '--' is accepted before the pathname (e.g. 'ze -- -foo'). If the
 # pathname does not exist, leave the arguments unchanged for native ze. wrappers
 # must export _ZE_OLDPWD or resolve '-' themselves.
-(($# == 0)) || [[ $# == 1 && $1 == -- ]] && set -- "$HOME"
+(($# == 0)) || [[ $# == 1 && ( $1 == -- || -z $1 ) ]] && set -- "$HOME"
 case $1 in
     --record|--record-file|--open);;
     *)  fastarg=''
