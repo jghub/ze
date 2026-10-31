@@ -1,11 +1,23 @@
 # ze.sh: Changelog
 
-## v4.1.0 (2026-10-25)
+## v4.1.1 (2026-10-31)
+* **fish and dash wrappers**: honour `_ZE_RESOLVE_SYMLINKS` when recording paths
+and consistently bypass `CDPATH` during directory changes.
+
 * **fish wrapper**: fix `ze my-service` printing the path instead of changing into
 the directory (an argument with an `e` in the word after a hyphen, e.g.
 `dot-files`, was taken for `-e`). Fix `-o` and `-p` not being recognized after
 another option letter in a bundle (e.g. `-bo`).
 
+* **backend driver and shell wrappers**: support `--` as an option terminator,
+allowing directory names beginning with `-` (e.g. `ze -- -foo`) to be used as
+literal paths. Also treat a bare `ze --` like `ze`, resolving to `$HOME`.
+
+* **background recording**: diagnostics from `_ze_record` (e.g. failures caused
+by an unwritable database directory) are no longer discarded. Job-control
+notifications from legacy ksh93u+ (e.g. macOS `/bin/ksh`) remain suppressed.
+
+## v4.1.0 (2026-10-25)
 * **dash wrapper**: now supports the complete `ze` option set like the fish
 wrapper (`-e`, `-h`, `-l`, `-V` and bare `-c` print instead of changing directory,
 `-o`/`-p` open files, bundled options are recognized). `_ZE_xxx` variables must
