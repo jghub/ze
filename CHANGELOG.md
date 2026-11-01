@@ -1,5 +1,16 @@
 # ze.sh: Changelog
 
+## v4.1.2 (2026-11-01)
+* **backend driver and shell wrappers**: add `-N` no-action mode to `ze.sh` (print
+the target `ze` would act on; enforce literal-path priority over pattern
+matching). `zex.sh` dispatches non-trivial invocations to `_ze -N`. Fish/dash
+classify `-N` as report. Fixes wrapper/native divergence for unrecorded literal
+directories with `-c`/`-b`/`-r`/`-t` or multi-word names.
+
+* **dash and fish wrappers**: move `--` from inside `_ze_cd` to its call site.
+Restores `cd -P link` via `alias cd=_ze_cd` in dash (v4.1.1 regression). Fish
+gets the same change for parity (although no behaviour change).
+
 ## v4.1.1 (2026-10-31)
 * **fish and dash wrappers**: honour `_ZE_RESOLVE_SYMLINKS` when recording paths
 and consistently bypass `CDPATH` during directory changes.
