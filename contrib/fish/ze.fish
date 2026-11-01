@@ -21,7 +21,7 @@ function ze
                     switch $char
                         case o p
                             set open 1
-                        case e h l V
+                        case e h l V N
                             set report 1
                     end
                 end
@@ -39,7 +39,7 @@ function ze
     set -l res (zex.sh $argv); or return $status
     test (count $res) -gt 0; or return
     if test (count $res) -eq 1; and test -d "$res"
-        _ze_cd "$res"
+        _ze_cd -- "$res"
     else
         printf '%s\n' $res    # e.g. bare -c yields a list
     end

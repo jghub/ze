@@ -4,7 +4,7 @@ function _ze_cd
     end
     set -l prev $PWD
     set -l CDPATH
-    builtin cd -- $argv
+    builtin cd $argv
     or return $status
     set -l cur $PWD
     if test -n "$_ZE_RESOLVE_SYMLINKS"

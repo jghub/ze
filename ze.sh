@@ -270,7 +270,7 @@ function _ze {
     typeset lambda=${_ZE_LAMBDA:-8e-3}
 
     typeset fnd='' opt='' typ='' mode=dirs cwd='' ufo=''
-    typeset -i list=0 finder=0 digger=0 emit=0 opcode=0 cflag=0 bflag=0
+    typeset -i list=0 finder=0 digger=0 emit=0 opcode=0 cflag=0 bflag=0 Nflag=0
     typeset -a fdargs; fdargs=()
     while (($#)); do case "$1" in
         --) shift; while (($#)); do fnd+=${fnd:+ }$1; fdargs+=("$1"); shift; done;;
@@ -281,12 +281,13 @@ function _ze {
                 d) digger=1;;
                 e) emit=1;;
                 f) finder=1;;
-                h) printf '%s\n' "usage: ${_ZE_CMD:-ze} [-o|-p] [-Vbcdefhlrt] [pattern|pathname|-]"; return;;
+                h) printf '%s\n' "usage: ${_ZE_CMD:-ze} [-o|-p] [-NVbcdefhlrt] [pattern|pathname|-]"; return;;
                 l) list=1;;
                 o) opcode=1; mode=files;;
                 p) opcode=2; mode=files;;
                 r) typ="visits";;
                 t) typ="recent";;
+                N) Nflag=1;;  # for internal use in zex.sh only (no-action flag: print, but do not act)
                 V) typeset ze_version="ze v4.1.1"; printf '%s\n' "$ze_version"; return;;
                 *) ufo+=" -${opt:0:1}";;
             esac; opt=${opt:1}; done;;
@@ -315,11 +316,26 @@ function _ze {
     fi
 
     if ((!list && !emit)); then
-        if ((opcode)); then
-            [[ -f $fnd ]] && { _ze_open "$fnd" $opcode; return; }
+        if ((Nflag)); then
+            # No-action flag (internal, used by zex.sh): print the target (pathname, or file path
+            # with -o/-p) that ze would act on. Enforces literal existing pathname priority over
+            # pattern matching, mirroring the fast-track in the "else" clause so wrappers behave like
+            # native ze.
+            if ((opcode)); then
+                [[ -f $fnd ]] && { printf '%s\n' "$fnd"; return; }
+            else
+                typeset target=${fnd:-$HOME}
+                [[ $target == "-" ]] && target=${_ZE_OLDPWD:-$HOME}
+                [[ -d $target ]] && { printf '%s\n' "$target"; return; }
+            fi
+            emit=1    # if not a literal pathname, fallback to emitting the pattern match
         else
-            typeset target=${fnd:-$HOME}
-            [[ -d $target || $target == "-" ]] && { _ze_cd "$target"; return; }
+            if ((opcode)); then
+                [[ -f $fnd ]] && { _ze_open "$fnd" $opcode; return; }
+            else
+                typeset target=${fnd:-$HOME}
+                [[ -d $target || $target == "-" ]] && { _ze_cd "$target"; return; }
+            fi
         fi
     fi
 

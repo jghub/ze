@@ -1,5 +1,4 @@
-ema
-TH ZE 1 "October 2026" ze.sh "User Commands"
+TH ZE 1 "November 2026" ze.sh "User Commands"
 .
 .SH NAME
 .
@@ -8,7 +7,7 @@ ze - pattern-based directory jumper and file tracker with dynamically ranked dir
 .SH SYNOPSIS
 .SY ze
 .OP \-o|\-p
-.OP \-Vbcdefhlrt
+.OP \-NVbcdefhlrt
 .RI [ pattern | pathname | \- ]
 .
 .SH AVAILABILITY
@@ -94,6 +93,10 @@ In all shells, quote patterns containing \fB*\fP, \fB?\fP, \fB[\fP,
 if they match file names in the current directory.
 .
 .SH OPTIONS
+.TP
+.B \-N
+No-action flag: print the target (pathname) that \fBze\fP would act on. For
+internal use by \fBzex.sh\fP.
 .TP
 .B \-V
 Version info.
@@ -434,7 +437,7 @@ The selector displays pathnames below \fI$HOME\fP in an abbreviated form
 \fB~/\fP... \fBfzf\fP filtering operates on the displayed text. For example, a
 \fBfzf\fP query \fB!~\fP will hide all entries below \fI$HOME\fP.
 .
-.SH MIGRATING FROM Z.SH
+.SH MIGRATING FROM Z.SH OR ZOXIDE
 .P
 You might convert an existing database built by \fBzoxide\fP or \fBz.sh\fP for use with
 .BR ze.sh .
