@@ -8,7 +8,8 @@ ze() {
         case $_ze__arg in
             --)  break;;
             --*) continue;;
-            -?*) _ze__opts=${_ze__arg#-}
+            -)   continue;;
+            -*) _ze__opts=${_ze__arg#-}
                 while [ -n "$_ze__opts" ]; do
                     _ze__char=${_ze__opts%"${_ze__opts#?}"}  # equiv. to ${x:0:1} (which dash does not support)
                     _ze__opts=${_ze__opts#?}
