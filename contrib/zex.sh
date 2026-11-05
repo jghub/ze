@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # fast-track a single literal pathname argument, bypassing the database lookup. everything else is
 # dispatched to `_ze -N`, which centralizes general literal-path priority, '--' handling, and pattern
-# fallback, ensuring wrappers behave like native ze. wrappers must export _ZE_OLDPWD or resolve '-'
-# themselves.
+# fallback, ensuring wrappers behave like native ze. wrappers, or rather the underlying shells, must
+# maintain OLDPWD (like dash) or the wrappers must export _ZE_OLDPWD (like the fish wrapper) or
+# resolve '-' themselves.
 (($# == 0)) && set -- "$HOME"
 if (($# == 1)); then
-    [[ $1 == "-" ]] && { printf '%s\n' "${_ZE_OLDPWD:-$HOME}"; exit; }
+    [[ $1 == "-" ]] && { printf '%s\n' "${OLDPWD:-${_ZE_OLDPWD:-$HOME}}"; exit; }
     [[ $1 != -* && -d $1 ]] && { printf '%s\n' "$1"; exit; }
 fi
 zexpath=$(command -v "$0") || exit 1

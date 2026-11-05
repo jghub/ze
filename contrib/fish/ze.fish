@@ -1,4 +1,5 @@
 function ze
+    set -lx OLDPWD ''    # fish does not maintain OLDPWD but we need to clear any inherited value
     if test (count $argv) -eq 0
         _ze_cd
         return

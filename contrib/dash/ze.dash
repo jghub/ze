@@ -21,27 +21,25 @@ ze() {
         esac
     done
     if [ -n "$_ze__report" ]; then
-        zex.sh "$@"
+        _ZE_OLDPWD=${OLDPWD:-} zex.sh "$@"
         return $?
     elif [ -n "$_ze__open" ]; then
-        zex.sh --open "$@"
+        _ZE_OLDPWD=${OLDPWD:-} zex.sh --open "$@"
         return $?
     fi
 
     # directory navigation requires parent shell builtin 'cd'
-    _ze__res=$(zex.sh "$@") || return $?
+    _ze__res=$(_ZE_OLDPWD=${OLDPWD:-} zex.sh "$@") || return $?
     [ -n "$_ze__res" ] || return
     [ -d "$_ze__res" ] || { printf '%s\n' "$_ze__res"; return; }   # e.g. bare -c yields a list
     _ze_cd -- "$_ze__res"
 }
 
 _ze_cd() {
-    [ "$1" = "-" ] && set -- "${_ZE_OLDPWD:-$HOME}"
+    [ "${1:-}" = "-" ] && set -- "${OLDPWD:-$HOME}"
     local _ze__prev=$PWD
     CDPATH='' command cd "$@" || return $?
     local _ze__cur=$PWD
     [ -n "${_ZE_RESOLVE_SYMLINKS:-}" ] && _ze__cur=$(command pwd -P 2>/dev/null) || _ze__cur=$PWD
     ( zex.sh --record "$_ze__cur" "$_ze__prev" & )
-    _ZE_OLDPWD=$_ze__prev
-    export _ZE_OLDPWD
 }

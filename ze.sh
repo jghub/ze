@@ -325,7 +325,7 @@ function _ze {
                 [[ -f $fnd ]] && { printf '%s\n' "$fnd"; return; }
             else
                 typeset target=${fnd:-$HOME}
-                [[ $target == "-" ]] && target=${_ZE_OLDPWD:-$HOME}
+                [[ $target == "-" ]] && target=${OLDPWD:-${_ZE_OLDPWD:-$HOME}}
                 [[ -d $target ]] && { printf '%s\n' "$target"; return; }
             fi
             emit=1    # if not a literal pathname, fallback to emitting the pattern match
