@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # fast-track a single literal pathname argument, bypassing the database lookup. everything else is
 # dispatched to `_ze -N`, which centralizes general literal-path priority, '--' handling, and pattern
-# fallback, ensuring wrappers behave like native ze. wrappers, or rather the underlying shells, must
-# maintain OLDPWD (like dash) or the wrappers must export _ZE_OLDPWD (like the fish wrapper) or
-# resolve '-' themselves.
+# fallback, ensuring wrappers behave like native ze. '-' resolves to the previous directory. The
+# environment seen by zex.sh must hold the caller's previous directory in OLDPWD (dash exports it,
+# the tcsh alias sets it) or no OLDPWD at all (the fish wrapper clears any inherited value and
+# exports _ZE_OLDPWD instead), because an inherited OLDPWD takes precedence over _ZE_OLDPWD.
 (($# == 0)) && set -- "$HOME"
 if (($# == 1)); then
     [[ $1 == "-" ]] && { printf '%s\n' "${OLDPWD:-${_ZE_OLDPWD:-$HOME}}"; exit; }
