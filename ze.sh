@@ -288,7 +288,7 @@ function _ze {
                 r) typ="visits";;
                 t) typ="recent";;
                 N) Nflag=1;;  # for internal use in zex.sh only (no-action flag: print, but do not act)
-                V) typeset ze_version="ze v4.1.2"; printf '%s\n' "$ze_version"; return;;
+                V) typeset ze_version="ze v4.1.3"; printf '%s\n' "$ze_version"; return;;
                 *) ufo+=" -${opt:0:1}";;
             esac; opt=${opt:1}; done;;
          *) fnd+=${fnd:+ }$1; fdargs+=("$1");;

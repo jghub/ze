@@ -1,5 +1,13 @@
 # ze.sh: Changelog
 
+## v4.1.3 (2026-11-07)
+* **fish and tcsh wrappers**: an `OLDPWD` inherited from the parent shell no
+longer takes precedence over the wrapper's own record of the previous directory.
+
+* **dash wrapper**: `ze -` now follows the shell's own previous directory
+(`OLDPWD`) like `cd -`, including plain `cd` commands issued in between. The
+wrapper no longer exports `_ZE_OLDPWD`.
+
 ## v4.1.2 (2026-11-01)
 * **backend driver and shell wrappers**: add `-N` no-action mode to `ze.sh` (print
 the target `ze` would act on; enforce literal-path priority over pattern
