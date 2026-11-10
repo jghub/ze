@@ -293,7 +293,11 @@ semantics:
 alias cd=_ze_cd
 .P
 For full \fBze\fP behaviour including pattern navigation on every \fBcd\fP
-invocation, use \fB_ZE_CMD=cd\fP instead (see CONFIGURATION).
+invocation, use 
+.IP
+alias cd=ze
+.P
+instead.
 .P
 For
 .BR fish ,
@@ -386,11 +390,6 @@ format, with \fIpath\fP denoting an absolute file path.
 The following environment variables can be set before sourcing ze.sh (typically in
 your shell rc):
 .TP
-\fB_ZE_CMD\fP
-Command name (default: \fBze\fP). Setting \fB_ZE_CMD=cd\fP shadows the builtin
-\fBcd\fP with full \fBze\fP behaviour including pattern navigation, changing
-\fBcd\fP semantics accordingly.
-.TP
 \fB_ZE_DBMAX\fP Database size limit (default: \fB640\fP).
 .TP
 \fB_ZE_DIR\fP Database directory (default: \fB~/.ze\fP).
@@ -422,8 +421,7 @@ physical paths (default: logical paths are honoured).
 The variables are read by \fBze.sh\fP. With the \fBfish\fP, \fBdash\fP and \fBtcsh\fP
 wrappers they are read by the \fBzex.sh\fP process and must therefore be exported from
 the interactive shell (\fBset -gx\fP in fish, \fBexport\fP in dash, \fBsetenv\fP in
-tcsh). \fB_ZE_CMD\fP is not used by the wrappers (apart from the command name shown by
-\fBze \-h\fP).
+tcsh). 
 .
 .SH FZF INTEGRATION
 .P
@@ -496,7 +494,7 @@ The following shell functions are defined in the global namespace after sourcing
 \fBze.sh\fP:
 .TP
 \fB_ze\fP
-Main function, aliased to the command name specified by \fB_ZE_CMD\fP (default: \fBze\fP).
+Main function, usually synonymous to \fBze\fP.
 .TP
 \fB_ze_cd\fP
 cd wrapper. Alias \fBcd\fP to this function to track ordinary cd commands.

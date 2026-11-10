@@ -281,7 +281,7 @@ function _ze {
                 d) digger=1;;
                 e) emit=1;;
                 f) finder=1;;
-                h) printf '%s\n' "usage: ${_ZE_CMD:-ze} [-o|-p] [-NVbcdefhlrt] [pattern|pathname|-]"; return;;
+                h) printf '%s\n' "usage: ze [-o|-p] [-NVbcdefhlrt] [pattern|pathname|-]"; return;;
                 l) list=1;;
                 o) opcode=1; mode=files;;
                 p) opcode=2; mode=files;;
@@ -394,5 +394,4 @@ function _ze {
     fi
 }
 
-# shellcheck disable=SC2139 # false alarm
-alias "${_ZE_CMD:-ze}"='_ze'
+if ! command -v ze >/dev/null; then function ze { _ze "$@"; }; fi

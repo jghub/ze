@@ -20,17 +20,43 @@ file:
 source /path/to/ze.sh
 ```
 
-**Important**: ze.sh is designed to use `ze` for all navigation, including
-pathname-based directory changes. Ordinary `cd` commands are not tracked by
-default. To also track `cd`, add
+By default, `ze` is the explicit navigation command: it supports both direct
+pathname changes and pattern-based directory jumping. Ordinary `cd` commands
+are neither intercepted nor tracked.
+
+The native implementation defines a `ze` shell function only if the command name
+is not already in use. If `ze` is already occupied, ze.sh leaves it untouched and
+you then would have to define your own alias/function for `_ze` instead.
+
+There are three ways to configure directory navigation, depending on whether
+and how you want ordinary `cd` commands to behave and interact with ze:
+
+1. **Explicit `ze` only (default)**
+
+Use `ze` for navigation. Ordinary `cd` retains its native semantics and is not
+tracked.
+
+2. **Track ordinary `cd` commands**
+
+Add
 
 ```sh
 alias cd=_ze_cd
 ```
+to your shell rc file. This records directory changes made with `cd` while
+retaining its native semantics. Pattern-based navigation still requires to
+use the `ze` command.
 
-to your shell rc file. This triggers database updates on every `cd` while
-retaining native `cd` semantics. To additionally enable pattern-based navigation
-on every `cd` invocation, use `_ZE_CMD=cd` (see Configuration).
+3. **Use `cd` for all navigation**
+
+Add
+```sh
+alias cd=ze
+```
+This routes every `cd` invocation through ze, enabling both direct pathname
+changes and pattern-based navigation. In this mode, `cd` has ze's dispatch
+semantics (providing pattern matching based navigation on top of pathname-only
+but not honouring the `-L` and `-P` options of builtin `cd`).
 
 For `fish`, install ze.sh, zex.sh, and the wrapper functions:
 
@@ -90,8 +116,9 @@ directory A increases that directory's score. For a directory jumper, using
 command activity *within* a directory as a measure of how often a user might want
 to *reach* that directory (so that it should be scored highly) seems inferior to
 monitoring only cd activity. Therefore, ze.sh removes the hooks entirely. Only
-explicit `ze`-based directory changes (or bare `cd` if aliased to `_ze_cd`)
-trigger database updates.
+explicit `ze`-based directory changes trigger database updates. Navigation using
+`cd` is only tracked if `cd` is aliased accordingly to either `_ze_cd` or `ze`
+(see Installation section).
 
 For broader shell compatibility, ze.sh furthermore uses `typeset` instead of
 `local` and `[[`/`(())` instead of `[`/`test` throughout. The latter is not a
@@ -191,7 +218,7 @@ database when combined with `[-o|-p]`.
 
 | Area             | z.sh                                                  | ze.sh                                                                                |
 | ---------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------|
-| Tracking         | precommand hook fires on every command                | tracks explicit cd navigation (`ze`, optionally aliased `cd`)                        |
+| Tracking         | precommand hook fires on every command                | tracks explicit `ze` navigation. Ordinary `cd` can optionally be routed through `ze` |
 | Scoring          | frecency heuristic with common-prefix override *(1)*  | exponential moving sum on event clock, no common-prefix override                     |
 | Path dispatch    | no pathname check, categorical pattern matching *(2)* | real paths take precedence over pattern matching                                     |
 | Bare call        | lists database                                        | follows builtin cd semantics: cd to $HOME                                            |
@@ -253,7 +280,6 @@ jumping.
 
 | Variable               | Default | Meaning                             |
 | ---------------------- | ------- | ----------------------------------- |
-| `_ZE_CMD`              | `ze`    | command name *(1)*                  |
 | `_ZE_DBMAX`            | `640`   | db size limit (pruning threshold)   |
 | `_ZE_DIR`              | `~/.ze` | database directory                  |
 | `_ZE_LAMBDA`           | `8e-3`  | decay constant (units: 1/cd-action) |
@@ -264,16 +290,9 @@ jumping.
 | `_ZE_RESOLVE_SYMLINKS` | unset   | resolve symlinks on cd              |
 
 
-*(1)*: Setting `_ZE_CMD=cd` shadows the builtin `cd` with full `ze` behaviour
-including pattern navigation. Note that this changes `cd` semantics: unrecognized
-pathnames are tried as patterns against the database rather than producing an
-error. `_ZE_CMD` is only used by the native shells, the wrappers define the command
-themselves (see [Wrappers for other shells](#wrappers-for-other-shells)).
-
 The variables above are read by `ze.sh`. With the `fish`, `dash` and `tcsh`
 wrappers they are read by the `zex.sh` process, so they must be exported from the
 respective interactive shell (`set -gx` in fish, `export` in dash, `setenv` in tcsh).
-`_ZE_CMD` has no effect there (apart from the command name shown by `ze -h`).
 
 ## Interactive selection and fzf integration
 
@@ -298,17 +317,16 @@ A fish wrapper is provided in `contrib/fish/`. It exposes the same user interfac
 as the native implementation, including `ze -f` integration with `fzf`.
 
 Unlike the native shells, `fish` does not source `ze.sh` directly. Instead,
-`ze.fish` invokes the `zex.sh` backend, while `_ze_cd.fish` wraps fish's builtin
-`cd` to record directory changes in the ze database.
+`ze.fish` provides the `ze` command through the `zex.sh` backend, while
+`_ze_cd.fish` wraps fish's builtin `cd` to record directory changes in the ze
+database.
 
-`_ZE_CMD` is not used under `fish`. The three configuration cases from the native
-shells map to `fish` as follows. Add the relevant line to
-`~/.config/fish/config.fish`:
+The two optional `cd` configurations are the same as for the native shells. Add
+the relevant line to `~/.config/fish/config.fish`:
 
 ```sh
-alias myze ze          # rename ze to arbitrary different command name
-alias cd   _ze_cd      # track cd, retain native cd semantics
-alias cd   ze          # track cd, enable pattern navigation on every cd
+alias cd _ze_cd      # track cd, retain native cd semantics
+alias cd ze          # track cd, enable pattern navigation on every cd
 ```
 
 Configuration variables need to be exported from your shell in order to take
@@ -326,8 +344,7 @@ to `~/.config/fish/config.fish` to enforce basic CLI selection instead of `fzf`.
 
 The `dash` wrapper (`contrib/dash/ze.dash`) follows the same dispatch logic as the
 fish wrapper and provides the complete `ze` interface. As with fish,
-configuration variables must be exported (e.g. `export _ZE_NO_FZF=1`) and
-`_ZE_CMD` is not used.
+configuration variables must be exported (e.g. `export _ZE_NO_FZF=1`).
 
 The wrapper defines the functions `ze` and `_ze_cd` but no aliases. The `cd`
 cases of the native shells map to:
