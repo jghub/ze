@@ -237,6 +237,8 @@ function _ze_record { ## pathname [oldpwd] [dirs|files]
     typeset pathname=${1:-"/"} oldpwd=${2:-${OLDPWD:-}} mode=${3:-dirs}  # pathname default="/" safeguards against manual misuse
     typeset datafile lambda=${_ZE_LAMBDA:-8e-3}
 
+    [[ $pathname == /* ]] || return 1   # safeguard: reject relative pathnames (which will only reach this point in case of an erroneous call)
+
     if [[ $mode == files ]]; then
         [[ -f $pathname ]] || return 1
         datafile="${_ZE_DIR:-$HOME/.ze}/zef.db"
@@ -379,7 +381,7 @@ function _ze {
             }
             if (!best_match) exit(1)
             if (list)
-                for (x in score) printf "%-12s\t%s\n", score[x], shortpath(x) | "LC_ALL=C sort -k1,1g -k2,2"
+                for (x in score) printf "%-12s\t%s\n", score[x], shortpath(x) | "LC_ALL=C sort -k1,1g -k2"
             else print best_match
         }
     ')
