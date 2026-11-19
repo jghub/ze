@@ -1,5 +1,18 @@
 # ze.sh: Changelog
 
+## v4.1.4 (2026-11-19)
+* **Search**: fix handling of `-` as an additional search term (e.g. `ze foo -`).
+
+* **Command configuration**: remove `_ZE_CMD` and define a `ze` function only if
+that command name is not already in use.
+
+* **README**: clarify the three configurations: explicit `ze`, tracking ordinary
+`cd`, or routing all navigation through `ze`.
+
+* **tcsh wrapper**: improve file opening/paging and directory-change recording.
+
+* **Database**: reject relative pathnames passed to the recorder.
+
 ## v4.1.3 (2026-11-07)
 * **fish and tcsh wrappers**: an `OLDPWD` inherited from the parent shell no
 longer takes precedence over the wrapper's own record of the previous directory.
