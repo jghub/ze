@@ -276,7 +276,7 @@ function _ze {
     typeset -a fdargs; fdargs=()
     while (($#)); do case "$1" in
         --) shift; while (($#)); do fnd+=${fnd:+ }$1; fdargs+=("$1"); shift; done;;
-         -) fnd='-';;
+         -) fnd+=${fnd:+ }-; fdargs+=("-");;
         -*) opt=${1:1}; while [[ $opt ]]; do case ${opt:0:1} in
                 b) bflag=1;;
                 c) cflag=1;;
