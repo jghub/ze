@@ -20,9 +20,10 @@ bash, zsh, ksh93, mksh, fish, dash, tcsh (provisional)
 .B fish
 and
 .B dash
-shells are also provided (\fBtcsh\fP is provisionally supported via aliases). File
-tracking is explained in more detail below, the following description focuses
-primarily on directory tracking mode.
+shells are also provided (\fBtcsh\fP is provisionally supported via aliases).
+\fB\-o\fP and \fB\-p\fP switch \fBze\fP from directory tracking to file tracking
+(see OPTIONS). The remainder of this description refers to directory tracking
+mode.
 .LP
 Unlike its predecessor \fBz.sh\fP, \fBze.sh\fP uses an exponential moving sum
 (EMS) scoring model on an event-driven clock (a global monotonic event counter
@@ -58,9 +59,10 @@ ordinary character. An unquoted leading \fB~/\fP is expanded by the shell to
 \fB$HOME/\fP before \fBze\fP sees it.
 .P
 Patterns are first tried as pathnames. If directory \fIfoo\fP, \fI/foo\fP or
-\fIfoo/\fP exists, \fBze\fP changes into it. Pattern matching only takes place if
-pathname interpretation fails. Matching is case-insensitive unless the pattern
-contains an uppercase character (smartcase).
+\fIfoo/\fP exists (in file tracking mode: a readable regular file), \fBze\fP
+changes into it (in file tracking mode: opens it). Pattern matching only takes
+place if pathname interpretation fails. Matching is case-insensitive unless the
+pattern contains an uppercase character (smartcase).
 .P
 Anchoring is expressed with the following constructs:
 .TP
@@ -76,7 +78,7 @@ Any remaining characters of the current component. It stops a match from
 extending into later components.
 .P
 \fB^\fP matches the start of the pathname. As every pathname starts with \fB/\fP,
-this is only useful for top-level directories, e.g. \fB^/usr\fP.
+this is only useful for top-level names, e.g. \fB^/usr\fP.
 .P
 Each blank in a pattern is replaced by \fB.*\fP before matching. To match a
 single blank, you might use \fB.\fP as in \fBfoo.bar\fP, but this also matches,
@@ -93,6 +95,17 @@ In all shells, quote patterns containing \fB*\fP, \fB?\fP, \fB[\fP,
 if they match file names in the current directory.
 .
 .SH OPTIONS
+.P
+\fB\-o\fP and \fB\-p\fP select \fIfile tracking mode\fP. In this mode \fBze\fP
+operates on a separate database of non-binary files (\fB~/.ze/zef.db\fP), and
+every other option and pattern refers to files instead of directories.
+The selected file is opened in the editor (\fB\-o\fP) or pager (\fB\-p\fP)
+(if both \fB\-o\fP and \fB\-p\fP are given, the last one wins). In contrast
+to directory tracking mode, a lone \fB\-\fP is an ordinary pattern, while without
+arguments the highest-scoring file is selected.
+.P
+Option descriptions below are written for directory tracking mode. Where they
+mention directories, read "files" in file tracking mode.
 .TP
 .B \-N
 No-action flag: print the target (pathname) that \fBze\fP would act on. For
@@ -107,7 +120,7 @@ Basename match: the end of the match must lie within the basename, i.e. a patter
 contains no \fB/\fP, this means that the last term matches inside the basename.
 With several blank-separated terms, the earlier ones may match anywhere. Has no
 effect on a pattern that already ends in \fB$\fP or if the argument is interpreted
-as a pathname. Also applies in file tracking mode.
+as a pathname.
 .TP
 .B \-c
 Constrain matches to subdirectories of the current directory. If specified without
@@ -144,12 +157,10 @@ List all matching directories by score. Pathnames below \fI$HOME\fP are shown as
 \fB~/\fP... (see NOTES).
 .TP
 .B \-o
-Switch to file tracking mode and open the selected file in the editor. File
-tracking uses a separate database and tracks non-binary files. See also \fB\-p\fP.
+Switch to file tracking mode and open the selected file in the editor. See above.
 .TP
 .B \-p
-Switch to file tracking mode and view the selected file in a pager. File
-tracking uses a separate database and tracks non-binary files. See also \fB\-o\fP.
+Switch to file tracking mode and view the selected file in a pager. See above.
 .TP
 .B \-r
 Sort matches by visit count.
@@ -287,13 +298,14 @@ put the following in your shell rc file (\fI.bashrc\fP, \fI.kshrc\fP, etc.):
 .IP
 source /path/to/ze.sh
 .P
-Optionally, to track ordinary \fBcd\fP commands while retaining native \fBcd\fP
-semantics:
+Optionally, to track ordinary \fBcd\fP commands (plain \fBcd\fP \fIdir\fP
+and \fBcd \-\fP work as usual; \fBCDPATH\fP is ignored and options are
+not accepted):
 .IP
 alias cd=_ze_cd
 .P
 For full \fBze\fP behaviour including pattern navigation on every \fBcd\fP
-invocation, use 
+invocation, use
 .IP
 alias cd=ze
 .P
@@ -421,7 +433,7 @@ physical paths (default: logical paths are honoured).
 The variables are read by \fBze.sh\fP. With the \fBfish\fP, \fBdash\fP and \fBtcsh\fP
 wrappers they are read by the \fBzex.sh\fP process and must therefore be exported from
 the interactive shell (\fBset -gx\fP in fish, \fBexport\fP in dash, \fBsetenv\fP in
-tcsh). 
+tcsh).
 .
 .SH FZF INTEGRATION
 .P
