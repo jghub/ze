@@ -342,8 +342,11 @@ function _ze {
     fi
 
     ((bflag)) && [[ $fnd && $fnd != *"$" ]] && fnd="($fnd)[^/]*$"
+    typeset boost=${_ZE_BOOST:-64}      # basename match score boost factor, 1 = off
+    ((bflag)) || [[ -z $fnd ]] || [[ $fnd == "." ]] && boost=1
     typeset result
-    result=$(_ze_read "$mode" | fnd=$fnd cwd=$cwd LC_ALL='' LC_NUMERIC=C awk -v list="$list" -v typ="$typ" -v lambda="$lambda" -F"|" '
+    result=$(_ze_read "$mode" | fnd=$fnd cwd=$cwd LC_ALL='' LC_NUMERIC=C awk -v list="$list" -v typ="$typ" -v lambda="$lambda" -v boost="$boost" -F"|" '
+        function is_basematch(c,    b) { b = c; sub(/^.*\//, "", b); return (b ~ q) }
         function shortpath(p) { return (home != "" && index(p, home) == 1) ? "~" substr(p, hlen) : p }
         BEGIN {
             cwd  = ENVIRON["cwd"]; if (cwd != "" && cwd != "/") cwd = cwd "/"
@@ -355,6 +358,7 @@ function _ze {
             lq = tolower(q)
             case_sensitive = (q != lq)
             if (!case_sensitive) q = lq
+            boost = boost + 0; if (boost < 1) boost = 1
             hi_score = -1e300
         }
         {
@@ -372,7 +376,10 @@ function _ze {
                         score[pathname] = f[2]
                     } else if (typ == "recent") {
                         score[pathname] = f[3]
-                    } else score[pathname] = f[4] * exp(-lambda * (tmax - f[3]))
+                    } else {
+                       score[pathname] = f[4] * exp(-lambda * (tmax - f[3]))
+                       if (boost > 1 && is_basematch(candidate)) score[pathname] *= boost
+                    }
                     if (score[pathname] > hi_score) {
                         best_match = pathname
                         hi_score = score[pathname]
