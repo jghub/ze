@@ -389,7 +389,7 @@ function _ze {
                 for (x in score) printf "%-12s\t%s\n", score[x], shortpath(x) | "LC_ALL=C sort -k1,1g -k2"
             else print best_match
         }
-        function is_basematch(c) { return (sub(/^.*\//, "", c) ~ q) }
+        function is_basematch(c) { sub(/^.*\//, "", c); return (c ~ q) }
         function shortpath(p) { return (home != "" && index(p, home) == 1) ? "~" substr(p, hlen) : p }
     ')
     typeset -i rc=$?; ((rc)) && { printf 'no match\n' >&2; return $rc; }
