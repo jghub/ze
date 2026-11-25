@@ -342,11 +342,13 @@ function _ze {
     fi
 
     ((bflag)) && [[ $fnd && $fnd != *"$" ]] && fnd="($fnd)[^/]*$"
-    typeset boost=${_ZE_BOOST:-64}  # basename-match score boost, 1 = off; 2^n compensates n EMS half-lives
-    ((bflag)) || [[ -z $fnd ]] || [[ $fnd == "." ]] && boost=1
+    ((bflag)) || [[ -z $fnd ]] || [[ $fnd == "." ]] || typeset boost=${_ZE_BOOST:-10}  # basename-match score boost factor is 2^boost, 0 = off; compensates/undos 'boost' EMS half-lives
     typeset result
     result=$(_ze_read "$mode" | fnd=$fnd cwd=$cwd LC_ALL='' LC_NUMERIC=C awk -v list="$list" -v typ="$typ" -v lambda="$lambda" -v boost="$boost" -F"|" '
         BEGIN {
+            hi_score = -1e300
+            boost = 2^(boost + 0); if (boost < 1) boost = 1
+            fmt = (typ == "visits" || typ == "recent") ? "%-12d\t%s\n" : "%-#12.6g\t%s\n"
             cwd  = ENVIRON["cwd"]; if (cwd != "" && cwd != "/") cwd = cwd "/"
             home = ENVIRON["HOME"]; sub(/\/+$/, "", home)  # empty if HOME=/ (this should be the root user)
             if (home != "") home = home "/"
@@ -356,9 +358,6 @@ function _ze {
             lq = tolower(q)
             case_sensitive = (q != lq)
             if (!case_sensitive) q = lq
-            boost = boost + 0; if (boost < 1) boost = 1
-            if (typ == "visits" || typ == "recent") fmt = "%-12d\t%s\n"; else fmt = "%-#12.6g\t%s\n"
-            hi_score = -1e300
         }
         {
             lines[NR] = $0
