@@ -357,6 +357,7 @@ function _ze {
             case_sensitive = (q != lq)
             if (!case_sensitive) q = lq
             boost = boost + 0; if (boost < 1) boost = 1
+            if (typ == "visits" || typ == "recent") fmt = "%-12d\t%s\n"; else fmt = "%-#12.6g\t%s\n"
             hi_score = -1e300
         }
         {
@@ -386,7 +387,7 @@ function _ze {
             }
             if (!best_match) exit(1)
             if (list)
-                for (x in score) printf "%-12s\t%s\n", score[x], shortpath(x) | "LC_ALL=C sort -k1,1g -k2"
+                for (x in score) printf fmt, score[x], shortpath(x) | "LC_ALL=C sort -k1,1g -k2"
             else print best_match
         }
         function is_basematch(c) { sub(/^.*\//, "", c); return (c ~ q) }
