@@ -342,12 +342,10 @@ function _ze {
     fi
 
     ((bflag)) && [[ $fnd && $fnd != *"$" ]] && fnd="($fnd)[^/]*$"
-    typeset boost=${_ZE_BOOST:-64}      # basename match score boost factor, 1 = off
+    typeset boost=${_ZE_BOOST:-64}  # basename-match score boost, 1 = off; 2^n compensates n EMS half-lives
     ((bflag)) || [[ -z $fnd ]] || [[ $fnd == "." ]] && boost=1
     typeset result
     result=$(_ze_read "$mode" | fnd=$fnd cwd=$cwd LC_ALL='' LC_NUMERIC=C awk -v list="$list" -v typ="$typ" -v lambda="$lambda" -v boost="$boost" -F"|" '
-        function is_basematch(c,    b) { b = c; sub(/^.*\//, "", b); return (b ~ q) }
-        function shortpath(p) { return (home != "" && index(p, home) == 1) ? "~" substr(p, hlen) : p }
         BEGIN {
             cwd  = ENVIRON["cwd"]; if (cwd != "" && cwd != "/") cwd = cwd "/"
             home = ENVIRON["HOME"]; sub(/\/+$/, "", home)  # empty if HOME=/ (this should be the root user)
@@ -391,6 +389,8 @@ function _ze {
                 for (x in score) printf "%-12s\t%s\n", score[x], shortpath(x) | "LC_ALL=C sort -k1,1g -k2"
             else print best_match
         }
+        function is_basematch(c) { return (sub(/^.*\//, "", c) ~ q) }
+        function shortpath(p) { return (home != "" && index(p, home) == 1) ? "~" substr(p, hlen) : p }
     ')
     typeset -i rc=$?; ((rc)) && { printf 'no match\n' >&2; return $rc; }
 
